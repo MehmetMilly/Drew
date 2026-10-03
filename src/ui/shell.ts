@@ -114,8 +114,41 @@ export class Shell {
     if (level) {
       bar.append(this.press(el('button', 'icon retry', '<svg viewBox="0 0 40 40"><path d="M30 14a12 12 0 1 0 2 10" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/><path d="M31 6v9h-9" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'), () => this.retry()));
     }
-    bar.append(this.press(el('button', 'icon back', '<svg viewBox="0 0 40 40"><path d="M10 12h20M10 20h20M10 28h20" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/></svg>'), () => this.show(level ? 'chapter' : 'title')));
+    bar.append(this.press(el('button', 'icon back', '<svg viewBox="0 0 40 40"><path d="M10 12h20M10 20h20M10 28h20" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/></svg>'), () => this.pause(level)));
     this.root.append(bar);
+  }
+
+  /** Pause (look-and-feel §8): a sticky note over a soft scrim, opens in 150 ms. */
+  private pause(level: LevelDef | null) {
+    if (this.root.querySelector('.scrim')) return;
+    this.toy.paused = true;
+    const scrim = el('div', 'scrim');
+    const note = el('div', 'note pause-note');
+    const close = () => {
+      this.toy.paused = false;
+      scrim.remove();
+    };
+    note.append(el('b', '', 'Paused'));
+    note.append(this.press(el('button', 'line', 'Keep drawing'), close));
+    if (level)
+      note.append(
+        this.press(el('button', 'line', 'Start over'), () => {
+          close();
+          this.retry();
+        }),
+      );
+    note.append(
+      this.press(el('button', 'line', level ? 'Levels' : 'Title'), () => {
+        this.toy.paused = false;
+        this.show(level ? 'chapter' : 'title');
+      }),
+    );
+    scrim.append(note);
+    scrim.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      if (e.target === scrim) close();
+    });
+    this.root.append(scrim);
   }
 
   /** Fail: tap anywhere retries; a small Watch button sits beside the prompt. */

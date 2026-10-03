@@ -8,6 +8,7 @@ import { load as loadSave, recordWin, recordFail } from './save';
 import { epitaph } from './epitaph';
 import { pickMoment, type Birth } from './replay';
 import { Show } from './show';
+import { Juice } from '../render/fx';
 import { WorldRenderer } from '../render/renderer';
 import { PAPERS, renderDesk, renderPaper } from '../render/materials';
 import { attachPen, LivePt } from '../input/pen';
@@ -46,6 +47,8 @@ export class Toy {
   private hintAlpha = 1;
   /** Menus sit on the live page: no blank-page hint under them. */
   quiet = false;
+  /** The pause note is up: the world holds still. */
+  paused = false;
   private now = 0;
   private overlayDirty = true;
 
@@ -62,6 +65,8 @@ export class Toy {
   private blocked = false;
   private births: Birth[] = [];
   private show: Show | null = null;
+  private juice = new Juice();
+  private dt = 1 / 60;
   private recorder: MediaRecorder | null = null;
   private winInfo: Parameters<NonNullable<Toy['onWin']>>[0] | null = null;
   private endStep = 0;
@@ -349,9 +354,9 @@ export class Toy {
     if (this.wet.length && !this.live && this.wet.every((s) => t - s.upAt >= this.wetTime)) this.birth();
 
     // the title holds the first frame; a win lands with a short hit-stop
-    if (t >= this.readUntil && t >= this.hitStopUntil && !this.show?.visible) this.acc += dt * this.scale;
+    if (t >= this.readUntil && t >= this.hitStopUntil && !this.show?.visible && !this.paused) this.acc += dt * this.scale;
     this.watchResult();
-    this.updateShow(dt);
+    if (!this.paused) this.updateShow(dt);
     let n = 0;
     while (this.acc >= WORLD.dt && n < 4) {
       const t0 = performance.now();
@@ -362,7 +367,13 @@ export class Toy {
     }
     if (n === 4) this.acc = Math.min(this.acc, WORLD.dt);
     const ev = this.world.events;
-    for (; this.heard < ev.length; this.heard++) sfxEvent(ev[this.heard], this.world, this.scale);
+    const reduced = loadSave().settings.reducedMotion;
+    for (; this.heard < ev.length; this.heard++) {
+      sfxEvent(ev[this.heard], this.world, this.scale);
+      const hs = this.juice.event(ev[this.heard], this.now, reduced);
+      if (hs) this.hitStopUntil = Math.max(this.hitStopUntil, this.now + hs);
+    }
+    this.dt = dt;
     sfxFrame(this.world, this.scale);
     const w0 = performance.now();
     this.render(this.acc / WORLD.dt);
@@ -486,12 +497,18 @@ export class Toy {
       g.fillText('draw anything', WORLD.W / 2, 520);
       g.globalAlpha = 1;
     }
+    g.save();
+    if (!this.recorder) this.juice.shake(g, this.dt, this.now);
     // the clip needs the paper in the recorded canvas (it normally lives on the backdrop)
     if (this.recorder && this.paper) g.drawImage(this.paper, 0, 0, WORLD.W, WORLD.H);
-    if (this.show?.visible || this.recorder) this.show?.draw(g, this.now, loadSave().settings.intentLines);
-    else {
+    if (this.show?.visible || this.recorder) {
+      this.show?.draw(g, this.now, loadSave().settings.intentLines);
+      g.restore();
+    } else {
       if (this.level) this.drawLevelUnder(g);
       this.renderer.draw(g, { alpha, realT: this.now, debug: this.debug, stepMs: this.stepMs, intentLines: loadSave().settings.intentLines });
+      this.juice.draw(g, this.now);
+      g.restore();
       if (this.level) this.drawLevelOver(g);
     }
     if (this.tapMark && this.now - this.tapMark.t < 0.6) {
