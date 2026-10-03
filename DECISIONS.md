@@ -52,3 +52,8 @@ Each entry: date, what changed, why.
 - **Pencil**: volume 0.28 (was too loud), speed clamped and smoothed, and the scratch silences itself 60 ms after the pen stops feeding it (it could stick on, rising in pitch).
 - **Not doing**: recognising what a drawing depicts (dog, car...). The design reads geometry only on purpose; variety comes from body plans, not labels.
 - **Turnaround for all bodies, tried (Gate 1 round 2)**: making every body mirror round looked bad on symmetric bodies (spider, stick figure: a pointless squash to a sliver mid-turn, since the mirror changes nothing) and tangled small scribble masses, which then tore seconds later. Kept: lopsided bodies without lumps turn physically (now in 0.22 s); symmetric and lumpy bodies face with their eyes. A body that is turning, or settled from a turn within 0.6 s, cannot tear (turning is intent).
+
+## 2026-10-03 — Phase 2, kept lean
+
+- **Phase 2 order**: the measurement course and grafting come first. Water and wind (Chapter 4) and their metrics move to just before Chapter 4; throw distance and crusher force are measured once grab/throw and the crusher exist (Phase 3). Why: the tester's verdict at Gate 1 was that the toy is good and the game now has to prove it's fun, so the Chapter 1 slice should come as early as possible.
+- **Metrics course** (`npm run metrics` → LEVEL_METRICS.md): walk on flat, mean speed up a 20° ramp, reach up, reach sideways, jump, and time to cross a 200 px gap between ledges (fell or stalled → "can't").
