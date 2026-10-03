@@ -271,4 +271,7 @@ export const LEVEL = {
   hugHold: 0.4, // s of contact that counts as a hug
   foresee: 0.5, // s: a sleeping threat this close to waking already counts
   readTime: 1.0, // s the title holds the first frame (design §2)
+  failBeat: 0.6, // s of comic beat before a tap retries
+  hitStop: 0.15, // s the world freezes as the stamp lands
+  cardDelay: 1.3, // s from the win to the end card
 };

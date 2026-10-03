@@ -1,7 +1,11 @@
 // Phase 1 toy: a blank page where you draw, the ink dries and the creature is
 // born. Tap to give every creature a walk target and a reach target.
-import { INK, WORLD, COLORS } from '../tuning';
+import { INK, WORLD, COLORS, LEVEL } from '../tuning';
 import { World } from '../sim/world';
+import { startLevel, type LevelDef } from '../sim/level';
+import type { Pt } from '../sim/geom';
+import { load as loadSave, recordWin, recordFail } from './save';
+import { epitaph } from './epitaph';
 import { WorldRenderer } from '../render/renderer';
 import { PAPERS, renderDesk, renderPaper } from '../render/materials';
 import { attachPen, LivePt } from '../input/pen';
@@ -36,8 +40,70 @@ export class Toy {
   debug = false;
   private tapMark: { x: number; y: number; t: number } | null = null;
   private hintAlpha = 1;
+  /** Menus sit on the live page: no blank-page hint under them. */
+  quiet = false;
   private now = 0;
   private overlayDirty = true;
+
+  // ---- level mode (null = the blank-page toy)
+  level: LevelDef | null = null;
+  private readUntil = 0;
+  private inkUsed = 0;
+  private drawn: Pt[][] = []; // this attempt's strokes (become the next ghost)
+  private ghost: Pt[][] = [];
+  private result: 'play' | 'win' | 'fail' = 'play';
+  private resultAt = 0;
+  private hitStopUntil = 0;
+  private blockMark: { x: number; y: number; t: number } | null = null;
+  private blocked = false;
+  private hintGhost: Pt[][] | null = null;
+  private hintGhostAt = 0;
+  /** shell hooks */
+  onWin: ((info: { level: LevelDef; heroes: { name: string; kind: string }[]; newBadges: string[]; epitaph: string; strokes: Pt[][] }) => void) | null = null;
+  onRetry: (() => void) | null = null;
+
+  /** Start a level (or the blank page with null). Retrying the same level keeps a ghost. */
+  load(def: LevelDef | null) {
+    const same = def && this.level && def.id === this.level.id;
+    this.ghost = same && this.drawn.length ? this.drawn : same ? this.ghost : [];
+    this.level = def;
+    this.world = new World({ seed: 1 });
+    if (def) startLevel(this.world, def);
+    this.renderer.reset(this.world);
+    this.wet = [];
+    this.live = null;
+    this.drawn = [];
+    this.inkUsed = 0;
+    this.result = 'play';
+    this.acc = 0;
+    this.scale = this.scaleFrom = this.scaleTarget = 1;
+    this.readUntil = def ? this.now + LEVEL.readTime : 0;
+    this.hintAlpha = def ? 0 : 1;
+    this.hintGhost = null;
+    // adaptive ghost hint: after three fails, a reference body fades in for 2 s (design §14)
+    if (def && (loadSave().fails[def.id] ?? 0) >= 3 && def.refs.length) {
+      const r = def.refs[(loadSave().fails[def.id] ?? 0) % def.refs.length];
+      this.hintGhost = r.strokes;
+      this.hintGhostAt = this.now + LEVEL.readTime;
+    }
+    this.overlayDirty = true;
+    document.body.classList.remove('slow');
+    this.cooled = false;
+  }
+
+  retry() {
+    if (this.level) this.load(this.level);
+  }
+
+  private get drawSpeed() {
+    return this.level ? this.level.draw * (loadSave().settings.gentle ? 0.7 : 1) : INK.toyDrawSpeed;
+  }
+  private get wetTime() {
+    return loadSave().settings.gentle ? INK.wetTimeGentle : INK.wetTime;
+  }
+  private get inkBudget() {
+    return this.level ? this.level.ink * (loadSave().settings.gentle ? 2 : 1) : Infinity;
+  }
 
   private bg: CanvasRenderingContext2D;
   constructor(
@@ -131,23 +197,54 @@ export class Toy {
 
   private penDown(p: LivePt) {
     unlockAudio();
+    if (this.now < this.readUntil) this.readUntil = this.now; // touching skips the title beat
+    this.blocked = false;
+    if (this.level && this.insideTerrain(p.x, p.y)) {
+      this.blocked = true;
+      this.blockMark = { x: p.x, y: p.y, t: this.now };
+    }
     this.live = { pts: [p], upAt: Infinity, width: null };
     this.liveMoved = false;
     this.liveStart = { x: p.x, y: p.y, t: p.t };
   }
 
+  private insideTerrain(x: number, y: number) {
+    return this.world.terrainDepth(x, y, 3) > 0;
+  }
+
   private penMove(pts: LivePt[], pred: LivePt[]) {
-    const s = this.live;
-    if (!s) return;
-    for (const p of pts) {
+    let s = this.live;
+    if (!s || (this.level && this.result !== 'play')) return;
+    for (const p0 of pts) {
+      const p = { x: Math.max(2, Math.min(WORLD.W - 2, p0.x)), y: Math.max(2, Math.min(WORLD.H - 2, p0.y)), t: p0.t, p: p0.p };
+      // no-draw zones: the pencil skips over solid terrain (design §3)
+      if (this.level && this.insideTerrain(p.x, p.y)) {
+        if (!this.blocked) {
+          this.blocked = true;
+          this.blockMark = { x: p.x, y: p.y, t: this.now };
+          if (s.pts.length >= 2) this.commit(s);
+          s = this.live = { pts: [], upAt: Infinity, width: null };
+        }
+        continue;
+      }
+      if (this.blocked) {
+        this.blocked = false;
+        s = this.live = { pts: [p], upAt: Infinity, width: null };
+        continue;
+      }
       const q = s.pts[s.pts.length - 1];
-      if (Math.hypot(p.x - q.x, p.y - q.y) < 0.75) continue;
-      s.pts.push({ x: Math.max(2, Math.min(WORLD.W - 2, p.x)), y: Math.max(2, Math.min(WORLD.H - 2, p.y)), t: p.t, p: p.p });
+      if (q && Math.hypot(p.x - q.x, p.y - q.y) < 0.75) continue;
+      // the ink budget: the pencil runs out
+      const d = q ? Math.hypot(p.x - q.x, p.y - q.y) : 0;
+      if (this.inkUsed + d > this.inkBudget) break;
+      this.inkUsed += d;
+      s.pts.push(p);
     }
+    if (!s.pts.length) return;
     this.predicted = pred;
     if (!this.liveMoved && Math.hypot(s.pts[s.pts.length - 1].x - this.liveStart.x, s.pts[s.pts.length - 1].y - this.liveStart.y) > TAP_MAX_MOVE * 0.6) {
       this.liveMoved = true;
-      this.setScale(INK.toyDrawSpeed, INK.easeIn);
+      this.setScale(this.drawSpeed, INK.easeIn);
       this.hintAlpha = 0.999;
     }
     if (this.liveMoved) {
@@ -167,7 +264,16 @@ export class Toy {
     pencil(0, 0.5, false);
     if (!s) return;
     const dur = p.t - this.liveStart.t;
+    if (this.level && this.result !== 'play') {
+      // after the result any touch is a tap: instant retry (design §2)
+      if (this.result === 'fail' && this.now - this.resultAt > LEVEL.failBeat) this.onRetry ? this.onRetry() : this.retry();
+      return;
+    }
     if (!this.liveMoved && !cancelled && dur < TAP_MAX_TIME + 0.4) {
+      if (this.level) {
+        if (!this.wet.length) this.setScale(1, INK.easeOut);
+        return;
+      }
       // a tap: walk + reach target for every creature
       this.world.toyTarget = { x: p.x, y: p.y };
       this.tapMark = { x: p.x, y: p.y, t: this.now };
@@ -178,6 +284,10 @@ export class Toy {
       if (!this.wet.length) this.setScale(1, INK.easeOut);
       return;
     }
+    this.commit(s);
+  }
+
+  private commit(s: WetStroke) {
     s.upAt = this.now;
     s.width = strokeWidths(s.pts);
     this.wet.push(s);
@@ -185,7 +295,8 @@ export class Toy {
   }
 
   private undo() {
-    if (this.wet.length) this.wet.pop();
+    const s = this.wet.pop();
+    if (s) for (let k = 1; k < s.pts.length; k++) this.inkUsed -= Math.hypot(s.pts[k].x - s.pts[k - 1].x, s.pts[k].y - s.pts[k - 1].y);
     if (!this.wet.length && !this.live) this.setScale(1, INK.easeOut);
   }
 
@@ -214,9 +325,11 @@ export class Toy {
     this.scale = this.scaleFrom + (this.scaleTarget - this.scaleFrom) * e;
 
     // drying → birth (all at once, when every stroke is dry and the pen is up)
-    if (this.wet.length && !this.live && this.wet.every((s) => t - s.upAt >= INK.wetTime)) this.birth();
+    if (this.wet.length && !this.live && this.wet.every((s) => t - s.upAt >= this.wetTime)) this.birth();
 
-    this.acc += dt * this.scale;
+    // the title holds the first frame; a win lands with a short hit-stop
+    if (t >= this.readUntil && t >= this.hitStopUntil) this.acc += dt * this.scale;
+    this.watchResult();
     let n = 0;
     while (this.acc >= WORLD.dt && n < 4) {
       const t0 = performance.now();
@@ -237,6 +350,7 @@ export class Toy {
       const t0 = s.pts[0].t;
       return s.pts.map((p) => ({ x: p.x, y: p.y, t: p.t - t0, p: p.p }));
     });
+    for (const s of strokes) this.drawn.push(s.map((p) => ({ x: p.x, y: p.y })));
     this.wet = [];
     const ev0 = this.world.events.length;
     const born = this.world.addStrokes(strokes);
@@ -254,6 +368,22 @@ export class Toy {
 
   private cooled = false;
 
+  private watchResult() {
+    const L = this.world.level;
+    if (!L || !this.level || this.result !== 'play' || L.result === 'play') return;
+    this.result = L.result;
+    this.resultAt = this.now;
+    if (L.result === 'win') {
+      this.hitStopUntil = this.now + LEVEL.hitStop;
+      const heroes = this.world.creatures.filter((c) => c.alive && !c.isPiece).map((c) => ({ name: c.name, kind: c.kind }));
+      const kinds = [...new Set(heroes.map((h) => h.kind))];
+      const best = this.world.creatures[L.hugger >= 0 ? L.hugger : this.world.guy?.hugging ?? -1] ?? this.world.creatures.find((c) => c.alive);
+      const fresh = recordWin(this.level.id, kinds, best ? { name: best.name, kind: best.kind, level: this.level.id, strokes: best.strokes, at: Date.now() } : null);
+      const info = { level: this.level, heroes, newBadges: fresh, epitaph: epitaph(this.world), strokes: this.drawn };
+      setTimeout(() => this.onWin?.(info), LEVEL.cardDelay * 1000);
+    } else recordFail(this.level.id);
+  }
+
   private render(alpha: number) {
     const g = this.g,
       r = this.rect,
@@ -266,7 +396,7 @@ export class Toy {
     g.rect(0, 0, WORLD.W, WORLD.H);
     g.clip();
     // first-run hint, non-photo blue, fades once the first stroke begins
-    if (this.hintAlpha > 0) {
+    if (this.hintAlpha > 0 && !this.quiet) {
       if (this.hintAlpha < 1) this.hintAlpha = Math.max(0, this.hintAlpha - 0.05);
       g.globalAlpha = this.hintAlpha * 0.9;
       g.fillStyle = COLORS.blue;
@@ -275,7 +405,9 @@ export class Toy {
       g.fillText('draw anything', WORLD.W / 2, 520);
       g.globalAlpha = 1;
     }
-    this.renderer.draw(g, { alpha, realT: this.now, debug: this.debug, stepMs: this.stepMs });
+    if (this.level) this.drawLevelUnder(g);
+    this.renderer.draw(g, { alpha, realT: this.now, debug: this.debug, stepMs: this.stepMs, intentLines: loadSave().settings.intentLines });
+    if (this.level) this.drawLevelOver(g);
     if (this.tapMark && this.now - this.tapMark.t < 0.6) {
       const k = (this.now - this.tapMark.t) / 0.6;
       g.strokeStyle = COLORS.blue;
@@ -301,6 +433,201 @@ export class Toy {
     g.restore();
     this.drawOverlay();
     void boilState;
+  }
+
+  /** Ghost of the last attempt and the adaptive hint, under the world (non-photo blue). */
+  private drawLevelUnder(g: CanvasRenderingContext2D) {
+    const strokesPath = (ss: Pt[][]) => {
+      g.beginPath();
+      for (const s of ss) {
+        if (!s.length) continue;
+        g.moveTo(s[0].x, s[0].y);
+        for (let k = 1; k < s.length; k++) g.lineTo(s[k].x, s[k].y);
+      }
+    };
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+    if (this.ghost.length) {
+      g.strokeStyle = COLORS.blue;
+      g.globalAlpha = 0.35;
+      g.lineWidth = 3;
+      strokesPath(this.ghost);
+      g.stroke();
+    }
+    if (this.hintGhost) {
+      const age = this.now - this.hintGhostAt;
+      if (age > 0 && age < 2.4) {
+        g.globalAlpha = 0.5 * Math.min(1, age / 0.4) * Math.min(1, (2.4 - age) / 0.4);
+        g.strokeStyle = COLORS.blue;
+        g.lineWidth = 4;
+        g.setLineDash([2, 7]);
+        // the body only, not its position: drawn small in the top corner
+        g.save();
+        g.translate(560, 380);
+        g.scale(0.35, 0.35);
+        let cx = 0,
+          cy = 0,
+          n = 0;
+        for (const s of this.hintGhost)
+          for (const p of s) {
+            cx += p.x;
+            cy += p.y;
+            n++;
+          }
+        g.translate(-cx / n, -cy / n);
+        strokesPath(this.hintGhost);
+        g.stroke();
+        g.restore();
+        g.setLineDash([]);
+      }
+    }
+    g.globalAlpha = 1;
+  }
+
+  /** Title beat, hint, ink pencil, no-draw mark, stamp or ✗. */
+  private drawLevelOver(g: CanvasRenderingContext2D) {
+    const L = this.level!;
+    const t = this.now;
+    // title: handwritten across the page while the first frame holds, then it lifts away
+    const since = t - (this.readUntil - LEVEL.readTime);
+    if (since < LEVEL.readTime + 0.8) {
+      const fade = since < LEVEL.readTime ? 1 : 1 - (since - LEVEL.readTime) / 0.8;
+      const reveal = Math.min(1, since / 0.6);
+      g.save();
+      g.globalAlpha = Math.max(0, fade);
+      g.font = '64px "Gochi Hand", cursive';
+      g.textAlign = 'center';
+      const wd = g.measureText(L.title).width;
+      g.beginPath();
+      g.rect(WORLD.W / 2 - wd / 2 - 10, 300, (wd + 20) * reveal, 120);
+      g.clip();
+      g.fillStyle = COLORS.felt;
+      g.fillText(L.title, WORLD.W / 2, 380);
+      g.restore();
+    }
+    // the one handwritten hint, until the first stroke
+    if (L.hint && !this.drawn.length && !this.wet.length && !this.live) {
+      g.save();
+      g.globalAlpha = Math.min(1, Math.max(0, since - 0.3) / 0.4) * 0.9;
+      g.fillStyle = COLORS.blue;
+      g.font = '42px "Gochi Hand", cursive';
+      g.textAlign = 'center';
+      g.fillText(L.hint, WORLD.W / 2, 520);
+      g.restore();
+    }
+    this.drawPencil(g);
+    if (this.blockMark && t - this.blockMark.t < 0.5) {
+      g.save();
+      g.globalAlpha = 1 - (t - this.blockMark.t) / 0.5;
+      g.strokeStyle = COLORS.blue;
+      g.setLineDash([3, 4]);
+      g.lineWidth = 2;
+      g.beginPath();
+      g.arc(this.blockMark.x, this.blockMark.y, 14, 0, Math.PI * 2);
+      g.stroke();
+      g.restore();
+    }
+    if (this.result === 'win') this.drawStamp(g, t - this.resultAt);
+    else if (this.result === 'fail') this.drawFail(g, t - this.resultAt);
+  }
+
+  /** The ink budget as a real pencil across the top that shortens as you draw. */
+  private drawPencil(g: CanvasRenderingContext2D) {
+    if (!isFinite(this.inkBudget)) return;
+    const live = this.live ? this.live.pts.length : 0;
+    void live;
+    const left = Math.max(0, 1 - this.inkUsed / this.inkBudget);
+    const x0 = 40,
+      y = 54,
+      full = 300;
+    const len = 28 + full * left;
+    g.save();
+    g.lineJoin = 'round';
+    // body
+    g.fillStyle = '#E9E2D0';
+    g.strokeStyle = COLORS.graphite;
+    g.lineWidth = 2;
+    g.beginPath();
+    g.rect(x0 + 26, y - 9, len - 26, 18);
+    g.fill();
+    g.stroke();
+    g.beginPath();
+    g.moveTo(x0 + 26, y - 3);
+    g.lineTo(x0 + len, y - 3);
+    g.moveTo(x0 + 26, y + 3);
+    g.lineTo(x0 + len, y + 3);
+    g.globalAlpha = 0.35;
+    g.stroke();
+    g.globalAlpha = 1;
+    // sharpened end and graphite tip
+    g.fillStyle = '#D9C49E';
+    g.beginPath();
+    g.moveTo(x0 + 26, y - 9);
+    g.lineTo(x0, y);
+    g.lineTo(x0 + 26, y + 9);
+    g.closePath();
+    g.fill();
+    g.stroke();
+    g.fillStyle = COLORS.graphite;
+    g.beginPath();
+    g.moveTo(x0 + 9, y - 3);
+    g.lineTo(x0, y);
+    g.lineTo(x0 + 9, y + 3);
+    g.closePath();
+    g.fill();
+    g.restore();
+  }
+
+  private drawStamp(g: CanvasRenderingContext2D, age: number) {
+    if (age < 0.05) return;
+    const k = Math.min(1, (age - 0.05) / 0.12);
+    const s = 1.7 - 0.7 * k;
+    g.save();
+    g.translate(WORLD.W / 2, 560);
+    g.rotate(-0.14);
+    g.scale(s, s);
+    g.globalAlpha = 0.25 + 0.65 * k;
+    g.strokeStyle = COLORS.green;
+    g.fillStyle = COLORS.green;
+    g.lineWidth = 7;
+    g.beginPath();
+    g.roundRect(-150, -62, 300, 124, 14);
+    g.stroke();
+    g.lineWidth = 3;
+    g.beginPath();
+    g.roundRect(-138, -50, 276, 100, 10);
+    g.stroke();
+    g.font = '72px "Gochi Hand", cursive';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.fillText(this.level!.goal.type === 'hug' ? '✓ FRIENDS' : '✓ SAVED', 0, 4);
+    g.restore();
+  }
+
+  private drawFail(g: CanvasRenderingContext2D, age: number) {
+    const k = Math.min(1, age / 0.25);
+    g.save();
+    g.translate(WORLD.W / 2, 560);
+    g.strokeStyle = COLORS.red;
+    g.lineCap = 'round';
+    g.lineWidth = 12;
+    g.beginPath();
+    g.moveTo(-60, -60);
+    g.lineTo(-60 + 120 * Math.min(1, k * 2), -60 + 120 * Math.min(1, k * 2));
+    if (k > 0.5) {
+      const q = (k - 0.5) * 2;
+      g.moveTo(60, -60);
+      g.lineTo(60 - 120 * q, -60 + 120 * q);
+    }
+    g.stroke();
+    if (age > LEVEL.failBeat) {
+      g.globalAlpha = Math.min(1, (age - LEVEL.failBeat) / 0.3);
+      g.fillStyle = COLORS.graphite;
+      g.font = '40px "Gochi Hand", cursive';
+      g.textAlign = 'center';
+      g.fillText('tap to try again', 0, 130);
+    }
+    g.restore();
   }
 
   private drawOverlay() {

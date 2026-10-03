@@ -42,3 +42,286 @@ body.slow #backdrop {
   filter: saturate(0.8) brightness(0.97);
   transition: filter 150ms ease-out;
 }
+
+/* ---- DOM shell (look-and-feel §8): page units, scaled with the page ---- */
+.ui {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 720px;
+  height: 1280px;
+  transform-origin: 0 0;
+  z-index: 3;
+  pointer-events: none;
+  font-family: 'Patrick Hand', 'Gochi Hand', sans-serif;
+  color: #1b1b1f;
+}
+.ui button {
+  pointer-events: auto;
+  font: inherit;
+  color: inherit;
+  border: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), box-shadow 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.ui button:active {
+  transform: rotate(var(--tilt, 0deg)) scale(0.96);
+}
+.note {
+  background: #fff6c4;
+  box-shadow: 0 2px 0 rgba(27, 27, 31, 0.08), 0 10px 18px -8px rgba(27, 27, 31, 0.35);
+  transform: rotate(var(--tilt, 0deg));
+  border-radius: 2px 2px 14px 2px;
+  padding: 18px 22px;
+  text-align: left;
+  animation: slap 280ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+.note b {
+  display: block;
+  font-family: 'Gochi Hand', sans-serif;
+  font-weight: normal;
+  font-size: 44px;
+  line-height: 1;
+}
+.note small {
+  display: block;
+  font-size: 24px;
+  opacity: 0.65;
+  margin-top: 6px;
+}
+.note.locked {
+  filter: grayscale(1);
+  opacity: 0.45;
+  cursor: default;
+}
+@keyframes slap {
+  from {
+    opacity: 0;
+    transform: rotate(var(--tilt, 0deg)) translateY(-14px) scale(1.06);
+  }
+}
+.logo {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 150px;
+  text-align: center;
+  font-family: 'Gochi Hand', sans-serif;
+  font-size: 190px;
+  color: #3a3a40;
+  transform: rotate(-4deg);
+  animation: slap 400ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+.notes {
+  position: absolute;
+  left: 110px;
+  top: 470px;
+  width: 500px;
+  display: flex;
+  flex-direction: column;
+  gap: 34px;
+}
+.notes .n1 { --tilt: -2deg; }
+.notes .n2 { --tilt: 1.5deg; margin-left: 60px; animation-delay: 40ms; background: #d9ecff; }
+.notes .n3 { --tilt: -1deg; margin-left: 20px; animation-delay: 80ms; }
+.tab {
+  position: absolute;
+  right: 30px;
+  top: 30px;
+  background: none;
+  font-size: 40px;
+  opacity: 0.7;
+  padding: 16px 22px;
+}
+.chapter-title {
+  position: absolute;
+  left: 60px;
+  top: 90px;
+  font-family: 'Gochi Hand', sans-serif;
+  font-size: 40px;
+  color: #3a3a40;
+}
+.chapter-title span {
+  font-size: 84px;
+  color: #1b1b1f;
+}
+.levels {
+  position: absolute;
+  left: 60px;
+  top: 330px;
+  width: 600px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 34px 30px;
+}
+.lvl {
+  min-height: 190px;
+  padding-bottom: 54px;
+  position: relative;
+}
+.lvl em {
+  font-style: normal;
+  font-size: 26px;
+  opacity: 0.55;
+}
+.lvl b {
+  font-size: 40px;
+  margin-top: 4px;
+}
+.slots {
+  position: absolute;
+  left: 22px;
+  bottom: 16px;
+  display: flex;
+  gap: 8px;
+}
+.slot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2.5px solid rgba(27, 27, 31, 0.35);
+  display: inline-block;
+  box-sizing: border-box;
+}
+.slot.on {
+  background: #f2c230;
+  border-color: #1b1b1f;
+}
+.slot.new {
+  animation: pop 420ms cubic-bezier(0.23, 1, 0.32, 1) 300ms both;
+}
+@keyframes pop {
+  from { transform: scale(0); }
+  60% { transform: scale(1.35); }
+}
+.lvl.done::after {
+  content: '✓';
+  position: absolute;
+  right: 18px;
+  top: 10px;
+  font-size: 40px;
+  color: #2fa84f;
+}
+.hud {
+  position: absolute;
+  right: 20px;
+  top: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hud .label {
+  font-family: 'Gochi Hand', sans-serif;
+  font-size: 30px;
+  opacity: 0.55;
+  margin-right: 10px;
+}
+.icon {
+  width: 72px;
+  height: 72px;
+  padding: 16px;
+  background: none;
+  color: #1b1b1f;
+  opacity: 0.75;
+}
+.icon svg {
+  width: 100%;
+  height: 100%;
+}
+.endcard {
+  position: absolute;
+  left: 90px;
+  right: 90px;
+  top: 640px;
+  text-align: center;
+  pointer-events: none;
+}
+.plate {
+  display: inline-block;
+  background: #fff;
+  padding: 6px 22px;
+  margin: 0 6px 12px;
+  font-family: 'Gochi Hand', sans-serif;
+  font-size: 40px;
+  box-shadow: 0 6px 14px -6px rgba(27, 27, 31, 0.4);
+  transform: rotate(-2deg);
+  animation: slap 260ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+.epitaph {
+  font-size: 32px;
+  margin: 10px 0 18px;
+  animation: slap 260ms cubic-bezier(0.23, 1, 0.32, 1) 120ms both;
+}
+.badges {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 26px;
+}
+.badges small {
+  font-size: 22px;
+  opacity: 0.65;
+  margin-left: 8px;
+}
+.buttons {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+}
+.note.small {
+  font-family: 'Gochi Hand', sans-serif;
+  font-size: 40px;
+  padding: 14px 30px;
+  animation-delay: 220ms;
+}
+.note.go {
+  --tilt: -2deg;
+  background: #f2c230;
+}
+.settings-note {
+  position: absolute;
+  left: 90px;
+  top: 220px;
+  width: 540px;
+  box-sizing: border-box;
+  pointer-events: auto;
+  --tilt: -1deg;
+}
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  background: none;
+  font-size: 30px;
+  padding: 14px 0;
+  text-align: left;
+}
+.toggle i {
+  width: 30px;
+  height: 30px;
+  border: 3px solid #1b1b1f;
+  border-radius: 6px;
+  box-sizing: border-box;
+  flex: none;
+  position: relative;
+}
+.toggle.on i::after {
+  content: '✓';
+  position: absolute;
+  left: 2px;
+  top: -14px;
+  font-size: 38px;
+  color: #3a3a40;
+}
+@media (prefers-reduced-motion: reduce) {
+  .note, .logo, .plate, .epitaph, .slot.new { animation: none; }
+}
+.tab.back {
+  right: auto;
+  left: 30px;
+  top: auto;
+  bottom: 170px;
+}
