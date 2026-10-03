@@ -267,6 +267,7 @@ body.slow #backdrop {
 }
 .buttons {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   gap: 22px;
 }

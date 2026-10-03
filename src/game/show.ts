@@ -40,6 +40,7 @@ export class Show {
     readonly kind: 'highlight' | 'watch',
     private visibleAt: number, // real seconds: the highlight waits for the stamp
     private reduced: boolean,
+    private title: string | null = null, // Save clip: the title card burned into the start
   ) {
     this.momentR = new Replay(def, births);
     this.main = kind === 'watch' ? new Replay(def, births) : this.momentR;
@@ -66,7 +67,12 @@ export class Show {
     return false;
   }
 
+  private titleUp(now: number) {
+    return !!this.title && now - this.visibleAt < 1.4;
+  }
+
   update(dt: number, now: number) {
+    if (this.titleUp(now)) return;
     if (this.phase === 'catchup') {
       if (this.catchUp() && now >= this.visibleAt) this.startMoment();
       return;
@@ -129,6 +135,19 @@ export class Show {
 
   draw(g: Ctx, realT: number, intentLines: boolean) {
     const w = this.shown.world;
+    if (this.titleUp(realT)) {
+      // title card for the clip: the level name, handwritten, on clean paper
+      g.save();
+      g.fillStyle = COLORS.felt;
+      g.textAlign = 'center';
+      g.font = '84px "Gochi Hand", cursive';
+      g.fillText(this.title, WORLD.W / 2, WORLD.H / 2 - 20);
+      g.font = '40px "Gochi Hand", cursive';
+      g.fillStyle = COLORS.graphite;
+      g.fillText('drawn in Drew', WORLD.W / 2, WORLD.H / 2 + 50);
+      g.restore();
+      return;
+    }
     g.save();
     if (this.phase === 'moment' && this.moment && !this.reduced) {
       const k = Math.min(1, (w.steps - this.momentT0) / Math.max(1, this.to - this.momentT0));

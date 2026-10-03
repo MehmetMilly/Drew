@@ -62,6 +62,7 @@ export class Toy {
   private blocked = false;
   private births: Birth[] = [];
   private show: Show | null = null;
+  private recorder: MediaRecorder | null = null;
   private winInfo: Parameters<NonNullable<Toy['onWin']>>[0] | null = null;
   private endStep = 0;
   private hintGhost: Pt[][] | null = null;
@@ -415,10 +416,39 @@ export class Toy {
   }
 
   /** The full replay (design §11): timelapse, action at 1×, the moment at 0.3×. */
-  watch() {
+  watch(record = false) {
     if (!this.level || this.result === 'play' || !this.births.length) return;
     const w = this.world;
-    this.show = new Show(this.level, this.births, pickMoment(w), this.endStep, 'watch', this.now, loadSave().settings.reducedMotion);
+    const title = record ? `${this.level.id}  ${this.level.title}` : null;
+    this.show = new Show(this.level, this.births, pickMoment(w), this.endStep, 'watch', this.now, loadSave().settings.reducedMotion, title);
+    if (record) this.recordClip();
+  }
+
+  /** Save clip (design §11): the Watch replay off the world canvas into a video file. */
+  static canRecord() {
+    return typeof MediaRecorder !== 'undefined' && typeof HTMLCanvasElement.prototype.captureStream === 'function' && !!Toy.clipType();
+  }
+
+  private static clipType() {
+    if (typeof MediaRecorder === 'undefined') return '';
+    return ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'].find((t) => MediaRecorder.isTypeSupported(t)) ?? '';
+  }
+
+  private recordClip() {
+    const type = Toy.clipType();
+    if (!type) return;
+    const rec = new MediaRecorder(this.g.canvas.captureStream(30), { mimeType: type, videoBitsPerSecond: 4_000_000 });
+    const parts: Blob[] = [];
+    rec.ondataavailable = (e) => e.data.size && parts.push(e.data);
+    rec.onstop = () => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob(parts, { type }));
+      a.download = `drew-${this.level?.id ?? 'clip'}.${type.startsWith('video/mp4') ? 'mp4' : 'webm'}`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    };
+    rec.start();
+    this.recorder = rec;
   }
 
   private updateShow(dt: number) {
@@ -428,7 +458,11 @@ export class Toy {
     if (s.phase !== 'done') return;
     this.show = null;
     if (s.kind === 'highlight' && this.winInfo) this.onWin?.(this.winInfo);
-    else if (s.kind === 'watch') this.onWatchEnd?.();
+    else if (s.kind === 'watch') {
+      if (this.recorder?.state === 'recording') this.recorder.stop();
+      this.recorder = null;
+      this.onWatchEnd?.();
+    }
   }
 
   private render(alpha: number) {
@@ -452,7 +486,9 @@ export class Toy {
       g.fillText('draw anything', WORLD.W / 2, 520);
       g.globalAlpha = 1;
     }
-    if (this.show?.visible) this.show.draw(g, this.now, loadSave().settings.intentLines);
+    // the clip needs the paper in the recorded canvas (it normally lives on the backdrop)
+    if (this.recorder && this.paper) g.drawImage(this.paper, 0, 0, WORLD.W, WORLD.H);
+    if (this.show?.visible || this.recorder) this.show?.draw(g, this.now, loadSave().settings.intentLines);
     else {
       if (this.level) this.drawLevelUnder(g);
       this.renderer.draw(g, { alpha, realT: this.now, debug: this.debug, stepMs: this.stepMs, intentLines: loadSave().settings.intentLines });

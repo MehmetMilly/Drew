@@ -1,7 +1,7 @@
 // DOM shell over the page (look-and-feel §8): title, chapter spread with sticky-note
 // level cards, the in-play HUD (title label, retry, back) and the end card.
 // Laid out in page units (720 × 1280) and scaled with the page.
-import type { Toy } from '../game/toy';
+import { Toy } from '../game/toy';
 import type { LevelDef } from '../sim/level';
 import { CHAPTERS, ALL_LEVELS } from '../levels';
 import { load as loadSave, save } from '../game/save';
@@ -158,6 +158,13 @@ export class Shell {
         this.toy.watch();
       }),
     );
+    if (Toy.canRecord())
+      row.append(
+        this.press(el('button', 'note small watch', 'Save clip'), () => {
+          c.style.display = 'none';
+          this.toy.watch(true);
+        }),
+      );
     c.append(row);
     this.root.append(c);
     this.card = c;
