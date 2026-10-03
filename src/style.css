@@ -592,3 +592,46 @@ body.slow #backdrop {
   font-size: 26px;
   color: #3a3a40;
 }
+
+/* credits: hand-lettered, rolling up over the waving heroes */
+.ui.credits .tab.back {
+  top: 40px;
+  bottom: auto;
+}
+.ui.credits canvas.hall {
+  top: 600px;
+  opacity: 0.9;
+  pointer-events: none;
+}
+.ui.credits canvas.hall.waving {
+  animation: wave-hall 1.6s ease-in-out infinite alternate;
+}
+@keyframes wave-hall {
+  from { transform: rotate(-0.6deg); }
+  to { transform: rotate(0.6deg); }
+}
+.credits-roll {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 90px;
+  text-align: center;
+  font-family: 'Patrick Hand', cursive;
+  font-size: 26px;
+  color: #1b1b1f;
+  animation: roll-in 1.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.credits-roll h1 {
+  font-family: 'Gochi Hand', sans-serif;
+  font-size: 84px;
+  margin: 0 0 6px;
+}
+.credits-roll p { margin: 4px 0; opacity: 0.75; }
+.credits-roll p.big { font-size: 34px; opacity: 1; margin-bottom: 12px; }
+@keyframes roll-in {
+  from { transform: translateY(60px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .credits-roll, .ui.credits canvas.hall.waving { animation: none; }
+}

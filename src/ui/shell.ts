@@ -10,7 +10,7 @@ import { levelThumb } from './thumb';
 import { pencilTick } from '../audio/pencil';
 import { sfxUi } from '../audio/sfx';
 
-type Screen = 'title' | 'chapter' | 'play' | 'toy' | 'settings' | 'sketchbook' | 'hero';
+type Screen = 'title' | 'chapter' | 'play' | 'toy' | 'settings' | 'sketchbook' | 'hero' | 'credits';
 
 const el = (tag: string, cls = '', html = '') => {
   const e = document.createElement(tag);
@@ -77,6 +77,7 @@ export class Shell {
     else if (s === 'chapter') this.chapter();
     else if (s === 'settings') this.settings();
     else if (s === 'sketchbook') this.sketchbook();
+    else if (s === 'credits') this.credits();
     else if (s === 'hero' && hero) {
       this.toy.load(null);
       this.toy.adopt(hero.strokes, hero.name);
@@ -137,6 +138,27 @@ export class Shell {
     addEventListener('pointermove', look);
     addEventListener('pointerdown', look);
     return t;
+  }
+
+  /** The credits (levels.md §5 finale): drawn by hand, rolling up over every hero the
+   *  player made, all waving from the Hall of Heroes. */
+  private credits() {
+    this.toy.load(null);
+    const hall = loadSave().hall.slice(-PER_PAGE);
+    if (hall.length) {
+      const { el: c, stop } = hallCanvas(hall, () => {});
+      this.stopHall = stop;
+      c.classList.add('waving');
+      this.root.append(c);
+    }
+    const roll = el(
+      'div',
+      'credits-roll',
+      `<h1>The End</h1><p>Little Guy is safe.</p><p>Starring</p><p class="big">${hall.length ? 'all your heroes' : 'you'}</p>` +
+        `<p>Drawn by</p><p class="big">you</p><p>Everything else</p><p class="big">a pencil and a lot of physics</p><p>Thanks for drawing.</p>`,
+    );
+    this.root.append(roll);
+    this.root.append(this.press(el('button', 'tab back', '← back'), () => this.show('title')));
   }
 
   private sketchbook() {
@@ -275,7 +297,8 @@ export class Shell {
     const idx = ALL_LEVELS.findIndex((l) => l.id === info.level.id);
     const next = ALL_LEVELS[idx + 1];
     const row = el('div', 'buttons');
-    if (next) row.append(this.press(el('button', 'note small go', 'Next →'), () => this.show('play', next)));
+    if (info.level.goal.type === 'boss') row.append(this.press(el('button', 'note small go', 'The End →'), () => this.show('credits')));
+    else if (next) row.append(this.press(el('button', 'note small go', 'Next →'), () => this.show('play', next)));
     else row.append(this.press(el('button', 'note small go', 'Chapter done!'), () => this.show('chapter')));
     row.append(this.press(el('button', 'note small', 'Retry'), () => this.retry()));
     row.append(
