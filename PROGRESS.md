@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Phase 1 — The Toy: done, `gate-1` tagged** after two play-test rounds. Tester: "the toy feel now isn't bad at all"; the game itself now has to make it fun. Next: Phase 2.
+**Phase 2 — Grammar and metrics (lean): done for what Chapter 1 needs.** `gate-1` tagged after two play-test rounds. Metrics course and grafting are in; water/wind move to just before Chapter 4 (DECISIONS.md). Next: Phase 3, the Chapter 1 vertical slice, greybox first so fun can be tested early.
 
 ## Done
 
@@ -17,6 +17,7 @@
 - Debug overlay (D / three-finger tap); undo (Z / two-finger tap); clear (R); tap = walk + reach target.
 - Dev capture page `/capture.html` for ~40 labelled human strokes → `tests/fixtures/human/`.
 - Gate 1 round 1 fixes: hop / scurry / walk / roll / inch gaits from the body plan; front + turnaround; eye lead 0.25 s with notice and hand wind-up; arms swing from the shoulder as one piece within a body-clear sector; weld aim rule (spider regression) with an anatomy verify row; pencil volume and stuck-scratch fix.
+- Phase 2: `npm run metrics` → LEVEL_METRICS.md (walk, 20° slope, reach up/sideways, jump, 200 px gap); grafting with re-read and "X grew an arm!" plate (verify row; live check `tsx tools/graftshot.mts` → review/graft.png).
 - Perf: 60 fps at ~880 particles under 4× CPU throttle; 0.77 ms/step in Node.
 
 ## Next
@@ -24,7 +25,9 @@
 1. ~~Capture human strokes~~ done: 34/34 single strokes and 6/6 joins pass; Quick, Draw! corpus added.
 2. ~~Gate 1~~ passed (two rounds).
 3. Possible extra: per-kind birth gestures (springy bounces, roller rocks) if birth still feels samey.
-4. Phase 2: drawing grammar, metrics course, `tools/metrics.ts` (`npm run metrics`).
+4. ~~Phase 2 (lean)~~: metrics + grafting done.
+5. Phase 3: Little Guy ragdoll → level runner + goals + countdown → brain targets + grab/throw → hazards (boulder, crushers, bombs, ninja) → levels 1-1..1-5 greybox with reference solutions and baselines → play-test.
+6. Before Chapter 4: water + wind, buoyancy metrics. Deferred Phase 2 polish: spring punch tuning, frame strips per mark.
 
 ## Open problems
 
@@ -46,6 +49,7 @@
 | no-noise tearing (100 creatures × 10 s) | 0 tears in 0 creatures | PASS |
 | monkey (300 scribble sets) | crash 0, NaN 0, vmax 3000 px/s, fell off 0 | PASS |
 | anatomy: canonical bodies (kind, gait, feet, hands) | 12/12 | PASS |
+| grafting: line onto a living box | 1 creature, "Keith grew an arm!" | PASS |
 | distinct bodies (each pair ≥20% on a metric) | 15/15 pairs distinct | PASS |
 | step time @ 906 particles (Node) | 0.85 ms | PASS |
 | determinism: browser vs Node | 57b147f3 vs 57b147f3 | PASS |

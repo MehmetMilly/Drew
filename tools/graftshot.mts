@@ -1,0 +1,32 @@
+// Live check of grafting on the toy page: draw a box, let it live, draw a leg onto it.
+import { createServer } from 'vite';
+import { chromium } from '@playwright/test';
+import { writeFileSync } from 'node:fs';
+import { drawStrokes } from './livepen';
+import { CANON, line } from '../src/sim/canon';
+const server = await createServer({ server: { port: 5195, host: '127.0.0.1' }, logLevel: 'error' });
+await server.listen();
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: 390, height: 700 }, deviceScaleFactor: 1 });
+const errs: string[] = [];
+page.on('pageerror', (e) => errs.push(String(e)));
+await page.goto('http://127.0.0.1:5195/');
+await page.waitForFunction(() => (window as any).drew);
+const shots: string[] = [];
+const snap = async () => shots.push((await page.screenshot()).toString('base64'));
+await drawStrokes(page, CANON.box(360), 900);
+await page.waitForTimeout(2500);
+await snap();
+// where is it now? read from the sim
+const pos = (await page.evaluate(`(() => { const w = window.drew.toy.world; const c = w.liveCreatures()[0]; let r = -1e9, cy = 0; for (const i of c.ids) { r = Math.max(r, w.P.x[i]); } return { r, cy: w.centroid(c).y }; })()`)) as { r: number; cy: number };
+await drawStrokes(page, [line(pos.r - 3, pos.cy, pos.r + 100, pos.cy - 60)], 900);
+await page.waitForTimeout(1300);
+await snap();
+await page.waitForTimeout(500);
+await snap();
+const n = await page.evaluate(`window.drew.toy.world.liveCreatures().length`);
+const sheet = (await page.evaluate(`(async (imgs) => { const ims = await Promise.all(imgs.map(b => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = 'data:image/png;base64,' + b; }))); const w = ims[0].width, h = ims[0].height; const c = document.createElement('canvas'); c.width = w * ims.length; c.height = h; const g = c.getContext('2d'); ims.forEach((im, k) => g.drawImage(im, k * w, 0)); return c.toDataURL('image/png'); })(${JSON.stringify(shots)})`)) as string;
+writeFileSync('review/graft.png', Buffer.from(sheet.split(',')[1], 'base64'));
+console.log('live creatures', n, 'errors', errs);
+await browser.close();
+await server.close();
