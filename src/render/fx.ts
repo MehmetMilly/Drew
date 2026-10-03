@@ -11,7 +11,7 @@ const JUICE: Record<string, [number, number, string?]> = {
   piece: [0.08, 0.15, 'SNIP'],
   tear: [0, 0.08],
   guyDied: [0.1, 0.25],
-  win: [0, 0.3], // the stamp's own hit-stop lives in LEVEL.hitStop
+  // win: the stamp's shake comes when it slams, after the highlight (toy.slam)
   throw: [0.06, 0.2, 'FWOOSH'],
   grab: [0.05, 0.12],
   ninjaLeap: [0, 0.05],

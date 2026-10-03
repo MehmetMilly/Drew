@@ -16,7 +16,7 @@ const PEN_SPEED = 1.5; // Watch timelapse, × the player's own pen speed
 const STROKE_GAP = 0.15;
 const ZOOM = 0.35;
 const LEAD_IN = 0.4; // Watch starts this long before the first drawing
-const SLICE_MS = 5; // catch-up budget per frame
+const SLICE_MS = 8; // catch-up budget per frame
 
 const stepOf = (t: number) => Math.max(0, Math.round(t / WORLD.dt));
 

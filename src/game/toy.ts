@@ -60,6 +60,7 @@ export class Toy {
   private ghost: Pt[][] = [];
   private result: 'play' | 'win' | 'fail' = 'play';
   private resultAt = 0;
+  private stampAt = Infinity; // the win stamp slams after the highlight (tester: show the replay first)
   private hitStopUntil = 0;
   private blockMark: { x: number; y: number; t: number } | null = null;
   private blocked = false;
@@ -92,6 +93,7 @@ export class Toy {
     this.drawn = [];
     this.births = [];
     this.show = null;
+    this.stampAt = Infinity;
     this.winInfo = null;
     this.inkUsed = 0;
     this.result = 'play';
@@ -444,7 +446,8 @@ export class Toy {
       const fresh = recordWin(this.level.id, kinds, best ? { name: best.name, kind: best.kind, level: this.level.id, strokes: best.strokes, at: Date.now(), epitaph: ep, eye } : null);
       this.winInfo = { level: this.level, heroes, newBadges: fresh, epitaph: ep, strokes: this.drawn };
       this.endStep = this.world.steps;
-      this.show = new Show(this.level, this.births, pickMoment(this.world), this.endStep, 'highlight', this.now + LEVEL.cardDelay, loadSave().settings.reducedMotion);
+      this.show = new Show(this.level, this.births, pickMoment(this.world), this.endStep, 'highlight', this.now + LEVEL.hitStop, loadSave().settings.reducedMotion);
+      if (this.show.phase === 'done') this.slam();
     } else {
       this.endStep = this.world.steps;
       recordFail(this.level.id);
@@ -488,13 +491,22 @@ export class Toy {
     this.recorder = rec;
   }
 
+  /** Win payoff after the replay: the stamp slams (with its shake), then the end card. */
+  private slam() {
+    if (this.stampAt !== Infinity) return;
+    this.stampAt = this.now;
+    if (!loadSave().settings.reducedMotion) this.juice.trauma = Math.min(1, this.juice.trauma + 0.3);
+    const info = this.winInfo;
+    if (info) setTimeout(() => this.level?.id === info.level.id && this.result === 'win' && this.onWin?.(info), 220);
+  }
+
   private updateShow(dt: number) {
     const s = this.show;
     if (!s) return;
     s.update(dt, this.now);
     if (s.phase !== 'done') return;
     this.show = null;
-    if (s.kind === 'highlight' && this.winInfo) this.onWin?.(this.winInfo);
+    if (s.kind === 'highlight') this.slam();
     else if (s.kind === 'watch') {
       if (this.recorder?.state === 'recording') this.recorder.stop();
       this.recorder = null;
@@ -656,7 +668,7 @@ export class Toy {
       g.stroke();
       g.restore();
     }
-    if (this.result === 'win') this.drawStamp(g, t - this.resultAt);
+    if (this.result === 'win' && t >= this.stampAt) this.drawStamp(g, t - this.stampAt);
     else if (this.result === 'fail') this.drawFail(g, t - this.resultAt);
   }
 
