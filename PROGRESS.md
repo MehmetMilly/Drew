@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Phase 1 — The Toy: Gate 1, round 2.** The first play-test notes are addressed (gaits per body plan, front/back turnaround, intent-reading eyes, whole-arm reach, pencil fix). Waiting for a second play of the toy before tagging `gate-1`.
+**Phase 1 — The Toy: done, `gate-1` tagged** after two play-test rounds. Tester: "the toy feel now isn't bad at all"; the game itself now has to make it fun. Next: Phase 2.
 
 ## Done
 
@@ -22,7 +22,7 @@
 ## Next
 
 1. ~~Capture human strokes~~ done: 34/34 single strokes and 6/6 joins pass; Quick, Draw! corpus added.
-2. ~~Gate 1 notes round 1~~ addressed. Waiting for a second play-test, then tag `gate-1`.
+2. ~~Gate 1~~ passed (two rounds).
 3. Possible extra: per-kind birth gestures (springy bounces, roller rocks) if birth still feels samey.
 4. Phase 2: drawing grammar, metrics course, `tools/metrics.ts` (`npm run metrics`).
 
@@ -42,13 +42,13 @@
 | classifier: human fixtures | 100.0% (34/34) | PASS |
 | human sloppy joins → one creature | 6/6 | PASS |
 | classifier: Quick, Draw! strokes (1000) | line 100%, circle 98%, triangle 98%, square 99%, zigzag 90% | PASS |
-| determinism: Node ×3 | 58103074 same | PASS |
+| determinism: Node ×3 | 57b147f3 same | PASS |
 | no-noise tearing (100 creatures × 10 s) | 0 tears in 0 creatures | PASS |
 | monkey (300 scribble sets) | crash 0, NaN 0, vmax 3000 px/s, fell off 0 | PASS |
 | anatomy: canonical bodies (kind, gait, feet, hands) | 12/12 | PASS |
 | distinct bodies (each pair ≥20% on a metric) | 15/15 pairs distinct | PASS |
 | step time @ 906 particles (Node) | 0.85 ms | PASS |
-| determinism: browser vs Node | 58103074 vs 58103074 | PASS |
+| determinism: browser vs Node | 57b147f3 vs 57b147f3 | PASS |
 | browser fps @ 884 particles, 4× CPU throttle | 60.0 fps, p95 16.7 ms | PASS |
 
 Classifier speed: median 0.14 ms/stroke, max 2.75 ms (desktop Node).

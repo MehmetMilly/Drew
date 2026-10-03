@@ -211,6 +211,7 @@ export class World {
       front: 0,
       flip: 1,
       flipTo: 1,
+      turnedAt: -1e9,
       rolling: false,
       name: '',
       firstName: '',
@@ -864,12 +865,15 @@ export class World {
   private checkTears() {
     const P = this.P,
       C = this.C;
+    // a body turning round is pure intent, and intent never tears (it settles after)
+    const turning = this.creatures.map((cr) => cr.alive && this.t - cr.turnedAt < LOCO.turnGrace);
     for (let c = 0; c < C.n; c++) {
       if (C.dead[c]) continue;
       const t = C.type[c];
       if (t === CT.BEND || t === CT.LUMP || t === CT.GRAB) continue;
       const a = C.a[c],
         b = C.b[c];
+      if (P.owner[a] >= 0 && turning[P.owner[a]]) continue;
       const d = F.hypot(P.x[b] - P.x[a], P.y[b] - P.y[a]);
       const rest = C.rest[c];
       C.strain[c] = d / rest - 1;

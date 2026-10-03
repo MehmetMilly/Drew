@@ -141,7 +141,8 @@ export const LOCO = {
   wriggleGrip: 5, // extra servo gain on lifted particles (they have no ground friction)
   arriveDist: 14,
   frontMin: 0.08, // head offset (× body size) before a body has a front and turns around
-  turnTime: 0.32, // s to mirror around and face the other way
+  turnTime: 0.22, // s to mirror around and face the other way
+  turnGrace: 0.6, // s after a turnaround during which the body may not tear (it is still settling)
   turnShape: 0.35, // shape-holding strength while mirroring round
   turnSnap: 0.4, // |mirror scale| below this is skipped in one step (a body squashed flat tangles)
   turnWalk: 0.25, // fraction of walking speed kept mid-turn

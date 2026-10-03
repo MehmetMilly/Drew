@@ -73,6 +73,7 @@ export function actuate(w: World, cr: Creature, h: number) {
     // never squash the body to a line: pass the thinnest part of the turn in one step
     if (Math.abs(cr.flip) < LOCO.turnSnap) cr.flip = cr.flipTo * LOCO.turnSnap;
     want *= LOCO.turnWalk; // mostly turn on the spot
+    cr.turnedAt = w.t;
   }
   b.wantVx = want;
   cr.rolling = cr.gait === 'roll' && want !== 0; // stays on through the bounces of a tumble

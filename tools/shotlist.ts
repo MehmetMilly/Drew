@@ -17,6 +17,8 @@ export const SHOTS: Record<string, any[]> = {
     { label: 'worm turns', draw: [{ canon: 'worm', x: 360 }], target: { x: 700, y: 1150, at: 0.5 }, times: FEEL, crop: FEELCROP },
     { label: 'box rolls', draw: [{ canon: 'box', x: 200 }], target: { x: 700, y: 1150, at: 0.5 }, times: FEEL, crop: FEELCROP },
     { label: 'hopper hops', draw: [{ canon: 'hopper', x: 200 }], target: { x: 700, y: 1150, at: 0.5 }, times: FEEL, crop: FEELCROP },
+    { label: 'heavy turns', draw: [{ canon: 'bruiser', x: 420 }], target: { x: 60, y: 1150, at: 0.5 }, times: FEEL, crop: FEELCROP },
+    { label: 'spider turns', draw: [{ canon: 'spider', x: 420 }], target: { x: 60, y: 1150, at: 0.5 }, times: FEEL, crop: FEELCROP },
     { label: 'stick reaches low', draw: [{ canon: 'stick700', x: 360 }], target: { x: 300, y: 1165, at: 0.5 }, times: FEEL, crop: FEELCROP },
   ],
   arms: [

@@ -134,6 +134,7 @@ export interface Creature {
   /** Mirror scale of the rest shape: 1 = as drawn, -1 = turned around. Eases toward flipTo. */
   flip: number;
   flipTo: number;
+  turnedAt: number; // sim time a turnaround last ran (turning is intent: it never tears)
   /** While rolling, the upright cheat is off so the body can turn over. */
   rolling: boolean;
   name: string;

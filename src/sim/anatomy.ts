@@ -324,7 +324,9 @@ export function readAnatomy(w: World, cr: Creature) {
       hx /= ring.length;
     } else hx = P.rx[cr.head.point];
     const off = hx - rcx;
-    // scribble masses are stiff: mirroring one round tears it, and a blob has no face side anyway
+    // every lopsided body turns to face where it goes. A symmetric body would only squash for
+    // nothing, and a scribble mass is too stiff to mirror (it tangles and later tears), so
+    // those face with their eyes alone
     cr.front = Math.abs(off) > LOCO.frontMin * size && !cr.lumps.length ? Math.sign(off) : 0;
   }
   if (!cr.firstName) {
