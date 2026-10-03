@@ -256,6 +256,8 @@ export class Toy {
   private penMove(pts: LivePt[], pred: LivePt[]) {
     let s = this.live;
     if (!s || (this.level && this.result !== 'play')) return;
+    // Daily "One Stroke": the pencil lifts for good after the first stroke
+    if (this.level?.mod === 'one-stroke' && (this.wet.length || this.births.length)) return;
     for (const p0 of pts) {
       const p = { x: Math.max(2, Math.min(WORLD.W - 2, p0.x)), y: Math.max(2, Math.min(WORLD.H - 2, p0.y)), t: p0.t, p: p0.p };
       // no-draw zones: the pencil skips over solid terrain (design §3)
@@ -802,7 +804,10 @@ export class Toy {
     g.setTransform(1, 0, 0, 1, 0, 0);
     g.clearRect(0, 0, this.overlay.width, this.overlay.height);
     g.setTransform(dpr * r.scale, 0, 0, dpr * r.scale, dpr * r.x, dpr * r.y);
-    const list = this.live ? [...this.wet, { ...this.live, pts: this.live.pts.concat(this.predicted.slice(0, 2)) }] : this.wet;
+    let list = this.live ? [...this.wet, { ...this.live, pts: this.live.pts.concat(this.predicted.slice(0, 2)) }] : this.wet;
+    // Daily modifiers: Blind Draw hides the ink until birth; Mirror shows its reflection
+    if (this.level?.mod === 'blind') list = [];
+    else if (this.level?.mod === 'mirror') list = [...list, ...list.map((s) => ({ ...s, pts: s.pts.map((p) => ({ ...p, x: WORLD.W - p.x })) }))];
     drawWet(g, list, this.now, INK.wetTime);
   }
 }

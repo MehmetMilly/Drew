@@ -403,6 +403,8 @@ export const PROP = {
   landMin: 120, // px/s: slowing faster than this in a step is a landing (impact = Σ m·Δv)
   peakFade: 0.97, // the drawn strain eases back after a load goes
   chunk: 46, // px: falling pieces of a broken slab
+  lurch: 0.6, // s after a floor or bridge gives way that no carrier can toss (it is falling)
+  snapDelay: 0.35, // s a bridge carries too much before the ropes let go (the carrier is on it by then)
   // see-saw: a heavy rigid plank on a pivot
   plankMass: 400,
   plankHalf: 7, // px: half its thickness
@@ -481,4 +483,9 @@ export const SUMO = {
   grace: 0.6, // s after waking before anyone can lose
   shrink: 18, // px/s from each edge after time-out
   minHalf: 30, // px: the ring never shrinks below this half width
+};
+
+/** Daily Doodle (design §12, daily.ts). */
+export const DAILY = {
+  heavy: 5, // Heavy Ink: every particle this many times its mass, as if all of it were lump
 };

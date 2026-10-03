@@ -42,6 +42,7 @@ export interface Slab {
   load: number; // this step: mass resting on it (bridges) or impact (cracks)
   peak: number; // highest so far, as a share of its limit (for the sag / crack drawing)
   brokeAt: number; // level time it broke, -1
+  over: number; // s a bridge has carried more than its load (it snaps after PROP.snapDelay)
 }
 
 export interface Plank {
@@ -101,7 +102,7 @@ export function startProps(w: World, defs: Prop[]): PropState {
         { x: p.x0, y: p.y + h },
       ];
       w.addTerrain(pts, 1, p.type);
-      S.slabs.push({ prop: p, terrain: w.terrain[w.terrain.length - 1], load: 0, peak: 0, brokeAt: -1 });
+      S.slabs.push({ prop: p, terrain: w.terrain[w.terrain.length - 1], load: 0, peak: 0, brokeAt: -1, over: 0 });
     } else if (p.type === 'water') {
       S.pools.push({ prop: p, y: p.y });
     } else if (p.type === 'raft') {
@@ -236,13 +237,27 @@ export function stepProps(w: World, S: PropState) {
     const top = T.minY;
     let load = 0,
       hit = 0;
+    // what rests on it is weighed whole: a creature with a foot (or a rolling lump's edge) on the
+    // slab puts its whole weight (the part of it over the slab) on it, a landing is its whole
+    // momentum, not just the feet's
+    const touching = new Map<number, number>(); // creature id → its hardest landing (px/s slowed in a step)
     for (let i = 0; i < P.n; i++) {
       if (!(P.flags[i] & PF.ALIVE)) continue;
       if (P.x[i] < T.minX - 2 || P.x[i] > T.maxX + 2 || P.y[i] < top - r - PROP.touch || P.y[i] > top + 2) continue;
-      load += P.m[i];
-      // a landing: it was coming down fast last step and has stopped on the slab
       const vy = (P.y[i] - P.sy[i]) / WORLD.dt;
-      if (S.vy[i] > vy + PROP.landMin) hit += P.m[i] * (S.vy[i] - vy);
+      const slowed = S.vy[i] - vy > PROP.landMin ? S.vy[i] - vy : 0;
+      if (P.flags[i] & PF.GUY) {
+        load += P.m[i];
+        hit += P.m[i] * slowed;
+      } else touching.set(P.owner[i], Math.max(touching.get(P.owner[i]) ?? 0, slowed));
+    }
+    for (const [id, slowed] of touching) {
+      const cr = w.creatures[id];
+      if (!cr?.alive) continue;
+      let m = 0;
+      for (const i of cr.ids) if (P.x[i] >= T.minX - 2 && P.x[i] <= T.maxX + 2) m += P.m[i];
+      load += m;
+      hit += m * slowed;
     }
     for (const b of w.bodies) {
       if (!b.alive || b.hw || b.x < T.minX || b.x > T.maxX || Math.abs(b.y + b.r - top) > PROP.touch + 2) continue;
@@ -252,7 +267,9 @@ export function stepProps(w: World, S: PropState) {
     sl.load = p.type === 'bridge' ? load : hit;
     const limit = p.type === 'bridge' ? p.load : p.impulse;
     sl.peak = Math.max(sl.peak * PROP.peakFade, sl.load / limit);
-    if (sl.load > limit) breakSlab(w, sl);
+    // a bridge takes a moment to give (the ropes stretch); a floor breaks at the blow
+    sl.over = sl.load > limit ? sl.over + WORLD.dt : 0;
+    if (sl.load > limit && (p.type !== 'bridge' || sl.over >= PROP.snapDelay)) breakSlab(w, sl);
   }
   for (let i = 0; i < P.n; i++) S.vy[i] = (P.y[i] - P.sy[i]) / WORLD.dt;
 }
@@ -267,6 +284,8 @@ function breakSlab(w: World, sl: Slab) {
     const x = T.minX + ((k + 0.5) * (T.maxX - T.minX)) / n;
     w.addBody({ kind: 'chunk', x, y: T.minY + 8, r: Math.min(PROP.chunk / 2, (T.maxY - T.minY) / 2 + 2), m: 2, restitution: 0.2, friction: 0.5, data: { vx: (x - (T.minX + T.maxX) / 2) * 0.6, vy: 40 + k * 7, spin: (k % 2 ? 1 : -1) * 0.2 } });
   }
+  // whoever was standing on it is falling now: nobody throws anyone from a collapsing floor
+  if (w.level) w.level.noTossUntil = w.t + PROP.lurch;
   w.emit({ type: sl.prop.type === 'bridge' ? 'snap' : 'crack', x: (T.minX + T.maxX) / 2, y: T.minY });
 }
 

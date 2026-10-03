@@ -11,6 +11,7 @@ import type { World, Body } from './world';
 import type { Creature } from './creature';
 import { startProps, type Prop } from './props';
 import { bossBeaten } from './damage';
+import type { Modifier } from './daily';
 import { shrinkRing, spawnFoes, teamOnRing, type SumoRing } from './sumo';
 
 /** HOME: the flag's foot stands at (x, y) on the ground; the pole is LEVEL.flagH tall. */
@@ -38,6 +39,8 @@ export interface LevelDef {
   goal: Goal;
   draw: number; // world time scale while ink is wet
   ink: number; // px budget
+  /** Daily modifier (daily.ts): changes what births are allowed or how they're built */
+  mod?: Modifier;
   /** px/s of ink that flows back into the pen while the world runs (the boss fight) */
   inkRegen?: number;
   terrain: Pt[][];
@@ -69,6 +72,7 @@ export interface LevelRun {
   squeezeT: number; // s he has been squeezed by ink a pusher is shoving
   blocked?: boolean; // HOME: he can't walk to the flag (read once, routeBlocked)
   tossedAt?: number; // HOME: level time a carrier last tossed him over a wall or pit
+  noTossUntil?: number; // HOME: a floor or bridge just gave way: no carrier can toss until it has fallen clear
   stallT?: number; // HOME: s his carrier has made no progress
   score: number; // SCORE: balls through the hoop so far
   log: { t: number; type: string; cr?: number; v?: number; text?: string }[];
@@ -276,6 +280,8 @@ export function tossPlan(w: World, cr: Creature, g: Guy): { x: number; y: number
   // a worm is all arm and a tiny one too small to throw anyone: only a creature with a body to pull against tosses
   if (goal.type !== 'home' || cr.kind === 'worm' || cr.kind === 'tiny' || !cr.limbs.some((l) => !l.foot && l.spring < 0 && l.len > GUY.tossArm)) return null;
   const P = w.P;
+  // it has to be standing on something to throw: a carrier whose floor just gave way is falling
+  if (!cr.ids.some((i) => P.flags[i] & PF.GROUND)) return null;
   const ce = w.centroid(cr);
   const dir = Math.sign(goal.x - ce.x) || 1;
   let feetY = -Infinity;
@@ -407,7 +413,7 @@ function board(w: World, g: Guy) {
     g.upsideT = cr ? cr.face.upsideT : 99;
     g.walkTo = null;
     // a carrier with a hand, at a wall or pit it can toss him over: it does
-    if (cr && w.t - cr.brain.tossT > 0.8 && seated(w, g)) {
+    if (cr && w.t - cr.brain.tossT > 0.8 && w.t >= (w.level!.noTossUntil ?? 0) && seated(w, g)) {
       const tp = tossPlan(w, cr, g);
       if (tp) return void tossGuy(w, g, cr, tp);
     }

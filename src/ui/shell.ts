@@ -7,11 +7,12 @@ import { CHAPTERS, ALL_LEVELS } from '../levels';
 import { load as loadSave, save, type Hero } from '../game/save';
 import { hallCanvas, PER_PAGE } from './hall';
 import { OPPONENTS, sumoLevel } from '../levels/sumo';
+import { dailyFor, dateKey } from '../levels/daily';
 import { levelThumb } from './thumb';
 import { pencilTick } from '../audio/pencil';
 import { sfxUi } from '../audio/sfx';
 
-type Screen = 'title' | 'chapter' | 'sumo' | 'play' | 'toy' | 'settings' | 'sketchbook' | 'hero' | 'credits';
+type Screen = 'title' | 'chapter' | 'sumo' | 'daily' | 'play' | 'toy' | 'settings' | 'sketchbook' | 'hero' | 'credits';
 
 const el = (tag: string, cls = '', html = '') => {
   const e = document.createElement(tag);
@@ -78,6 +79,7 @@ export class Shell {
     if (s === 'title') this.title();
     else if (s === 'chapter') this.chapter();
     else if (s === 'sumo') this.sumo();
+    else if (s === 'daily') this.daily();
     else if (s === 'settings') this.settings();
     else if (s === 'sketchbook') this.sketchbook();
     else if (s === 'credits') this.credits();
@@ -109,7 +111,8 @@ export class Shell {
     const sumoOpen = ch1 || import.meta.env.DEV;
     const sumo = el('button', `note n2 ${sumoOpen ? '' : 'locked'}`, `<b>Sumo</b><small>${sumoOpen ? 'shove them off the ring' : 'after Chapter 1'}</small>`);
     if (sumoOpen) this.press(sumo, () => this.show('sumo'));
-    const daily = el('button', 'note n3 locked', `<b>Daily</b><small>${ch1 ? 'coming soon' : 'after Chapter 1'}</small>`);
+    const daily = el('button', `note n3 ${sumoOpen ? '' : 'locked'}`, `<b>Daily</b><small>${sumoOpen ? dailyFor(dateKey()).mod.name : 'after Chapter 1'}</small>`);
+    if (sumoOpen) this.press(daily, () => this.show('daily'));
     notes.append(story, sumo, daily);
     const book = this.press(el('button', 'tab sketch', 'Sketchbook'), () => this.show('sketchbook'));
     const set = this.press(el('button', 'tab', 'settings'), () => this.show('settings'));
@@ -231,7 +234,38 @@ export class Shell {
 
   /** Where a level returns to: the Sumo ladder or its chapter. */
   private home(level: LevelDef | null): Screen {
-    return level?.goal.type === 'sumo' ? 'sumo' : 'chapter';
+    return level?.goal.type === 'sumo' ? 'sumo' : level?.mod ? 'daily' : 'chapter';
+  }
+
+  /** Daily Doodle: today's arena and modifier, a calendar page of stamps, the streak. */
+  private daily() {
+    this.toy.load(null);
+    const d = loadSave();
+    const today = new Date();
+    const key = dateKey(today);
+    const day = dailyFor(key);
+    this.root.append(el('div', 'chapter-title', `Daily Doodle<br><span>${day.arena}</span>`));
+    const card = el('button', `note daily-card ${d.cleared[day.level.id] ? 'done' : ''}`, `<em>${key}</em><b>${day.mod.name}</b>`);
+    card.insertBefore(levelThumb(day.level), null);
+    this.press(card, () => this.show('play', day.level));
+    this.root.append(card);
+    // the calendar: this month, a stamp on every day cleared
+    const y = today.getFullYear(),
+      m = today.getMonth();
+    const first = new Date(y, m, 1).getDay();
+    const days = new Date(y, m + 1, 0).getDate();
+    const cal = el('div', 'calendar');
+    for (const w of ['S', 'M', 'T', 'W', 'T', 'F', 'S']) cal.append(el('i', 'dow', w));
+    for (let k = 0; k < first; k++) cal.append(el('i', 'blank'));
+    for (let k = 1; k <= days; k++) {
+      const dk = dateKey(new Date(y, m, k));
+      cal.append(el('i', `day ${d.cleared['daily-' + dk] ? 'stamped' : ''} ${k === today.getDate() ? 'today' : ''}`, String(k)));
+    }
+    this.root.append(cal);
+    let streak = 0;
+    for (let t = new Date(today); d.cleared['daily-' + dateKey(t)] || (streak === 0 && dateKey(t) === key); t.setDate(t.getDate() - 1)) if (d.cleared['daily-' + dateKey(t)]) streak++;
+    if (streak) this.root.append(el('div', 'streak', `${streak} day${streak > 1 ? 's' : ''} in a row`));
+    this.root.append(this.press(el('button', 'tab back', '← back'), () => this.show('title')));
   }
 
   /** The Sumo ladder: twelve opponents, each opening when the one before is beaten. */
@@ -335,10 +369,11 @@ export class Shell {
     c.innerHTML = `${names}<p class="epitaph">${info.epitaph}</p><div class="badges">${slots}<small>${badges.length ? 'Cleared with: ' + badges.map((b) => 'the ' + b).join(' · ') : ''}</small></div>`;
     const idx = ALL_LEVELS.findIndex((l) => l.id === info.level.id);
     const rung = info.level.goal.type === 'sumo' ? Number(info.level.id.slice(5)) : 0;
-    const next = rung ? (rung < OPPONENTS.length ? sumoLevel(rung) : undefined) : ALL_LEVELS[idx + 1];
+    const next = rung ? (rung < OPPONENTS.length ? sumoLevel(rung) : undefined) : idx >= 0 ? ALL_LEVELS[idx + 1] : undefined;
     const row = el('div', 'buttons');
     if (info.level.goal.type === 'boss') row.append(this.press(el('button', 'note small go', 'The End →'), () => this.show('credits')));
     else if (next) row.append(this.press(el('button', 'note small go', 'Next →'), () => this.show('play', next)));
+    else if (info.level.mod) row.append(this.press(el('button', 'note small go', 'Stamped!'), () => this.show('daily')));
     else if (rung) row.append(this.press(el('button', 'note small go', 'Ladder done!'), () => this.show('sumo')));
     else row.append(this.press(el('button', 'note small go', 'Chapter done!'), () => this.show('chapter')));
     row.append(this.press(el('button', 'note small', 'Retry'), () => this.retry()));

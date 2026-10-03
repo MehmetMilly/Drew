@@ -1,5 +1,6 @@
 // The simulation world (physics.md §2). Fixed 60 Hz step, 2 substeps, 10 iterations,
 // shape matching every 3rd iteration. Pure and deterministic.
+import { applyMod } from './daily';
 import * as F from './fmath';
 import { BODY, CREATURE_COLLIDE, GUY, LOCO, SHAPE, WORLD } from '../tuning';
 import { Particles, Constraints, PF, CT, STRUCTURAL } from './store';
@@ -170,6 +171,8 @@ export class World {
 
   /** Birth: strokes that touch become one creature each. Returns new creatures. */
   addStrokes(strokes: readonly (readonly PenPt[])[]): Creature[] {
+    // Daily "Mirror": every stroke is drawn again reflected across the page's centre
+    if (this.level?.def.mod === 'mirror') strokes = [...strokes, ...strokes.map((s) => s.map((p) => ({ ...p, x: this.W - p.x })))];
     const usable = strokes.filter((s) => s.length >= 2);
     if (!usable.length) return [];
     const built = buildBodies(this, usable);
@@ -185,7 +188,7 @@ export class World {
       if (host) this.graft(host, cr);
       else made.push(cr);
     }
-    return made;
+    return this.level?.def.mod ? applyMod(this, made, this.level.def.mod) : made;
   }
 
   /** The living creature that new particles touch most, if any. */
