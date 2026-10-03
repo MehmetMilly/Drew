@@ -61,6 +61,9 @@ export const ACT = {
   reachSpeed: 900,
   reachGain: 0.25,
   reachEnvelope: 1.05,
+  // the envelope is measured on the drawn (curved) chain; a straight arm can't stretch
+  // past ~0.9 of it without dragging its root: the skyhook (see DECISIONS.md)
+  reachSlack: 0.86,
   reachShares: [1, 0.7, 0.45, 0.25],
   grabSlop: 12,
   throwWindup: 0.1,

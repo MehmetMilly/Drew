@@ -112,7 +112,7 @@ function findScribbles(pts: Pt[]): { ranges: Range[]; even: Pt[]; arc: number[] 
     while (a > 0 && Math.hypot(even[a - 1].x - cx, even[a - 1].y - cy) < lim) a--;
     while (b < n - 1 && Math.hypot(even[b + 1].x - cx, even[b + 1].y - cy) < lim) b++;
     // a short leftover tail at either end is part of the scribble
-    const tailMax = Math.max(26, 0.12 * (b - a) * SP);
+    const tailMax = 26;
     if (a * SP < tailMax) a = 0;
     if ((n - 1 - b) * SP < tailMax) b = n - 1;
     // a regular back-and-forth is a spring, not a lump
