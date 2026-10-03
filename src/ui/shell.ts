@@ -23,6 +23,7 @@ export class Shell {
   private root = el('div', 'ui');
   private screen: Screen = 'title';
   private card: HTMLElement | null = null;
+  private chapterIdx = 0;
   private stopHall: (() => void) | null = null;
   private hallPage = 0;
 
@@ -65,6 +66,8 @@ export class Shell {
     if (s !== this.screen) sfxUi('page'); // moving between screens turns a page
     this.stopHall?.();
     this.stopHall = null;
+    // the chapter screen opens on the chapter of the level just played
+    if (level) this.chapterIdx = Math.max(0, CHAPTERS.findIndex((c) => c.levels.includes(level)));
     this.screen = s;
     this.root.innerHTML = '';
     this.card = null;
@@ -170,11 +173,13 @@ export class Shell {
   private chapter() {
     this.toy.load(null);
     const d = loadSave();
-    const ch = CHAPTERS[0];
+    const ch = CHAPTERS[this.chapterIdx];
     this.root.append(el('div', 'chapter-title', `Chapter ${ch.id}<br><span>${ch.title}</span>`));
     const grid = el('div', 'levels');
     ch.levels.forEach((lv, i) => {
-      const open = i === 0 || d.cleared[ch.levels[i - 1].id] || import.meta.env.DEV;
+      // levels open one by one, across chapters (the first of a chapter needs the last of the one before)
+      const gi = ALL_LEVELS.indexOf(lv);
+      const open = gi === 0 || d.cleared[ALL_LEVELS[gi - 1].id] || import.meta.env.DEV;
       const badges = d.badges[lv.id] ?? [];
       const slots = [0, 1, 2].map((k) => `<i class="slot ${badges[k] ? 'on' : ''}" title="${badges[k] ? 'the ' + badges[k] : ''}"></i>`).join('');
       const b = el('button', `note lvl ${open ? '' : 'locked'} ${d.cleared[lv.id] ? 'done' : ''}`, `<em>${lv.id}</em><b>${lv.title}</b><span class="slots">${slots}</span>`);
@@ -185,6 +190,15 @@ export class Shell {
       grid.append(b);
     });
     this.root.append(grid);
+    if (CHAPTERS.length > 1) {
+      const nav = el('div', 'pager chapters');
+      const go = (k: number) => () => {
+        this.chapterIdx = (this.chapterIdx + k + CHAPTERS.length) % CHAPTERS.length;
+        this.show('chapter');
+      };
+      nav.append(this.press(el('button', 'tab', '‹'), go(-1)), el('span', '', `chapter ${ch.id} of ${CHAPTERS.length}`), this.press(el('button', 'tab', '›'), go(1)));
+      this.root.append(nav);
+    }
     this.root.append(this.press(el('button', 'tab back', '← back'), () => this.show('title')));
   }
 
