@@ -246,6 +246,9 @@ function finish() {
 }
 
 async function save() {
+  const btn = document.getElementById('b-next') as HTMLButtonElement;
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
   const r = results();
   const body = JSON.stringify({ device: navigator.userAgent, date: new Date().toISOString(), strokes: r.strokes, joins: r.joins });
   const hint = bar.querySelector('.hint')!;
@@ -253,6 +256,7 @@ async function save() {
     const res = await fetch('/__fixtures', { method: 'POST', body, headers: { 'content-type': 'application/json' } });
     if (res.ok) {
       hint.innerHTML = `Saved to <b>${await res.text()}</b>. You can close this page.`;
+      btn.textContent = 'Saved ✓';
       return;
     }
   } catch {
