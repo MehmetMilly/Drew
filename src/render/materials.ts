@@ -58,6 +58,10 @@ export interface PaperSpec {
 
 export const PAPERS: Record<string, PaperSpec> = {
   cream: { base: COLORS.cream, tooth: 0.06, blotch: 0.09, fibre: 'rgba(120,100,70,0.10)', fibres: 220, seed: 11 },
+  // Chapter 3: brown kraft paper, coarse and fibrous
+  kraft: { base: '#C9A97A', tooth: 0.1, blotch: 0.14, fibre: 'rgba(90,60,30,0.16)', fibres: 520, seed: 37 },
+  // Chapter 4: cold-press watercolour, bright and toothy (the washes are the water itself)
+  wash: { base: '#F6F3EC', tooth: 0.12, blotch: 0.05, fibre: 'rgba(120,130,150,0.06)', fibres: 80, seed: 41 },
   // Chapter 2: engineering graph paper (a faint grey-green rule, so it never reads as a guide)
   graph: { base: '#F3F4EE', tooth: 0.05, blotch: 0.06, fibre: 'rgba(110,120,100,0.08)', fibres: 160, seed: 23, grid: { step: 24, color: 'rgba(96,128,110,0.16)', heavy: 1.8 } },
 };

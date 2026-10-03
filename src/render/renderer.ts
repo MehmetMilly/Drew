@@ -1,5 +1,6 @@
 // Composes a frame of the world on the page canvas (page space 720×1280).
 import { COLORS, LOOK, WORLD, PEN } from '../tuning';
+import { drawProps, drawWater } from './props';
 import { drawBodies, drawGuy, drawBursts, drawCountdown, drawGoal, drawPlayers, drawSpikes, type Burst } from './stage';
 import { guyCentre } from '../sim/littleguy';
 import { World, SimEvent } from '../sim/world';
@@ -100,6 +101,7 @@ export class WorldRenderer {
     drawGoal(g, w);
     this.drawTerrain(g, frame);
     drawSpikes(g, w);
+    drawProps(g, w);
     drawPlayers(g, w);
     drawBodies(g, w, o.alpha, frame);
     for (const cr of w.creatures) if (cr.alive) this.drawShadow(g, cr, o.alpha);
@@ -108,6 +110,7 @@ export class WorldRenderer {
     for (const cr of w.creatures) if (cr.alive) this.drawCreatureFace(g, cr, o, frame);
     if (o.intentLines !== false) for (const cr of w.creatures) if (cr.alive) this.drawIntent(g, cr, o);
     if (w.guy) drawGuy(g, w, w.guy, o.alpha, frame);
+    drawWater(g, w);
     this.drawSnaps(g);
     drawBursts(g, this.bursts, w.t);
     this.drawPlates(g, o.alpha);
@@ -300,6 +303,7 @@ export class WorldRenderer {
     const w = this.w;
     g.fillStyle = COLORS.felt;
     w.terrain.forEach((T, ti) => {
+      if (T.broken || T.kind === 'bridge') return; // bridges are drawn as planks (props.ts)
       let c = this.terrainCache.get(ti);
       if (!c) {
         // resample edges every 6 px with a 2 px felt-tip wobble

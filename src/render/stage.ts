@@ -4,6 +4,7 @@
 import { NINJA } from '../sim/hazards';
 import { COLORS, HAZ, LEVEL, LOOK } from '../tuning';
 import { boil1 } from './boil';
+import { drawChunk } from './props';
 import type { World, Body } from '../sim/world';
 import { countdown } from '../sim/level';
 import type { Guy } from '../sim/littleguy';
@@ -48,7 +49,52 @@ export function drawBodies(g: Ctx, w: World, alpha: number, frame: number) {
     else if (b.kind === 'ninja') drawNinja(g, w, b, x, y, frame);
     else if (b.kind === 'ball') drawRubber(g, b, x, y, frame);
     else if (b.kind === 'cargo') drawCargo(g, b, x, y, frame);
+    else if (b.kind === 'chunk') drawChunk(g, b, x, y);
+    else if (b.kind === 'sumo') drawSumo(g, w, b, x, y, frame);
   }
+}
+
+/** The sumo bully: a big felt belly, a red belt (he's the threat), a topknot, a scowl.
+ *  He bobs while he stamps, then leans into the shove. */
+function drawSumo(g: Ctx, w: World, b: Body, x: number, y: number, frame: number) {
+  const stamping = w.t < (b.data.at ?? 0) + HAZ.sumoStamp;
+  const bob = stamping && w.t >= (b.data.sleep ?? 0) ? Math.abs(Math.sin(w.t * 9)) * 6 : 0;
+  const dir = b.data.dir ?? (w.guy ? Math.sign(w.P.x[w.guy.hip] - b.x) || 1 : 1);
+  const r = b.r;
+  g.save();
+  g.translate(x, y - bob);
+  g.fillStyle = COLORS.felt;
+  wobbleCircle(g, 0, 0, r, b.id * 17 + 7, frame);
+  g.fill();
+  // legs stamping
+  g.fillRect(-r * 0.6, r * 0.7, r * 0.4, r * 0.4 + bob);
+  g.fillRect(r * 0.2, r * 0.7, r * 0.4, r * 0.4);
+  // head and topknot
+  g.beginPath();
+  g.arc(dir * r * 0.35, -r * 0.95, r * 0.42, 0, Math.PI * 2);
+  g.fill();
+  g.beginPath();
+  g.arc(dir * r * 0.3, -r * 1.42, r * 0.13, 0, Math.PI * 2);
+  g.fill();
+  // red belt
+  g.fillStyle = COLORS.red;
+  g.fillRect(-r * 0.95, r * 0.18, r * 1.9, r * 0.26);
+  // scowl: paper eyes with heavy brows
+  g.fillStyle = COLORS.cream;
+  const ex = dir * r * 0.45;
+  g.beginPath();
+  g.arc(ex - 7, -r * 0.98, 4, 0, Math.PI * 2);
+  g.arc(ex + 7, -r * 0.98, 4, 0, Math.PI * 2);
+  g.fill();
+  g.strokeStyle = COLORS.cream;
+  g.lineWidth = 2.4;
+  g.beginPath();
+  g.moveTo(ex - 13, -r * 1.12);
+  g.lineTo(ex - 3, -r * 1.05);
+  g.moveTo(ex + 13, -r * 1.12);
+  g.lineTo(ex + 3, -r * 1.05);
+  g.stroke();
+  g.restore();
 }
 
 /** A rubber ball (a threat): felt with a red band that spins with it. */
