@@ -2,16 +2,21 @@
 // watches Little Guy's fate and the goal each step, and keeps an event log for
 // epitaphs and money moments. Pure and deterministic.
 import * as F from './fmath';
-import { ACT, BODY, GUY, LEVEL, WORLD } from '../tuning';
+import { ACT, BODY, GUY, HAZ, LEVEL, WORLD } from '../tuning';
 import { spawnEntity, attacking, type Entity } from './hazards';
-import { PF } from './store';
+import { CT, PF } from './store';
 import { spawnGuy, thinkGuy, killGuy, guyCentre, dismount, hopDown, type Guy, type GuyHat } from './littleguy';
 import type { Pt } from './geom';
 import type { World, Body } from './world';
 import type { Creature } from './creature';
 
 /** HOME: the flag's foot stands at (x, y) on the ground; the pole is LEVEL.flagH tall. */
-export type Goal = { type: 'hug' } | { type: 'save'; seconds: number } | { type: 'home'; x: number; y: number };
+/** SCORE: n balls dropped down through the hoop (rim centre x, y) within `seconds`. */
+export type Goal =
+  | { type: 'hug' }
+  | { type: 'save'; seconds: number }
+  | { type: 'home'; x: number; y: number }
+  | { type: 'score'; n: number; seconds: number; hoop: { x: number; y: number } };
 
 export interface RefSolution {
   kind: string; // the hero kind it is meant to be (design §6)
@@ -51,6 +56,7 @@ export interface LevelRun {
   seen: number; // events processed
   squeezeT: number; // s he has been squeezed by ink a pusher is shoving
   stallT?: number; // HOME: s his carrier has made no progress
+  score: number; // SCORE: balls through the hoop so far
   log: { t: number; type: string; cr?: number; v?: number; text?: string }[];
 }
 
@@ -60,13 +66,13 @@ export function startLevel(w: World, def: LevelDef) {
   for (const t of def.terrain) w.addTerrain(t);
   w.guy = spawnGuy(w, def.guy.x, def.guy.y, def.guy.hat ?? 'none');
   for (const e of def.entities) spawnEntity(w, e);
-  w.level = { def, startedAt: -1, result: 'play', resultAt: -1, cause: '', hugT: 0, hugger: -1, seen: 0, squeezeT: 0, log: [] };
+  w.level = { def, startedAt: -1, result: 'play', resultAt: -1, cause: '', hugT: 0, hugger: -1, seen: 0, squeezeT: 0, score: 0, log: [] };
 }
 
 /** Seconds left on the SAVE countdown (null when the goal has none or it hasn't started). */
 export function countdown(w: World): number | null {
   const L = w.level;
-  if (!L || L.def.goal.type !== 'save') return null;
+  if (!L || (L.def.goal.type !== 'save' && L.def.goal.type !== 'score')) return null;
   if (L.startedAt < 0) return L.def.goal.seconds;
   return Math.max(0, L.def.goal.seconds - (w.t - L.startedAt));
 }
@@ -100,7 +106,7 @@ export function levelStep(w: World) {
       const c = guyCentre(w, g);
       if (F.hypot(c.x - e.x!, c.y - e.y!) < GUY.blastKill) killGuy(w, g, 'blast');
     }
-    if (['born', 'piece', 'graft', 'tear', 'boom', 'grab', 'throw', 'punch', 'knock', 'guyDied', 'ninjaLeap', 'fell', 'board', 'jump'].includes(e.type)) L.log.push({ t: e.t, type: e.type, cr: e.cr, text: e.text });
+    if (['born', 'piece', 'graft', 'tear', 'boom', 'grab', 'throw', 'punch', 'knock', 'guyDied', 'ninjaLeap', 'fell', 'board', 'jump', 'score'].includes(e.type)) L.log.push({ t: e.t, type: e.type, cr: e.cr, text: e.text });
   }
   if (L.startedAt < 0 && w.t >= LEVEL.autoStart) L.startedAt = w.t;
   const th = mainThreat(w);
@@ -118,6 +124,14 @@ export function levelStep(w: World) {
   const goal = L.def.goal;
   if (goal.type === 'save') {
     if (L.startedAt >= 0 && w.t - L.startedAt >= goal.seconds) win(w);
+  } else if (goal.type === 'score') {
+    scoreCheck(w, goal);
+    if (L.score >= goal.n) win(w);
+    else if (L.startedAt >= 0 && w.t - L.startedAt >= goal.seconds) {
+      L.result = 'fail';
+      L.resultAt = w.t;
+      L.cause = 'time';
+    }
   } else if (goal.type === 'home') {
     const c = guyCentre(w, g);
     // carried too high over the flag (a giant's shoulder): he is let down and drops to it
@@ -251,6 +265,47 @@ function win(w: World) {
   w.emit({ type: 'win', cr: g.hugging });
 }
 
+/** SCORE: a ball that drops down through the rim (centre within the rim, moving down) scores. */
+function scoreCheck(w: World, goal: { hoop: { x: number; y: number } }) {
+  const L = w.level!;
+  const { x, y } = goal.hoop;
+  for (const b of w.bodies) {
+    if (!b.alive || b.kind !== 'cargo' || b.data.parked || w.t - (b.data.scoredAt ?? -9) < 1) continue;
+    if (b.sy < y && b.y >= y && Math.abs(b.x - x) < LEVEL.hoopW / 2 - b.r * 0.3) {
+      L.score++;
+      b.data.scoredAt = w.t;
+      b.data.backAt = w.t + LEVEL.scoreBack;
+      // who put it in: whoever held or threw it last
+      w.emit({ type: 'score', cr: b.data.by ?? -1, x, y, v: L.score });
+    }
+  }
+}
+
+function onSpikes(w: World): ((i: number) => boolean) | null {
+  const P = w.P;
+  const S = w.level!.def.entities.filter((e) => e.type === 'spikes') as { x0: number; x1: number; y: number }[];
+  if (!S.length) return null;
+  return (i: number) => S.some((s) => P.x[i] > s.x0 && P.x[i] < s.x1 && P.y[i] > s.y - HAZ.spikeH - BODY.radius);
+}
+
+/** Spike floors, per step before the sever pass: every tie to a point on the teeth is cut
+ *  (feet and tips that land on them come off). */
+export function spikeCut(w: World) {
+  const P = w.P,
+    C = w.C;
+  const on = onSpikes(w);
+  if (!on) return;
+  let any = false;
+  for (const cr of w.creatures) if (cr.alive) for (const i of cr.ids) if (on(i)) any = true;
+  if (!any) return;
+  for (let c = 0; c < C.n; c++) {
+    if (C.dead[c] || C.type[c] === CT.GRAB) continue;
+    if (P.flags[C.a[c]] & PF.GUY) continue;
+    // every tie to a point on the teeth goes (bends too, or the tip hangs on by them)
+    if (on(C.a[c]) || on(C.b[c])) w.cut(c, 'spike');
+  }
+}
+
 function checkDeaths(w: World) {
   const g = w.guy!;
   const P = w.P;
@@ -259,6 +314,13 @@ function checkDeaths(w: World) {
   const h = WORLD.dt;
   for (const b of w.bodies) {
     if (!b.alive || (b.data.sleep ?? 0) > w.t) continue;
+    if (b.kind === 'ball' && b.held < 0) {
+      // a rubber ball that hits him hard knocks him out
+      let touch = false;
+      for (const i of g.ids) if (F.hypot(P.x[i] - b.x, P.y[i] - b.y) < b.r + GUY.radius + 2) touch = true;
+      if (touch && F.hypot(b.x - b.sx, b.y - b.sy) / h > GUY.ballKill) return killGuy(w, g, 'bonked');
+      continue;
+    }
     if (b.kind === 'boulder' || b.kind === 'ninja') {
       const reach = b.r + GUY.radius + 2 + (b.kind === 'ninja' ? GUY.bladeReach : 0);
       let touch = false;
@@ -276,6 +338,8 @@ function checkDeaths(w: World) {
     }
   }
   if (squeezed(w)) return killGuy(w, g, 'crushed');
+  const spiked = onSpikes(w);
+  if (spiked && g.ids.some(spiked)) return killGuy(w, g, 'spiked');
   // crushed: a wall closes right up to him (ink in between has been squeezed out), or he is
   // trapped between two walls / a wall and the page edge
   const walls = w.bodies.filter((b) => b.alive && b.kind === 'crusher' && (b.data.sleep ?? 0) <= w.t);

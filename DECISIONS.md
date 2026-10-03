@@ -115,3 +115,10 @@ Gate 3 verdict: "the stupid solution is the one that usually wins". In 1-5 the t
 - **Escort**: a creature too tall to ride with no hand that reaches him leads him home a step ahead. He walks between its legs, so escorts don't collide with him. Before this, the giant had him scrambling up 800 px.
 - **Brain bug fixed**: the plan-change check compared `reach?.body ?? -2` with a stored `-1`, so a creature on guard re-decided every frame and `actAt` never arrived. With the fix, guard and carry act on time. 1-2's giant ref moved from x 300 to 400 because 300 now lands under the boulder's path (the other placements win 5/5).
 - `LEVEL.cardDelay` is unused now that the end card follows the stamp.
+
+## 2026-10-03 — Phase 4: Chapter 2 mechanics
+
+- **SCORE** (`{type:'score', n, seconds, hoop}`): little players (felt, with a cap so they aren't mistaken for Little Guy) hold yellow balls. Arms can't reach that low, so a player *passes* its ball up over the nearest free hand of a creature that comes for it. The pass flies through that creature for 0.9 s, so it reaches the hands rather than the belly, and any part of an arm catches it. Holding the ball, the creature walks under the rim and shoots: the arc peaks `ACT.shotApex` over the rim, a ball already over the rim is dropped in, and a shot needing more than `shotMax` × its throw speed waits while it walks closer. A ball dropping down through the rim scores. Loose balls go back to their player. When time runs out it's a fail ("time"). Bodies without hands (hopper, worm, box) can't score: intended.
+- **Spikes** (`{type:'spikes', x0, x1, y}`): every tie to a point on the teeth is cut (bends too) before the sever pass, so feet come off and shrink. Little Guy touching them dies ("spiked"). If his carrier comes apart, he rides whichever piece his perch is on.
+- **Rubber balls** (`{type:'ball', …}`): bouncy grabbable threats (restitution 0.85). One hitting him above `GUY.ballKill` knocks him out. They leave after `HAZ.ballLife`.
+- **Graph paper** for Chapter 2: a faint grey-green rule, never blue (blue is for guides).

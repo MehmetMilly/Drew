@@ -77,8 +77,11 @@ function groundAt(def: LevelDef, x: number, fromY: number): number {
  *  standing between him and the threat; `cage` is a box drawn around him. */
 export function baselines(def: LevelDef): Record<string, Pt[][]> {
   const b = def.baseline ?? { x: def.guy.x, y: def.guy.y - 20 };
-  const e = def.entities[0];
-  const side = e ? Math.sign(e.x - def.guy.x) || -1 : -1;
+  // the lazy shapes go toward what matters: the threat, the flag or the hoop
+  const G = def.goal;
+  const e = def.entities.find((q) => 'x' in q) as { x: number } | undefined;
+  const toward = G.type === 'home' ? G.x : G.type === 'score' ? G.hoop.x : e?.x;
+  const side = toward !== undefined ? Math.sign(toward - def.guy.x) || -1 : -1;
   const gy = def.guy.y; // his feet
   const nx = b.x + side * 70; // just beside him, toward the threat
   const wx = b.x + side * 50; // a wall between them

@@ -13,7 +13,7 @@ import { think } from './brain';
 import { actuate } from './actuators';
 import { preHazards, postHazards, asleep, attacking } from './hazards';
 import { actuateGuy, GUY_OWNER, type Guy } from './littleguy';
-import { levelStep, type LevelRun } from './level';
+import { levelStep, spikeCut, type LevelRun } from './level';
 
 export interface Terrain {
   pts: Pt[];
@@ -490,6 +490,7 @@ export class World {
       this.checkTears();
     }
     postHazards(this);
+    if (this.level) spikeCut(this);
     // after the hazards: a blade or a saw cuts in postHazards, and the pieces must come apart
     if (this.tearsThisStep) this.sever();
     this.cleanup();
@@ -931,6 +932,7 @@ export class World {
       // an attacking ninja passes through ink, cutting it (hazards.ts); only a strike stops him
       if (attacking(b)) continue;
       const bw = b.held >= 0 || asleep(this, b) ? 0 : b.m > 0 ? 1 / b.m : 0;
+      const shot = b.kind === 'cargo' && this.t < (b.data.clearUntil ?? -9) ? b.data.by : -9;
       const reach = b.r + pr;
       // query cells covering the body
       const span = Math.ceil(reach / this.cell);
@@ -942,6 +944,8 @@ export class World {
           if (xx < 0 || xx >= this.gw) continue;
           for (let j = this.head[yy * this.gw + xx]; j !== NO_HIT; j = this.next[j]) {
             if (b.held >= 0 && P.owner[j] === b.held) continue;
+            // a shot ball leaves its shooter's hands cleanly
+            if (shot >= 0 && P.owner[j] === shot) continue;
             const dx = P.x[j] - b.x,
               dy = P.y[j] - b.y;
             const d2 = dx * dx + dy * dy;

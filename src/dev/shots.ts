@@ -41,7 +41,8 @@ export async function sheet(rows: ShotRow[], scale0 = CELL_W / WORLD.W): Promise
   const g = c.getContext('2d')!;
   g.fillStyle = '#B98B5E';
   g.fillRect(0, 0, c.width, c.height);
-  const paper = renderPaper(PAPERS.cream, cw * 2, ch * 2);
+  const papers: Record<string, HTMLCanvasElement> = {};
+  const paperOf = (k: string) => (papers[k] ??= renderPaper(PAPERS[k] ?? PAPERS.cream, cw * 2, ch * 2));
   rows.forEach((row, ri) => {
     const w = new World({ seed: 1 });
     const r = new WorldRenderer(w);
@@ -85,7 +86,7 @@ export async function sheet(rows: ShotRow[], scale0 = CELL_W / WORLD.W): Promise
       g.beginPath();
       g.rect(0, 0, cw, ch);
       g.clip();
-      g.drawImage(paper, 0, 0, cw, ch);
+      g.drawImage(paperOf(lv?.paper ?? 'cream'), 0, 0, cw, ch);
       g.scale(scale, scale);
       if (row.crop) {
         let ox = row.crop.x;

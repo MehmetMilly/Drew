@@ -174,6 +174,30 @@ function planLevel(w: World, cr: Creature, c: { x: number; y: number }) {
       }
     }
   }
+  // score (design §8): fetch a ball from a little player, carry it under the hoop, shoot
+  if (goal.type === 'score' && plan === 'guard') {
+    const hoop = goal.hoop;
+    const mine = w.bodies.find((o) => o.alive && o.kind === 'cargo' && o.held === cr.id);
+    plan = 'score';
+    if (mine) {
+      // under the rim, coming from its own side; hands up at the rim (spring legs jump for it)
+      const side = Math.sign(c.x - hoop.x) || 1;
+      tx = hoop.x + side * half * 0.3;
+      reach = { x: hoop.x, y: hoop.y - ACT.shotApex, body: -1 };
+    } else {
+      let best: (typeof w.bodies)[number] | null = null,
+        bd = Infinity;
+      for (const o of w.bodies) {
+        if (!o.alive || o.kind !== 'cargo' || o.held >= 0 || w.t - (o.data.thrownAt ?? -9) < 0.6) continue;
+        const d = Math.abs(o.x - c.x);
+        if (d < bd) (bd = d), (best = o);
+      }
+      if (best) {
+        tx = best.x;
+        reach = { x: best.x, y: best.y, body: best.id };
+      } else plan = 'guard';
+    }
+  }
   // other creatures already guard that side: stand a little further out
   tx = Math.max(10, Math.min(WORLD.W - 10, tx));
   const changed = plan !== b.plan || (reach?.body ?? -1) !== b.targetBody || (plan === 'carry' && Math.abs(tx - (b.targetX ?? tx)) > 120);

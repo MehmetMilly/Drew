@@ -182,9 +182,12 @@ function servoV(w: World, i: number, vx: number, vy: number | null, k: number, h
 /** Riding: feet servo softly onto the perch, body upright above it. False once he falls off. */
 function ride(w: World, g: Guy, h: number): boolean {
   const P = w.P;
-  const cr = w.creatures[g.ride];
   const p = g.perch;
-  if (!cr || !cr.alive || !(P.flags[p] & PF.ALIVE)) return (dismount(g), false);
+  if (!(P.flags[p] & PF.ALIVE)) return (dismount(g), false);
+  // his carrier came apart: he rides whichever piece his perch is on now
+  if (P.owner[p] !== g.ride && w.creatures[P.owner[p]]?.alive) g.ride = P.owner[p];
+  const cr = w.creatures[g.ride];
+  if (!cr || !cr.alive) return (dismount(g), false);
   const top = P.y[p] - BODY.radius - GUY.radius;
   const fx = (P.x[g.footL] + P.x[g.footR]) / 2,
     fy = (P.y[g.footL] + P.y[g.footR]) / 2;

@@ -7,7 +7,7 @@
 // held only by creatures that brace (feet planted, pushing back). The ninja cuts
 // through still ink and is stopped only by being caught, thrown, punched or knocked.
 import * as F from './fmath';
-import { ACT, BODY, HAZ, WORLD } from '../tuning';
+import { ACT, BODY, HAZ, LEVEL, WORLD } from '../tuning';
 import { CT, PF } from './store';
 import type { Body, World } from './world';
 import type { Creature, Limb } from './creature';
@@ -17,13 +17,19 @@ export type Entity =
   | { type: 'boulder'; x: number; y: number; r?: number; m?: number; vx?: number; at?: number }
   | { type: 'bomb'; x: number; y: number; vx?: number; vy?: number; at?: number; fuse?: number }
   | { type: 'crusher'; x: number; y: number; h: number; w?: number; dir: 1 | -1; at?: number; speed?: number; force?: number; teeth?: boolean }
-  | { type: 'ninja'; x: number; y: number; tx: number; ty: number; at: number; apex?: number };
+  | { type: 'ninja'; x: number; y: number; tx: number; ty: number; at: number; apex?: number }
+  /** a rubber ball (2-5): a bouncy threat launched at `at` with (vx, vy) */
+  | { type: 'ball'; x: number; y: number; vx: number; vy: number; at: number; r?: number }
+  /** a SCORE ball held up by a little player standing at (x, y + its height) */
+  | { type: 'cargo'; x: number; y: number }
+  /** a spike floor along [x0, x1] with its teeth standing on ground at y: cuts what lands on it */
+  | { type: 'spikes'; x0: number; x1: number; y: number };
 
 /** Ninja script states. */
 export const NINJA = { CROUCH: 0, LEAP: 1, DASH: 2, DIZZY: 3 } as const;
 
 /** Create the body for a level entity. `at` is the level time it wakes up. */
-export function spawnEntity(w: World, e: Entity): Body {
+export function spawnEntity(w: World, e: Entity): Body | null {
   switch (e.type) {
     case 'boulder':
       return w.addBody({ kind: 'boulder', x: e.x, y: e.y, r: e.r ?? HAZ.boulderR, m: e.m ?? HAZ.boulderMass, restitution: 0.05, friction: HAZ.boulderFriction, data: { vx: e.vx ?? 0, threat: 1, pusher: 1, sleep: e.at ?? 0 } });
@@ -33,7 +39,24 @@ export function spawnEntity(w: World, e: Entity): Body {
       return w.addBody({ kind: 'crusher', x: e.x, y: e.y, r: 0, hw: (e.w ?? HAZ.crusherW) / 2, hh: e.h / 2, m: HAZ.crusherMass, data: { dir: e.dir, speed: e.speed ?? HAZ.crusherSpeed, force: e.force ?? HAZ.crusherForce, threat: 1, pusher: 1, sleep: e.at ?? 0, teeth: e.teeth === false ? 0 : 1, rail: e.y } });
     case 'ninja':
       return w.addBody({ kind: 'ninja', x: e.x, y: e.y, r: HAZ.ninjaR, m: HAZ.ninjaMass, restitution: 0.2, friction: 0.5, grabbable: true, data: { tx: e.tx, ty: e.ty, at: e.at, apex: e.apex ?? HAZ.ninjaApex, threat: 1, sleep: e.at, state: NINJA.CROUCH, leapAt: -9, stunUntil: 0, wasHeld: 0, stallT: 0 } });
+    case 'ball':
+      return w.addBody({ kind: 'ball', x: e.x, y: e.y, r: e.r ?? HAZ.ballR, m: HAZ.ballMass, restitution: HAZ.ballBounce, friction: 0.05, grabbable: true, data: { vx: e.vx, vy: e.vy, threat: 1, sleep: e.at, life: e.at + HAZ.ballLife } });
+    case 'cargo':
+      return w.addBody({ kind: 'cargo', x: e.x, y: e.y, r: HAZ.cargoR, m: HAZ.cargoMass, restitution: HAZ.cargoBounce, friction: 0.4, grabbable: true, data: { cargo: 1, hx: e.x, hy: e.y, parked: 1, restT: 0, backAt: -1 } });
+    case 'spikes':
+      return null; // part of the ground: the level runner cuts what lands on it
   }
+}
+
+/** Put a SCORE ball back in its little player's hands. */
+export function parkCargo(b: Body) {
+  b.x = b.px = b.sx = b.data.hx;
+  b.y = b.py = b.sy = b.data.hy;
+  b.data.parked = 1;
+  b.data.restT = 0;
+  b.data.backAt = -1;
+  b.data.scoredAt = -9;
+  b.angle = 0;
 }
 
 export const asleep = (w: World, b: Body) => (b.data.sleep ?? 0) > w.t;
@@ -81,6 +104,14 @@ export function preHazards(w: World, h: number) {
       brakeBoulder(w, b, h);
     } else if (b.kind === 'ninja') {
       ninjaScript(w, b, h);
+    } else if (b.kind === 'cargo' && b.data.parked) {
+      // held up in a little player's hands until a creature comes for it: then a pass
+      if (b.held >= 0) b.data.parked = 0;
+      else {
+        b.x = b.px = b.data.hx;
+        b.y = b.py = b.data.hy;
+        pass(w, b, h);
+      }
     }
   }
 }
@@ -94,6 +125,13 @@ export function postHazards(w: World) {
     if (b.kind === 'crusher' && b.data.sawing) saw(w, b);
     if (b.kind === 'boulder' && b.data.grinding) grind(w, b);
     b.data.grounded = 0;
+    if (b.kind === 'ball' && w.t > b.data.life && b.held < 0) b.alive = false;
+    if (b.kind === 'cargo' && !b.data.parked && b.held < 0) {
+      // a loose ball that lies still (or left the page) goes back to its player
+      const still = F.hypot(b.x - b.sx, b.y - b.sy) < 0.6;
+      b.data.restT = still ? b.data.restT + WORLD.dt : 0;
+      if (b.data.restT > LEVEL.cargoBack || b.x < -60 || b.x > WORLD.W + 60 || (b.data.backAt > 0 && w.t >= b.data.backAt)) parkCargo(b);
+    }
     if (b.kind === 'bomb') {
       b.data.fuse -= WORLD.dt;
       if (b.data.fuse <= 0) explode(w, b);
@@ -195,6 +233,43 @@ function grind(w: World, b: Body) {
     }
     if (best < 0) return;
     w.cut(best, 'grind');
+  }
+}
+
+// ------------------------------------------------------------------ SCORE balls
+
+/** A little player lobs its ball up to a creature that has come for it (to its top). */
+function pass(w: World, b: Body, h: number) {
+  if (w.t - (b.data.passAt ?? -9) < HAZ.passEvery) return;
+  const P = w.P;
+  for (const cr of w.creatures) {
+    if (!cr.alive || cr.brain.targetBody !== b.id || w.t < cr.brain.actAt) continue;
+    const c = w.centroid(cr);
+    if (Math.abs(c.x - b.x) > HAZ.passRange) continue;
+    // aim just over its nearest free hand (no hands: the top of it, where it bounces off)
+    let tx = c.x,
+      ty = Infinity;
+    let bd = Infinity;
+    for (const l of cr.limbs) {
+      if (l.foot || l.spring >= 0 || l.grabBody >= 0) continue;
+      const d = Math.abs(P.x[l.tip] - b.x);
+      if (d < bd) (bd = d), (tx = P.x[l.tip]), (ty = P.y[l.tip] - HAZ.passOver);
+    }
+    if (bd === Infinity) for (const i of cr.ids) ty = Math.min(ty, P.y[i] - HAZ.passOver);
+    ty = Math.min(b.y - 20, ty);
+    const g = w.gravity;
+    const up = b.y - (ty - HAZ.passApex);
+    const vy = -Math.sqrt(2 * g * up);
+    const vx = (tx - b.x) / (-vy / g + Math.sqrt((2 * HAZ.passApex) / g));
+    b.data.parked = 0;
+    b.data.passAt = w.t;
+    b.data.by = cr.id;
+    b.data.clearUntil = w.t + WORLD.passClear;
+    b.data.restT = 0;
+    b.px = b.x - vx * h;
+    b.py = b.y - vy * h;
+    w.emit({ type: 'pass', cr: cr.id, x: b.x, y: b.y });
+    return;
   }
 }
 

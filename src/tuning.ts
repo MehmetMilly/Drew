@@ -6,6 +6,8 @@ export const WORLD = {
   W: 720,
   H: 1280,
   gravity: 1800,
+  shotClear: 0.35, // s a SCORE ball passes through the creature that shot it...
+  passClear: 0.9, // ...or that it was passed to (so it reaches the hands, not the belly)
   dt: 1 / 60,
   substeps: 2,
   iterations: 10,
@@ -106,6 +108,8 @@ export const ACT = {
   throwWindup: 0.1,
   throwSwing: 0.3,
   throwSpeed: 950,
+  shotApex: 46, // px above the rim: a shot's arc peaks here, then drops through
+  shotMax: 1.15, // a shot needs at most this × the creature's throw speed (else it walks closer)
   throwSpeedStrength: 250,
   punchCompress: 0.45,
   punchCompressT: 0.15,
@@ -259,6 +263,7 @@ export const GUY = {
   hugDist: 30, // a creature particle this close (and settled) is a hug
   crushGap: 14, // walls closer than his width around him: crushed
   crushReach: 50, // a wall face this close to him has squeezed everything else out: crushed
+  ballKill: 380, // px/s: a rubber ball hitting him this hard knocks him out
   boulderKill: 260, // px/s relative speed of a boulder hitting him
   pinTime: 0.5, // s a boulder may rest against him before its weight squashes him
   bladeReach: 10, // px: a ninja's blade reaches this far past his body
@@ -331,6 +336,18 @@ export const HAZ = {
   grindStall: 60, // px/s: a boulder this slow, pressing on ink that is not bracing it, grinds through it...
   grindReach: 4, // ...cutting links with an end this close to its surface...
   grindRate: 3, // ...this many per step, nearest first
+  ballR: 18, // rubber balls (2-5): bouncy threats launched across the page
+  ballMass: 6,
+  ballBounce: 0.85,
+  ballLife: 9, // s a rubber ball bounces around before it rolls off the page
+  cargoR: 16, // SCORE balls (yellow): grabbable, light, held up by the little players
+  cargoMass: 3,
+  cargoBounce: 0.55,
+  passRange: 280, // px: a creature coming for a SCORE ball this close gets it passed up
+  passOver: 30, // px above its top the pass is aimed
+  passApex: 70, // px the pass rises above that
+  passEvery: 1.2, // s between passes from one player
+  spikeH: 22, // px: spike teeth height above the ground they stand on
 };
 
 export const LEVEL = {
@@ -343,4 +360,8 @@ export const LEVEL = {
   failBeat: 0.6, // s of comic beat before a tap retries
   hitStop: 0.15, // s the world freezes as the stamp lands
   cardDelay: 1.3, // s from the win to the end card
+  hoopW: 70, // px: SCORE rim width (a ball dropping through it scores)
+  hoopBoard: 60, // px: the backboard above the rim
+  cargoBack: 1.6, // s a loose ball lies still before a little player takes it back
+  scoreBack: 0.9, // s after a score before the ball is back with its player
 };

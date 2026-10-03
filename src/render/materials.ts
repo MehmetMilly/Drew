@@ -58,6 +58,8 @@ export interface PaperSpec {
 
 export const PAPERS: Record<string, PaperSpec> = {
   cream: { base: COLORS.cream, tooth: 0.06, blotch: 0.09, fibre: 'rgba(120,100,70,0.10)', fibres: 220, seed: 11 },
+  // Chapter 2: engineering graph paper (a faint grey-green rule, so it never reads as a guide)
+  graph: { base: '#F3F4EE', tooth: 0.05, blotch: 0.06, fibre: 'rgba(110,120,100,0.08)', fibres: 160, seed: 23, grid: { step: 24, color: 'rgba(96,128,110,0.16)', heavy: 1.8 } },
 };
 
 /** Render a page of paper at pixel size (w,h) for a logical page of 720×1280. */

@@ -1,6 +1,6 @@
 // Composes a frame of the world on the page canvas (page space 720×1280).
 import { COLORS, LOOK, WORLD, PEN } from '../tuning';
-import { drawBodies, drawGuy, drawBursts, drawCountdown, drawGoal, type Burst } from './stage';
+import { drawBodies, drawGuy, drawBursts, drawCountdown, drawGoal, drawPlayers, drawSpikes, type Burst } from './stage';
 import { guyCentre } from '../sim/littleguy';
 import { World, SimEvent } from '../sim/world';
 import type { Creature } from '../sim/creature';
@@ -99,6 +99,8 @@ export class WorldRenderer {
     drawCountdown(g, w);
     drawGoal(g, w);
     this.drawTerrain(g, frame);
+    drawSpikes(g, w);
+    drawPlayers(g, w);
     drawBodies(g, w, o.alpha, frame);
     for (const cr of w.creatures) if (cr.alive) this.drawShadow(g, cr, o.alpha);
     this.drawInk(g, o.alpha, frame);

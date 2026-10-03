@@ -2,7 +2,7 @@
 // countdown in the sky, blasts, the poof, the hug heart. Greybox-first, but in the
 // game's materials: felt-tip black, danger red, highlighter yellow.
 import { NINJA } from '../sim/hazards';
-import { COLORS, LEVEL, LOOK } from '../tuning';
+import { COLORS, HAZ, LEVEL, LOOK } from '../tuning';
 import { boil1 } from './boil';
 import type { World, Body } from '../sim/world';
 import { countdown } from '../sim/level';
@@ -46,7 +46,120 @@ export function drawBodies(g: Ctx, w: World, alpha: number, frame: number) {
     }
     else if (b.kind === 'bomb') drawBomb(g, w, b, x, y, frame);
     else if (b.kind === 'ninja') drawNinja(g, w, b, x, y, frame);
+    else if (b.kind === 'ball') drawRubber(g, b, x, y, frame);
+    else if (b.kind === 'cargo') drawCargo(g, b, x, y, frame);
   }
+}
+
+/** A rubber ball (a threat): felt with a red band that spins with it. */
+function drawRubber(g: Ctx, b: Body, x: number, y: number, frame: number) {
+  g.fillStyle = COLORS.felt;
+  wobbleCircle(g, x, y, b.r, b.id * 17 + 5, frame);
+  g.fill();
+  g.save();
+  g.translate(x, y);
+  g.rotate(b.angle);
+  g.strokeStyle = COLORS.red;
+  g.lineWidth = 4;
+  g.beginPath();
+  g.ellipse(0, 0, b.r * 0.62, b.r * 0.28, 0, 0, Math.PI * 2);
+  g.stroke();
+  g.restore();
+}
+
+/** A SCORE ball (cargo: highlighter yellow) with felt seams. */
+function drawCargo(g: Ctx, b: Body, x: number, y: number, frame: number) {
+  g.fillStyle = COLORS.yellow;
+  wobbleCircle(g, x, y, b.r, b.id * 17 + 6, frame);
+  g.fill();
+  g.strokeStyle = COLORS.felt;
+  g.lineWidth = 2.2;
+  g.stroke();
+  g.save();
+  g.translate(x, y);
+  g.rotate(b.angle);
+  g.lineWidth = 1.6;
+  g.beginPath();
+  g.moveTo(-b.r, 0);
+  g.lineTo(b.r, 0);
+  g.moveTo(-b.r * 0.35, -b.r * 0.92);
+  g.quadraticCurveTo(b.r * 0.25, 0, -b.r * 0.35, b.r * 0.92);
+  g.moveTo(b.r * 0.35, -b.r * 0.92);
+  g.quadraticCurveTo(-b.r * 0.25, 0, b.r * 0.35, b.r * 0.92);
+  g.stroke();
+  g.restore();
+}
+
+/** The little players (felt, a cap so he isn't mistaken for Little Guy): they stand under
+ *  where their ball rests, arms up holding it, or waving for it back. */
+export function drawPlayers(g: Ctx, w: World) {
+  for (const b of w.bodies) {
+    if (b.kind !== 'cargo') continue;
+    const x = b.data.hx,
+      hy = b.data.hy + b.r; // hands
+    const has = b.data.parked && b.alive;
+    const wave = has ? 0 : Math.sin(w.t * 9 + b.id) * 6;
+    const head = hy + 12,
+      neck = head + 8,
+      hip = neck + 18,
+      feet = hip + 18;
+    g.save();
+    g.strokeStyle = COLORS.felt;
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+    g.lineWidth = 3;
+    g.beginPath();
+    g.arc(x, head, 7, 0, Math.PI * 2);
+    g.moveTo(x, neck);
+    g.lineTo(x, hip);
+    g.moveTo(x - 8, feet);
+    g.lineTo(x, hip);
+    g.lineTo(x + 8, feet);
+    g.moveTo(x - 9 + wave * 0.3, hy - (has ? 0 : 4) + wave);
+    g.lineTo(x, neck + 3);
+    g.lineTo(x + 9 - wave * 0.3, hy - (has ? 0 : 4) - wave);
+    g.stroke();
+    // cap with a brim
+    g.fillStyle = COLORS.felt;
+    g.beginPath();
+    g.arc(x, head - 2, 7.5, Math.PI, 0);
+    g.fill();
+    g.fillRect(x, head - 3, 11, 2.6);
+    g.restore();
+  }
+}
+
+/** Spike floors (a threat): felt teeth with red tips, standing on the ground. */
+export function drawSpikes(g: Ctx, w: World) {
+  const S = w.level?.def.entities.filter((e) => e.type === 'spikes') as { x0: number; x1: number; y: number }[] | undefined;
+  if (!S?.length) return;
+  g.save();
+  g.lineJoin = 'round';
+  for (const s of S) {
+    const n = Math.max(1, Math.round((s.x1 - s.x0) / 18));
+    const step = (s.x1 - s.x0) / n;
+    g.fillStyle = COLORS.felt;
+    g.beginPath();
+    g.moveTo(s.x0, s.y + 2);
+    for (let k = 0; k < n; k++) {
+      g.lineTo(s.x0 + step * (k + 0.5), s.y - HAZ.spikeH);
+      g.lineTo(s.x0 + step * (k + 1), s.y + 2);
+    }
+    g.closePath();
+    g.fill();
+    g.fillStyle = COLORS.red;
+    for (let k = 0; k < n; k++) {
+      const tx = s.x0 + step * (k + 0.5),
+        ty = s.y - HAZ.spikeH;
+      g.beginPath();
+      g.moveTo(tx, ty - 1);
+      g.lineTo(tx - 3.2, ty + 7);
+      g.lineTo(tx + 3.2, ty + 7);
+      g.closePath();
+      g.fill();
+    }
+  }
+  g.restore();
 }
 
 function drawBoulder(g: Ctx, b: Body, x: number, y: number, frame: number) {
@@ -413,6 +526,7 @@ export function drawCountdown(g: Ctx, w: World) {
 /** HOME's flag (look-and-feel: goals are highlighter yellow): a felt pole and a waving pennant. */
 export function drawGoal(g: Ctx, w: World) {
   const goal = w.level?.def.goal;
+  if (goal?.type === 'score') return drawHoop(g, w, goal.hoop, goal.n);
   if (!goal || goal.type !== 'home') return;
   const { x, y } = goal;
   const top = y - LEVEL.flagH;
@@ -436,5 +550,69 @@ export function drawGoal(g: Ctx, w: World) {
   g.globalAlpha = 1;
   g.lineWidth = 2;
   g.stroke();
+  g.restore();
+}
+
+/** SCORE's hoop: a felt pole and backboard, the rim in highlighter yellow (it is the goal), a
+ *  felt net, and one yellow tally dot per point needed on the board. */
+function drawHoop(g: Ctx, w: World, hoop: { x: number; y: number }, n: number) {
+  const L = w.level!;
+  const side = hoop.x > w.W / 2 ? 1 : -1; // the backboard is on the far side of the page
+  const half = LEVEL.hoopW / 2;
+  const bx = hoop.x + side * (half + 6);
+  // the pole runs down to the ground under the board
+  let gy = hoop.y;
+  const px = bx + side * 14;
+  while (gy < w.H && w.terrainDepth(px, gy, 1) <= 0) gy += 6;
+  g.save();
+  g.lineCap = 'round';
+  g.lineJoin = 'round';
+  g.strokeStyle = COLORS.felt;
+  g.lineWidth = 5;
+  g.beginPath();
+  g.moveTo(px, gy);
+  g.lineTo(px, hoop.y - LEVEL.hoopBoard * 0.5);
+  g.lineTo(bx, hoop.y - LEVEL.hoopBoard * 0.5);
+  g.stroke();
+  // backboard
+  g.lineWidth = 3;
+  g.strokeRect(Math.min(bx, bx + side * 6) - 0, hoop.y - LEVEL.hoopBoard, 6, LEVEL.hoopBoard + 14);
+  // net
+  g.lineWidth = 1.6;
+  g.beginPath();
+  const sway = Math.sin(w.t * 3) * 1.5;
+  for (let k = 0; k <= 4; k++) {
+    const u = k / 4;
+    const x0 = hoop.x - half + u * 2 * half;
+    const x1 = hoop.x - half * 0.6 + u * 1.2 * half + sway;
+    g.moveTo(x0, hoop.y);
+    g.lineTo(x1, hoop.y + 34);
+  }
+  g.moveTo(hoop.x - half * 0.8, hoop.y + 16);
+  g.lineTo(hoop.x + half * 0.8, hoop.y + 16);
+  g.stroke();
+  // rim
+  g.strokeStyle = COLORS.yellow;
+  g.lineWidth = 5;
+  g.beginPath();
+  g.ellipse(hoop.x, hoop.y, half, 6, 0, 0, Math.PI * 2);
+  g.stroke();
+  g.strokeStyle = COLORS.felt;
+  g.lineWidth = 1.4;
+  g.stroke();
+  // tally: one dot per point, filled when scored
+  for (let k = 0; k < n; k++) {
+    const tx = bx + side * 26 * (k + 1.2),
+      ty = hoop.y - LEVEL.hoopBoard - 14;
+    g.beginPath();
+    g.arc(tx, ty, 8, 0, Math.PI * 2);
+    if (k < L.score) {
+      g.fillStyle = COLORS.yellow;
+      g.fill();
+    }
+    g.strokeStyle = COLORS.felt;
+    g.lineWidth = 2;
+    g.stroke();
+  }
   g.restore();
 }

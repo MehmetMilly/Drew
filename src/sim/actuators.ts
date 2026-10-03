@@ -2,7 +2,7 @@
 // particle's implied velocity toward a desired one with a gain below 1. Targets
 // are clamped to what the body can physically reach.
 import * as F from './fmath';
-import { ACT, LOCO } from '../tuning';
+import { ACT, LEVEL, LOCO, WORLD } from '../tuning';
 import { PF } from './store';
 import type { Creature, Limb, Spring } from './creature';
 import type { Body, World } from './world';
@@ -182,7 +182,9 @@ export function actuate(w: World, cr: Creature, h: number) {
       }
       // grab: the tip closes on a grabbable it wants
       const tb = b.targetBody >= 0 ? w.bodies[b.targetBody] : null;
-      if (tb && tb.alive && tb.grabbable && tb.held < 0 && w.t - (tb.data.thrownAt ?? -9) > ACT.regrab && F.hypot(tb.x - P.x[tip], tb.y - P.y[tip]) < tb.r + ACT.grabSlop) grab(w, cr, l, tb);
+      // (a SCORE ball passed to it is caught by any part of the arm: it is thrown to the hands)
+      const near = (i: number) => F.hypot(tb!.x - P.x[i], tb!.y - P.y[i]) < tb!.r + ACT.grabSlop;
+      if (tb && tb.alive && tb.grabbable && tb.held < 0 && w.t - (tb.data.thrownAt ?? -9) > ACT.regrab && (near(tip) || (tb.kind === 'cargo' && l.chain.some(near)))) grab(w, cr, l, tb);
     }
   }
   // carry: spring legs jump at a wall, ledge or gap ahead (the brain looks)
@@ -215,6 +217,7 @@ export function actuate(w: World, cr: Creature, h: number) {
 export function grab(w: World, cr: Creature, l: Limb, tb: Body) {
   tb.held = cr.id;
   tb.data.grabT = w.t;
+  tb.data.by = cr.id;
   l.grabBody = tb.id;
   w.emit({ type: 'grab', cr: cr.id, x: tb.x, y: tb.y });
 }
@@ -282,6 +285,8 @@ function holdAndThrow(w: World, cr: Creature, l: Limb, h: number) {
     return;
   }
   const t = w.t - body.data.grabT;
+  const goal = w.level?.def.goal;
+  if (body.kind === 'cargo' && goal?.type === 'score') return void shoot(w, cr, l, body, goal.hoop, t, h);
   const g = w.guy;
   const gx = g && g.alive ? P.x[g.hip] : w.W / 2;
   const away = Math.sign(P.x[l.root] - gx) || cr.brain.dir || 1;
@@ -312,6 +317,42 @@ function holdAndThrow(w: World, cr: Creature, l: Limb, h: number) {
     l.grabBody = -1;
     w.emit({ type: 'throw', cr: cr.id, x: body.x, y: body.y });
   }
+}
+
+/** SCORE: hold the ball up and shoot it when an arc through the hoop is in reach of the
+ *  creature's arm (strength); a ball already over the rim is just dropped in (a dunk). */
+function shoot(w: World, cr: Creature, l: Limb, body: Body, hoop: { x: number; y: number }, t: number, h: number) {
+  const P = w.P;
+  reachTo(w, cr, l, cr.brain.reachX, cr.brain.reachY, h);
+  react(w, cr, new Set(l.chain), h);
+  const tip = l.tip;
+  const dx = body.x - P.x[tip],
+    dy = body.y - P.y[tip];
+  const d = F.hypot(dx, dy) || 1;
+  body.x = body.px = P.x[tip] + (dx / d) * body.r;
+  body.y = body.py = P.y[tip] + (dy / d) * body.r;
+  if (t < ACT.holdTime) return;
+  const g = w.gravity;
+  const apex = hoop.y - ACT.shotApex;
+  let vx = 0,
+    vy = 0;
+  if (Math.abs(body.x - hoop.x) < LEVEL.hoopW / 2 - body.r && body.y < hoop.y - body.r) {
+    // over the rim: let go
+  } else if (body.y > apex) {
+    vy = -Math.sqrt(2 * g * (body.y - apex));
+    vx = (hoop.x - body.x) / (-vy / g + Math.sqrt((2 * ACT.shotApex) / g));
+  } else {
+    vx = (hoop.x - body.x) / Math.sqrt((2 * Math.max(1, hoop.y - body.y)) / g);
+  }
+  const most = ACT.throwSpeed * Math.min(1.4, Math.sqrt(cr.stats.strength)) * ACT.shotMax;
+  if (F.hypot(vx, vy) > most) return; // out of range: keep holding it up (the brain walks closer)
+  body.held = -1;
+  body.data.thrownAt = w.t;
+  body.data.clearUntil = w.t + WORLD.shotClear;
+  body.px = body.x - vx * h;
+  body.py = body.y - vy * h;
+  l.grabBody = -1;
+  w.emit({ type: vx || vy ? 'throw' : 'dunk', cr: cr.id, x: body.x, y: body.y });
 }
 
 /** Ease a limb's pose turn/stretch toward a goal, at most `step` rad this call. */

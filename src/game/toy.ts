@@ -83,7 +83,9 @@ export class Toy {
   load(def: LevelDef | null) {
     const same = def && this.level && def.id === this.level.id;
     this.ghost = same && this.drawn.length ? this.drawn : same ? this.ghost : [];
+    const paperChange = (def?.paper ?? 'cream') !== (this.level?.paper ?? 'cream');
     this.level = def;
+    if (paperChange && this.rect) this.resize();
     this.world = new World({ seed: 1 });
     this.heard = 0;
     if (def) startLevel(this.world, def);
@@ -219,7 +221,7 @@ export class Toy {
     this.rect = layoutPage(w, h, dpr, safeInsets());
     this.worldDpr = Math.min(this.worldDpr, dpr);
     this.applyWorldDpr();
-    this.paper = renderPaper(PAPERS.cream, Math.round(this.rect.w * dpr), Math.round(this.rect.h * dpr));
+    this.paper = renderPaper(PAPERS[this.level?.paper ?? 'cream'] ?? PAPERS.cream, Math.round(this.rect.w * dpr), Math.round(this.rect.h * dpr));
     this.desk = renderDesk(Math.round(w * dpr), Math.round(h * dpr));
     // static backdrop: desk, page shadow, paper (drawn once per resize)
     const b = this.bg,
