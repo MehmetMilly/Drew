@@ -12,6 +12,7 @@ import { attachPen, LivePt } from '../input/pen';
 import { drawWet, strokeWidths, WetStroke } from './ink';
 import { clientToPage, layoutPage, PageRect } from './view';
 import { pencil, pencilTick, unlockAudio, birthPop, pencilFrame } from '../audio/pencil';
+import { sfxEvent, sfxFrame } from '../audio/sfx';
 import { boilState } from '../render/boil';
 
 const TAP_MAX_MOVE = 10;
@@ -37,6 +38,7 @@ export class Toy {
   private acc = 0;
   private last = 0;
   private stepMs = 0;
+  private heard = 0; // world events already sent to audio
   debug = false;
   private tapMark: { x: number; y: number; t: number } | null = null;
   private hintAlpha = 1;
@@ -68,6 +70,7 @@ export class Toy {
     this.ghost = same && this.drawn.length ? this.drawn : same ? this.ghost : [];
     this.level = def;
     this.world = new World({ seed: 1 });
+    this.heard = 0;
     if (def) startLevel(this.world, def);
     this.renderer.reset(this.world);
     this.wet = [];
@@ -136,6 +139,7 @@ export class Toy {
 
   clear() {
     this.world = new World({ seed: 1 });
+    this.heard = 0;
     this.renderer.reset(this.world);
     this.wet = [];
   }
@@ -339,6 +343,9 @@ export class Toy {
       n++;
     }
     if (n === 4) this.acc = Math.min(this.acc, WORLD.dt);
+    const ev = this.world.events;
+    for (; this.heard < ev.length; this.heard++) sfxEvent(ev[this.heard], this.world, this.scale);
+    sfxFrame(this.world, this.scale);
     const w0 = performance.now();
     this.render(this.acc / WORLD.dt);
     this.adaptResolution(performance.now() - w0 + this.stepMs * n);
