@@ -141,7 +141,7 @@ export class Show {
       g.fillStyle = COLORS.felt;
       g.textAlign = 'center';
       g.font = '84px "Gochi Hand", cursive';
-      g.fillText(this.title, WORLD.W / 2, WORLD.H / 2 - 20);
+      g.fillText(this.title ?? "", WORLD.W / 2, WORLD.H / 2 - 20);
       g.font = '40px "Gochi Hand", cursive';
       g.fillStyle = COLORS.graphite;
       g.fillText('drawn in Drew', WORLD.W / 2, WORLD.H / 2 + 50);
