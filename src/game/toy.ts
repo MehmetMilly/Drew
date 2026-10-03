@@ -683,6 +683,11 @@ export class Toy {
       full = 300;
     const len = 28 + full * left;
     g.save();
+    // left-handed layout: the pencil moves to the top-right, mirrored (design §15)
+    if (loadSave().settings.leftHanded) {
+      g.translate(WORLD.W, 0);
+      g.scale(-1, 1);
+    }
     g.lineJoin = 'round';
     // body
     g.fillStyle = '#E9E2D0';

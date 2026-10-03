@@ -578,3 +578,9 @@ body.slow #backdrop {
 @media (prefers-reduced-motion: reduce) {
   .title-guy .wave { animation: none; }
 }
+
+.ui.lefty .hud {
+  right: auto;
+  left: 20px;
+  flex-direction: row-reverse;
+}

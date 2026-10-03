@@ -68,7 +68,7 @@ export class Shell {
     this.screen = s;
     this.root.innerHTML = '';
     this.card = null;
-    this.root.className = 'ui ' + s;
+    this.root.className = 'ui ' + s + (loadSave().settings.leftHanded ? ' lefty' : '');
     this.toy.quiet = s !== 'play' && s !== 'toy';
     if (s === 'title') this.title();
     else if (s === 'chapter') this.chapter();
@@ -301,6 +301,7 @@ export class Shell {
     toggle('Intent lines', () => s.intentLines, (v) => (s.intentLines = v));
     toggle('Reduced motion', () => s.reducedMotion, (v) => (s.reducedMotion = v));
     toggle('Haptics', () => s.haptics, (v) => (s.haptics = v));
+    toggle('Left-handed (buttons on the left)', () => s.leftHanded, (v) => (s.leftHanded = v));
     this.root.append(box);
     this.root.append(this.press(el('button', 'tab back', '← back'), () => this.show('title')));
   }
