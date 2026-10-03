@@ -7,6 +7,8 @@ import { CANON } from '../sim/canon';
 import { WORLD, COLORS } from '../tuning';
 import { drawWet, strokeWidths, WetStroke } from '../game/ink';
 import type { Pt } from '../sim/geom';
+import { startLevel } from '../sim/level';
+import { ALL_LEVELS } from '../levels';
 
 export interface ShotRow {
   label: string;
@@ -17,6 +19,9 @@ export interface ShotRow {
   debug?: boolean;
   wet?: boolean; // show the wet-ink → birth sequence in the first columns
   crop?: { x: number; y: number; w: number; h: number; follow?: boolean };
+  level?: string; // play this level with its reference `ref` (index) born at level time `at`
+  ref?: number;
+  at?: number;
 }
 
 const CELL_W = 300;
@@ -40,6 +45,13 @@ export async function sheet(rows: ShotRow[], scale0 = CELL_W / WORLD.W): Promise
   rows.forEach((row, ri) => {
     const w = new World({ seed: 1 });
     const r = new WorldRenderer(w);
+    const lv = row.level ? ALL_LEVELS.find((l) => l.id === row.level) : undefined;
+    if (lv) {
+      startLevel(w, lv);
+      for (let k = 0; k < Math.round((row.at ?? 0) / WORLD.dt); k++) w.step();
+      row.strokes = lv.refs[row.ref ?? 0].strokes;
+      row.label = `${lv.id} ${lv.refs[row.ref ?? 0].kind}`;
+    }
     const strokes: Pt[][] = row.strokes ? row.strokes : row.draw.flatMap((d) => CANON[d.canon](d.x).map((s) => s.map((p) => ({ x: p.x, y: p.y + (d.dy ?? 0) }))));
     // pen timing for widths: 900 px/s
     const timed = strokes.map((s) => {
