@@ -23,6 +23,7 @@ export const BODY = {
   radius: 5,
   bendK: 0.25,
   weldDist: 9,
+  graftDist: 14, // px: new ink this close to a living creature grows onto it
   weldEndDist: 28,
   weldEndNear: 18, // beyond this, an end must aim at the other stroke...
   weldAimCos: 0.9, // ...within ~25° // physics.md §1: real finger joins on a phone left 11–19 px gaps

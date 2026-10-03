@@ -5,7 +5,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { World } from '../src/sim/world';
 import { WORLD } from '../src/tuning';
 import { PF } from '../src/sim/store';
-import { CANON } from '../src/sim/canon';
+import { CANON, line } from '../src/sim/canon';
 import { randomCreature, rngFor } from '../src/sim/monkey';
 import { generateFixtures } from '../tests/fixtures/synth';
 import { scoreFixtures } from './fixtures';
@@ -157,6 +157,20 @@ const nodeHash = detScenario();
     if (got !== exp) bad.push(`${n} ${got} (want ${exp})`);
   }
   add('anatomy: canonical bodies (kind, gait, feet, hands)', bad.length ? bad.join('; ') : `${Object.keys(want).length}/${Object.keys(want).length}`, !bad.length);
+}
+
+// ---- grafting: a line drawn onto a living box grows it an arm (one creature, announced)
+{
+  const w = new World({ seed: 1 });
+  const [c] = spawn(w, CANON.box(300));
+  run(w, 1.5);
+  const ce = w.centroid(c);
+  let right = -Infinity;
+  for (const i of c.ids) right = Math.max(right, w.P.x[i]);
+  const extra = spawn(w, [line(right - 2, ce.y, right + 90, ce.y - 40)]);
+  const msg = w.events.find((e) => e.type === 'graft')?.text ?? 'none';
+  const ok = extra.length === 0 && w.liveCreatures().length === 1 && c.limbs.some((l) => !l.foot);
+  add('grafting: line onto a living box', `${w.liveCreatures().length} creature, "${msg}"`, ok);
 }
 
 // ---- distinct bodies

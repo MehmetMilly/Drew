@@ -163,10 +163,106 @@ export class World {
     const springs = makeSprings(this, built.springs);
     const made: Creature[] = [];
     for (const g of groups) {
-      const cr = this.makeCreature(g, built.cons, built.loops, built.lumps, springs, built.skins, usable as PenPt[][]);
-      if (cr) made.push(cr);
+      // grafting (design §3): ink that touches a living creature becomes part of it
+      const host = this.touching(g);
+      const cr = this.makeCreature(g, built.cons, built.loops, built.lumps, springs, built.skins, usable as PenPt[][], host !== null);
+      if (!cr) continue;
+      if (host) this.graft(host, cr);
+      else made.push(cr);
     }
     return made;
+  }
+
+  /** The living creature that new particles touch most, if any. */
+  private touching(ids: number[]): Creature | null {
+    const P = this.P;
+    const r2 = BODY.graftDist * BODY.graftDist;
+    const hits = new Map<number, number>();
+    // a direct scan: births are rare and the grid may not be built yet
+    for (const cr of this.creatures) {
+      if (!cr.alive) continue;
+      for (const i of ids)
+        for (const j of cr.ids) {
+          const dx = P.x[j] - P.x[i],
+            dy = P.y[j] - P.y[i];
+          if (dx * dx + dy * dy < r2) hits.set(cr.id, (hits.get(cr.id) ?? 0) + 1);
+        }
+    }
+    let best: Creature | null = null,
+      bn = 0;
+    for (const [o, n] of hits)
+      if (n > bn) {
+        bn = n;
+        best = this.creatures[o];
+      }
+    return best;
+  }
+
+  /** Join a freshly built part onto a living host: weld where they touch, carry the part's
+   *  current shape into the host's rest frame, re-read the anatomy and announce what grew. */
+  private graft(host: Creature, part: Creature) {
+    const P = this.P,
+      C = this.C;
+    // the host's current shape frame (inverse of the shape-matching target transform)
+    const c = this.centroid(host);
+    let rcx = 0,
+      rcy = 0,
+      m = 0;
+    for (const i of host.ids) {
+      rcx += P.rx[i] * P.m[i];
+      rcy += P.ry[i] * P.m[i];
+      m += P.m[i];
+    }
+    rcx /= m;
+    rcy /= m;
+    const raw = (host as Creature & { angle?: number }).angle ?? 0;
+    const ang = host.rolling ? raw : raw * (1 - host.stats.balance);
+    const fl = host.flip < 0 ? -1 : 1;
+    const co = F.cos(-ang),
+      si = F.sin(-ang);
+    for (const i of part.ids) {
+      const dx = P.x[i] - c.x,
+        dy = P.y[i] - c.y;
+      P.rx[i] = rcx + (dx * co - dy * si) * fl;
+      P.ry[i] = rcy + dx * si + dy * co;
+      P.owner[i] = host.id;
+    }
+    // weld every new particle that touches the host to its nearest host particle
+    const welds: number[] = [];
+    const r2 = BODY.graftDist * BODY.graftDist;
+    for (const i of part.ids) {
+      let bj = -1,
+        bd = r2;
+      for (const j of host.ids) {
+        const d = (P.x[j] - P.x[i]) ** 2 + (P.y[j] - P.y[i]) ** 2;
+        if (d < bd) (bd = d), (bj = j);
+      }
+      if (bj >= 0) welds.push(C.add(i, bj, Math.max(1, Math.sqrt(bd)), 1, CT.WELD));
+    }
+    const before = { hands: host.limbs.filter((l) => !l.foot).length, feet: host.limbs.filter((l) => l.foot).length, loops: host.loops.length, springs: host.springs.length, lumps: host.lumps.length };
+    host.ids = host.ids.concat(part.ids).sort((a, b) => a - b);
+    host.cons = host.cons.concat(part.cons, welds);
+    host.loops = host.loops.concat(part.loops);
+    host.lumps = host.lumps.concat(part.lumps);
+    host.springs = host.springs.concat(part.springs);
+    host.skins = host.skins.concat(part.skins);
+    host.strokes = host.strokes.concat(part.strokes);
+    part.alive = false; // its particles and constraints now belong to the host
+    readAnatomy(this, host);
+    const after = { hands: host.limbs.filter((l) => !l.foot).length, feet: host.limbs.filter((l) => l.foot).length, loops: host.loops.length, springs: host.springs.length, lumps: host.lumps.length };
+    const grew =
+      after.springs > before.springs ? 'grew a spring' :
+      after.feet > before.feet ? (after.feet - before.feet > 1 ? 'grew legs' : 'grew a leg') :
+      after.hands > before.hands ? (after.hands - before.hands > 1 ? 'grew arms' : 'grew an arm') :
+      after.lumps > before.lumps ? 'got heavier' :
+      after.loops > before.loops ? 'grew a bubble' : 'grew';
+    host.announce = grew;
+    host.face.surprise = 1;
+    for (const i of part.ids) {
+      P.px[i] = P.x[i];
+      P.py[i] = P.y[i];
+    }
+    this.emit({ type: 'graft', cr: host.id, name: host.name, text: `${host.firstName} ${grew}!` });
   }
 
   private makeCreature(

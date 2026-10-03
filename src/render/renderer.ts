@@ -72,6 +72,11 @@ export class WorldRenderer {
       const cr = w.creatures[e.cr];
       this.plates = this.plates.filter((p) => p.cr !== e.cr);
       this.plates.push({ cr: e.cr, text: cr.name, t0: e.t + (e.type === 'piece' ? 0.15 : 0.12), angle: hashNoise(cr.seed, 5) * 0.12 });
+    } else if (e.type === 'graft' && e.cr !== undefined && e.text) {
+      // "Kevin grew an arm!": the plate slaps on again with the news
+      const cr = w.creatures[e.cr];
+      this.plates = this.plates.filter((p) => p.cr !== e.cr);
+      this.plates.push({ cr: e.cr, text: e.text, t0: e.t + 0.1, angle: -hashNoise(cr.seed, 9) * 0.12 });
     } else if (e.type === 'dust' && e.pts) this.dusts.push({ pts: e.pts, t0: e.t });
     else if (e.type === 'tear' && e.x !== undefined) this.snaps.push({ x: e.x, y: e.y!, t0: e.t });
   }

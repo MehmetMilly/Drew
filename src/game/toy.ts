@@ -238,9 +238,11 @@ export class Toy {
       return s.pts.map((p) => ({ x: p.x, y: p.y, t: p.t - t0, p: p.p }));
     });
     this.wet = [];
+    const ev0 = this.world.events.length;
     const born = this.world.addStrokes(strokes);
+    const grafted = this.world.events.slice(ev0).some((e) => e.type === 'graft');
     this.setScale(1, INK.easeOut);
-    if (born.length) {
+    if (born.length || grafted) {
       birthPop();
       try {
         navigator.vibrate?.(12);
