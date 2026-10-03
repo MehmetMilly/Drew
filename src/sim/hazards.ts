@@ -176,7 +176,7 @@ export function braceForce(cr: Creature): number {
 }
 
 /** Total brace force on pusher `b` this substep (mass × px/s²). */
-function braceOn(w: World, b: Body): number {
+export function braceOn(w: World, b: Body): number {
   let f = 0;
   for (const cr of bracers(w, b)) f += braceForce(cr);
   if (f > 0) b.data.braced = w.t;

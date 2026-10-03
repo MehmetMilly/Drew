@@ -23,8 +23,9 @@ export function epitaph(w: World): string {
   if (tears && heroes.length) lines.push('Lost a bit. Kept going.');
   if (!lines.length) {
     if (g.type === 'hug') lines.push('Made a friend.');
+    else if (g.type === 'boss') lines.push('Rubbed out the Eraser.');
     else if (g.type === 'home') lines.push(L.log.some((e) => e.type === 'board') ? 'Gave him a ride home.' : 'Walked him home.');
-    else if (kinds.has('crusher')) lines.push(`Held the walls for ${g.seconds.toFixed(1)} s.`);
+    else if (kinds.has('crusher') && g.type === 'save') lines.push(`Held the walls for ${g.seconds.toFixed(1)} s.`);
     else if (kinds.has('boulder')) lines.push('Stopped a boulder.');
     else if (kinds.has('ninja')) lines.push('Saw the ninja coming.');
     else if (kinds.has('ball')) lines.push('Not one ball got through.');

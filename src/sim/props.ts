@@ -13,8 +13,10 @@ import type { Pt } from './geom';
 import type { Body, Terrain, World } from './world';
 import { strikers } from './hazards';
 import { guyCentre } from './littleguy';
+import { startDamage, type Damage, type DamageState } from './damage';
 
 export type Prop =
+  | Damage
   /** wind blowing along +x (force < 0: along −x) inside a box, from `at` on */
   | { type: 'wind'; x0: number; y0: number; x1: number; y1: number; force: number; at?: number }
   /** a floor slab [x0, x1] with its top at y that breaks when something lands hard enough */
@@ -59,6 +61,7 @@ export interface PropState {
   underT: number; // s Little Guy's head has been under water
   rafts: Raft[];
   tentacles: Tentacle[];
+  dmg: DamageState | null; // Chapter 5: scissors, fire, smudgers, the Eraser (damage.ts)
 }
 
 export interface Raft {
@@ -83,7 +86,8 @@ export interface Pool {
 }
 
 export function startProps(w: World, defs: Prop[]): PropState {
-  const S: PropState = { defs, slabs: [], planks: [], vy: new Float32Array(w.P.cap), pools: [], lift: new Float32Array(w.P.cap), underT: 0, rafts: [], tentacles: [] };
+  const S: PropState = { defs, slabs: [], planks: [], vy: new Float32Array(w.P.cap), pools: [], lift: new Float32Array(w.P.cap), underT: 0, rafts: [], tentacles: [], dmg: null };
+  const dmgDefs: Damage[] = [];
   for (const p of defs) {
     if (p.type === 'crack' || p.type === 'bridge') {
       const h = p.type === 'crack' ? (p.h ?? PROP.crackH) : PROP.bridgeH;
@@ -102,11 +106,14 @@ export function startProps(w: World, defs: Prop[]): PropState {
     } else if (p.type === 'tentacle') {
       const body = w.addBody({ kind: 'tentacle', x: p.x, y: p.y, r: PROP.tipR, m: 50, data: { threat: 1, sleep: p.at, ax: p.x, ay: p.y, kin: 1 } });
       S.tentacles.push({ prop: p, body, mode: 'wait', until: 0, heldT: 0 });
+    } else if (p.type === 'scissors' || p.type === 'fire' || p.type === 'smudger' || p.type === 'eraser') {
+      dmgDefs.push(p);
     } else if (p.type === 'seesaw') {
       const tilt = p.tilt ?? PROP.seesawTilt;
       S.planks.push({ x: p.x, y: p.y, len: p.len, th: -tilt, pth: -tilt, tilt });
     }
   }
+  if (dmgDefs.length) S.dmg = startDamage(w, dmgDefs);
   return S;
 }
 

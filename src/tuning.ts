@@ -393,7 +393,8 @@ export const PROP = {
   shadeLen: 90, // px: ink this close upwind of Little Guy, at his height (±shadeH), shelters him...
   shadeH: 34,
   shade: 0.15, // ...down to this share of the wind
-  riderWind: 0.35, // riding or held, he hunkers down and holds on
+  riderWind: 0.2, // riding or held, he hunkers down and holds on
+  windBlock: 1000, // a wind this strong across his way blocks the route: he can't walk it, so a tall carrier takes him up
   // cracked floors and rope bridges (physics.md §10)
   crackH: 40, // px: slab thickness
   bridgeH: 10,
@@ -436,4 +437,36 @@ export const WATER = {
   swimWet: 0.3, // share of its body under before it swims
   swimGain: 0.05,
   drown: 1.0, // s with his head under
+};
+
+/** Chapter 5 ink damage (physics.md §10): scissors, fire, smudgers and the Big Eraser. */
+export const DMG = {
+  scissorsR: 16, // px body radius
+  scissorsSpeed: 260, // px/s
+  scissorsTurn: 1.6, // rad/s: they swing round wide when they miss
+  scissorsCut: 4, // px beyond the body that the blades cut
+  fireSpeed: 70, // px/s the floor fire spreads
+  fireH: 18, // px above the floor the flames reach
+  burnSpeed: 90, // px/s fire climbs a link
+  burnLife: 1.2, // s a point burns before it crumbles
+  smudgerR: 11,
+  smudgerSpeed: 70, // px/s crawl
+  smudgerHop: 1.4, // s between hops
+  smudgerJump: 420, // px/s hop up toward high ink
+  eatEvery: 0.12, // s per point eaten
+  nibble: 0.5, // s touching him before he is rubbed out
+  stomp: 160, // px/s down onto it squashes it
+  eraserW: 150,
+  eraserH: 90,
+  eraserMass: 300,
+  eraserSpeed: 60, // px/s
+  eraserForce: 40000, // mass·px/s² motor limit: two strong bracers beat it
+  eraserBack: 90, // px/s a braced Eraser can be driven back at
+  eraserHopV: 620, // px/s up
+  eraserHopVx: 140, // px/s across per hop
+  eraserHopRest: 1.2, // s on the ground between hops
+  eraserKnock: 360, // px/s a mid-air punch knocks it back
+  rubRate: 10, // points per s it rubs out of what touches it
+  sharpenerW: 70, // px: the sharpener's mouth from the page edge
+  crumbs: 4, // smudgers it crumbles into
 };

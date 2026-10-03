@@ -2,7 +2,7 @@
 // watches Little Guy's fate and the goal each step, and keeps an event log for
 // epitaphs and money moments. Pure and deterministic.
 import * as F from './fmath';
-import { ACT, BODY, BRAIN, GUY, HAZ, LEVEL, WORLD } from '../tuning';
+import { ACT, BODY, BRAIN, GUY, HAZ, LEVEL, PROP, WORLD } from '../tuning';
 import { spawnEntity, attacking, type Entity } from './hazards';
 import { CT, PF } from './store';
 import { spawnGuy, thinkGuy, killGuy, guyCentre, dismount, hopDown, setMood, type Guy, type GuyHat } from './littleguy';
@@ -10,13 +10,16 @@ import type { Pt } from './geom';
 import type { World, Body } from './world';
 import type { Creature } from './creature';
 import { startProps, type Prop } from './props';
+import { bossBeaten } from './damage';
 
 /** HOME: the flag's foot stands at (x, y) on the ground; the pole is LEVEL.flagH tall. */
 /** SCORE: n balls dropped down through the hoop (rim centre x, y) within `seconds`. */
 export type Goal =
   | { type: 'hug' }
+  /** BOSS: beat the Big Eraser (sharpen it, punch it back in, squash its crumbs) */
+  | { type: 'boss' }
   | { type: 'save'; seconds: number }
-  | { type: 'home'; x: number; y: number }
+  | { type: 'home'; x: number; y: number; seconds?: number }
   | { type: 'score'; n: number; seconds: number; hoop: { x: number; y: number; bucket?: boolean } };
 
 export interface RefSolution {
@@ -32,6 +35,8 @@ export interface LevelDef {
   goal: Goal;
   draw: number; // world time scale while ink is wet
   ink: number; // px budget
+  /** px/s of ink that flows back into the pen while the world runs (the boss fight) */
+  inkRegen?: number;
   terrain: Pt[][];
   /** false: no page floor; the level's terrain is all the ground there is (gaps are pits) */
   floor?: boolean;
@@ -78,9 +83,10 @@ export function startLevel(w: World, def: LevelDef) {
 /** Seconds left on the SAVE countdown (null when the goal has none or it hasn't started). */
 export function countdown(w: World): number | null {
   const L = w.level;
-  if (!L || (L.def.goal.type !== 'save' && L.def.goal.type !== 'score')) return null;
-  if (L.startedAt < 0) return L.def.goal.seconds;
-  return Math.max(0, L.def.goal.seconds - (w.t - L.startedAt));
+  const gs = L?.def.goal;
+  if (!L || !gs || (gs.type !== 'save' && gs.type !== 'score' && !(gs.type === 'home' && gs.seconds))) return null;
+  if (L.startedAt < 0) return gs.seconds!;
+  return Math.max(0, gs.seconds! - (w.t - L.startedAt));
 }
 
 export function threats(w: World): Body[] {
@@ -128,7 +134,9 @@ export function levelStep(w: World) {
     return;
   }
   const goal = L.def.goal;
-  if (goal.type === 'save') {
+  if (goal.type === 'boss') {
+    if (w.props?.dmg && bossBeaten(w, w.props.dmg)) win(w);
+  } else if (goal.type === 'save') {
     if (L.startedAt >= 0 && w.t - L.startedAt >= goal.seconds) win(w);
   } else if (goal.type === 'score') {
     scoreCheck(w, goal);
@@ -151,6 +159,11 @@ export function levelStep(w: World) {
       g.heldBy = -1;
       g.heldTip = -1;
       win(w);
+    } else if (goal.seconds && L.startedAt >= 0 && w.t - L.startedAt >= goal.seconds) {
+      // a timed HOME (3-1: the storm front arrives): too slow is a fail
+      L.result = 'fail';
+      L.resultAt = w.t;
+      L.cause = 'time';
     }
   } else if (goal.type === 'hug') {
     const c = guyCentre(w, g);
@@ -224,6 +237,10 @@ export function routeBlocked(w: World): boolean {
       else prev = y;
     }
     if (Math.abs(goal.y - prev) > GUY.stepMax) blocked = true;
+    // a gale across the path: he is blown back, he can't walk through it himself
+    const lo = Math.min(x0, goal.x),
+      hi = Math.max(x0, goal.x);
+    for (const p of L.def.props ?? []) if (p.type === 'wind' && Math.abs(p.force) >= PROP.windBlock && p.x0 < hi && p.x1 > lo && p.y1 > goal.y - GUY.height) blocked = true;
   }
   return (L.blocked = blocked);
 }

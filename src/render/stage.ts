@@ -1,6 +1,7 @@
 // Level things on the page: Little Guy (felt-tip, yellow scarf), red hazards, the
 // countdown in the sky, blasts, the poof, the hug heart. Greybox-first, but in the
 // game's materials: felt-tip black, danger red, highlighter yellow.
+import { drawEraser, drawScissors, drawSmudger } from './damage';
 import { NINJA } from '../sim/hazards';
 import { COLORS, HAZ, LEVEL, LOOK } from '../tuning';
 import { boil1 } from './boil';
@@ -51,6 +52,9 @@ export function drawBodies(g: Ctx, w: World, alpha: number, frame: number) {
     else if (b.kind === 'cargo') drawCargo(g, b, x, y, frame);
     else if (b.kind === 'chunk') drawChunk(g, b, x, y);
     else if (b.kind === 'sumo') drawSumo(g, w, b, x, y, frame);
+    else if (b.kind === 'scissors') drawScissors(g, w, b, x, y);
+    else if (b.kind === 'smudger') drawSmudger(g, w, b, x, y);
+    else if (b.kind === 'eraser') drawEraser(g, w, b, x, y);
   }
 }
 

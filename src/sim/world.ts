@@ -14,6 +14,7 @@ import { actuate } from './actuators';
 import { preHazards, postHazards, asleep, attacking } from './hazards';
 import { actuateGuy, GUY_OWNER, type Guy } from './littleguy';
 import { levelStep, spikeCut, type LevelRun } from './level';
+import { damageMotion, damageStep } from './damage';
 import { windForces, waterForces, swingPlanks, collidePlanks, stepProps, stepWater, floatRafts, collideRafts, tentacles, type PropState } from './props';
 
 export interface Terrain {
@@ -477,7 +478,7 @@ export class World {
       for (const cr of live) if (cr.alive) actuate(this, cr, h);
       if (this.guy) actuateGuy(this, this.guy, h);
       preHazards(this, h);
-      if (this.props) windForces(this, this.props, h), waterForces(this, this.props, h), tentacles(this, this.props, h);
+      if (this.props) windForces(this, this.props, h), waterForces(this, this.props, h), tentacles(this, this.props, h), this.props.dmg && damageMotion(this, this.props.dmg, h);
       this.integrate(h);
       if (this.props) swingPlanks(this.props), floatRafts(this, this.props, h);
       this.buildHash();
@@ -497,7 +498,7 @@ export class World {
     }
     postHazards(this);
     if (this.level) spikeCut(this);
-    if (this.props) stepProps(this, this.props), stepWater(this, this.props);
+    if (this.props) stepProps(this, this.props), stepWater(this, this.props), this.props.dmg && damageStep(this, this.props.dmg);
     // after the hazards: a blade or a saw cuts in postHazards, and the pieces must come apart
     if (this.tearsThisStep) this.sever();
     this.cleanup();
@@ -934,7 +935,7 @@ export class World {
     const P = this.P;
     const pr = BODY.radius;
     for (const b of this.bodies) {
-      if (!b.alive || b.kind === 'chunk' || b.kind === 'tentacle') continue; // debris tumbles away; a tentacle is scripted
+      if (!b.alive || b.kind === 'chunk' || b.kind === 'tentacle' || b.data.ghost) continue; // debris tumbles away; a tentacle is scripted
       if (b.hw) {
         this.collideBox(b);
         continue;
@@ -978,10 +979,10 @@ export class World {
     // body vs body (circles)
     for (let a = 0; a < this.bodies.length; a++) {
       const A = this.bodies[a];
-      if (!A.alive || A.hw || A.kind === 'chunk' || A.kind === 'tentacle') continue;
+      if (!A.alive || A.hw || A.kind === 'chunk' || A.kind === 'tentacle' || A.data.ghost) continue;
       for (let c = a + 1; c < this.bodies.length; c++) {
         const B = this.bodies[c];
-        if (!B.alive || B.hw || B.kind === 'chunk' || B.kind === 'tentacle') continue;
+        if (!B.alive || B.hw || B.kind === 'chunk' || B.kind === 'tentacle' || B.data.ghost) continue;
         const dx = B.x - A.x,
           dy = B.y - A.y;
         const R = A.r + B.r;

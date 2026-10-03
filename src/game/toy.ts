@@ -381,6 +381,7 @@ export class Toy {
     while (this.acc >= WORLD.dt && n < 4) {
       const t0 = performance.now();
       this.world.step();
+      if (this.level?.inkRegen) this.inkUsed = Math.max(0, this.inkUsed - this.level.inkRegen * WORLD.dt);
       this.stepMs = this.stepMs * 0.9 + (performance.now() - t0) * 0.1;
       this.acc -= WORLD.dt;
       n++;
