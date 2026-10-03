@@ -16,11 +16,14 @@ const up = (s: Pt[][]) => shift(s, 0, DY);
 
 const pebble = (): Pt[][] => [circle(FX, G - 24, 22)];
 const stilts = (): Pt[][] => [circle(FX, G - 390, 24), line(FX, G - 366, FX, G - 300), line(FX, G - 330, FX - 40, G - 300), line(FX, G - 330, FX + 40, G - 300), line(FX, G - 300, FX - 50, G), line(FX, G - 300, FX + 50, G)];
-const doris = (): Pt[][] => [circle(FX, G - 170, 30), scribbleBlob(FX, G - 85, 60, 20), line(FX - 30, G - 40, FX - 45, G), line(FX + 30, G - 40, FX + 45, G)];
+const doris = (): Pt[][] => [circle(FX, G - 136, 28), scribbleBlob(FX, G - 75, 40, 18), line(FX - 20, G - 70, FX - 45, G), line(FX + 20, G - 70, FX + 45, G)];
 const octo = (): Pt[][] => {
-  const cy = G - 50;
+  const cy = G - 70;
   const out = [circle(FX, cy, 34)];
-  for (const s of [-1, 1]) for (let k = 0; k < 4; k++) out.push(line(FX + s * (14 + k * 6), cy + 16 + k * 4, FX + s * (44 + k * 22), G));
+  for (const s of [-1, 1]) for (let k = 0; k < 4; k++) {
+      const dx = 8 + k * 7; // legs start on the body's outline
+      out.push(line(FX + s * dx, cy + Math.sqrt(34 * 34 - dx * dx), FX + s * (44 + k * 22), G));
+    }
   return out;
 };
 const wall = (): Pt[][] => [
@@ -41,7 +44,7 @@ const twins = (): Pt[][] => [...scaleAbout(up(CANON.stick400(FX - 60)), 0.8, FX 
 const champion = (): Pt[][] => {
   const top = G - 560,
     hip = top + 330;
-  return [circle(FX, top + 50, 50), line(FX, top + 100, FX, hip), line(FX, top + 160, FX - 180, top + 120), line(FX, top + 160, FX + 180, top + 120), springLine(FX, hip, FX - 80, G, 7, 14), springLine(FX, hip, FX + 80, G, 7, 14)];
+  return [circle(FX, top + 50, 50), line(FX, top + 100, FX, hip), [...line(FX, top + 160, FX - 180, top + 120), ...scribbleBlob(FX - 196, top + 116, 22, 16)], [...line(FX, top + 160, FX + 180, top + 120), ...scribbleBlob(FX + 196, top + 116, 22, 16)], scribbleBlob(FX, hip - 60, 34, 18), springLine(FX, hip, FX - 80, G, 7, 14), springLine(FX, hip, FX + 80, G, 7, 14)];
 };
 
 export interface Opponent {

@@ -19,7 +19,15 @@ export function ringTerrain(w: World, ring: SumoRing): Terrain | undefined {
 
 /** Spawn the opponent: called when the player's first creature is born. */
 export function spawnFoes(w: World, strokes: { x: number; y: number }[][]) {
-  const made = w.addStrokes(strokes.map((s) => s.map((p, k) => ({ x: p.x, y: p.y, t: k * 16, p: 0.5 }))));
+  // pre-drawn strokes have no pen times: a steady hand at SUMO.penSpeed px/s
+  const timed = strokes.map((s) => {
+    let t = 0;
+    return s.map((p, i) => {
+      if (i) t += Math.hypot(p.x - s[i - 1].x, p.y - s[i - 1].y) / SUMO.penSpeed;
+      return { x: p.x, y: p.y, t, p: 0.5 };
+    });
+  });
+  const made = w.addStrokes(timed);
   for (const cr of made) cr.team = 1;
   return made;
 }

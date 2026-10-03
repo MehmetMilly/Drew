@@ -410,6 +410,7 @@ export const PROP = {
   plankHalf: 7, // px: half its thickness
   seesawTilt: 0.32, // rad it tips before an end meets the ground
   seesawDamp: 0.995,
+  seesawRate: 4, // rad/s: the most a see-saw turns, so a hit hard enough always flings the same
   // rafts (4-4): a heavy floating log platform
   raftHalf: 10, // px half-thickness
   raftMass: 300,
@@ -483,6 +484,7 @@ export const SUMO = {
   grace: 0.6, // s after waking before anyone can lose
   shrink: 18, // px/s from each edge after time-out
   minHalf: 30, // px: the ring never shrinks below this half width
+  penSpeed: 900, // px/s: the pre-drawn opponent's strokes are timed as a steady hand
 };
 
 /** Daily Doodle (design §12, daily.ts). */
