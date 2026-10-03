@@ -10,3 +10,6 @@ document.fonts.load('26px "Gochi Hand"').finally(() => {
   const shell = new Shell(toy);
   if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).drew = { toy, shell, CANON };
 });
+
+// offline play once installed; never in dev (it would cache the dev server)
+if (import.meta.env.PROD && 'serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));

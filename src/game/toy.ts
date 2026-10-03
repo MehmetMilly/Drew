@@ -13,7 +13,7 @@ import { WorldRenderer } from '../render/renderer';
 import { PAPERS, renderDesk, renderPaper } from '../render/materials';
 import { attachPen, LivePt } from '../input/pen';
 import { drawWet, strokeWidths, WetStroke } from './ink';
-import { clientToPage, layoutPage, PageRect } from './view';
+import { clientToPage, layoutPage, safeInsets, PageRect } from './view';
 import { pencil, pencilTick, unlockAudio, birthPop, pencilFrame } from '../audio/pencil';
 import { sfxEvent, sfxFrame } from '../audio/sfx';
 import { boilState } from '../render/boil';
@@ -209,7 +209,7 @@ export class Toy {
       c.style.width = w + 'px';
       c.style.height = h + 'px';
     }
-    this.rect = layoutPage(w, h, dpr);
+    this.rect = layoutPage(w, h, dpr, safeInsets());
     this.worldDpr = Math.min(this.worldDpr, dpr);
     this.applyWorldDpr();
     this.paper = renderPaper(PAPERS.cream, Math.round(this.rect.w * dpr), Math.round(this.rect.h * dpr));
