@@ -1,0 +1,45 @@
+<!doctype html><html><head><meta charset="utf-8"></head>
+<body style="margin:0;background:#ccc">
+<canvas id="c" width="720" height="1280"></canvas>
+<script src="sim.js"></script><script src="render.js"></script>
+<script>
+const G = Drew.GROUND;
+function arc(cx, cy, r, a0, a1, n = 40) { const p = []; for (let i = 0; i <= n; i++) { const a = a0 + (a1 - a0) * i / n; p.push({ x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) }); } return p; }
+function circle(cx, cy, r) { return arc(cx, cy, r, -Math.PI / 2, Math.PI * 1.5 - 0.05, 48); }
+function line(x0, y0, x1, y1) { const p = []; const n = 20; for (let i = 0; i <= n; i++) p.push({ x: x0 + (x1 - x0) * i / n, y: y0 + (y1 - y0) * i / n }); return p; }
+function shift(strokes, dx, dy) { return strokes.map(s => s.map(p => ({ x: p.x + dx, y: p.y + dy }))); }
+const DRAWINGS = {
+  roof: [arc(360, G - 2, 125, Math.PI, 2 * Math.PI)],
+  hero: [circle(360, 760, 42), line(360, 802, 360, 950), line(360, 850, 190, 800), line(360, 850, 530, 800), line(360, 950, 305, G - 3), line(360, 950, 415, G - 3)],
+  worm: [line(400, G - 8, 590, G - 8)],
+  spider: [circle(360, 950, 38),
+    line(328, 968, 230, G - 3), line(334, 982, 280, G - 3), line(346, 986, 320, G - 3),
+    line(392, 968, 490, G - 3), line(386, 982, 440, G - 3), line(374, 986, 400, G - 3)],
+  box: [[{x:470,y:950},{x:580,y:950},{x:580,y:G-3},{x:470,y:G-3},{x:470,y:952}].flatMap((p,i,a)=> i? line(a[i-1].x,a[i-1].y,p.x,p.y):[])],
+  giant: [circle(360, 330, 70), line(360, 400, 360, 760), line(360, 480, 90, 420), line(360, 480, 630, 420), line(360, 760, 250, G - 3), line(360, 760, 470, G - 3)],
+};
+let world;
+function setup(scn, draw, opt = {}) {
+  const bowl = [{x:0,y:1000},{x:210,y:1000},{x:300,y:G},{x:420,y:G},{x:510,y:1000},{x:720,y:1000}];
+  world = new Drew.World({ seed: 3, tune: opt.tune, ground: scn === 'bowl' ? bowl : undefined });
+  let strokes = DRAWINGS[draw];
+  if (opt.dx) strokes = shift(strokes, opt.dx, 0);
+  if (scn === 'walk') strokes = shift(strokes, -230, 0);
+  if (scn === 'bombs') {
+    world.ward = { x: 360, y: G - 18 };
+    world.addBody({ kind: 'bomb', x: 300, y: 250, r: 20, mass: 3, fuseAt: 4.0 });
+    world.addBody({ kind: 'bomb', x: 430, y: 180, r: 20, mass: 3, fuseAt: 4.2 });
+  }
+  if (scn === 'bowl') {
+    world.ward = { x: 360, y: G - 18 };
+    world.addBody({ kind: 'bomb', x: 250, y: 250, r: 20, mass: 3, fuseAt: 4.6 });
+    world.addBody({ kind: 'bomb', x: 470, y: 120, r: 20, mass: 3, fuseAt: 4.9 });
+  }
+  if (scn === 'walk') { world.goalX = 640; }
+  world.addCreature(strokes);
+  return world.creatures.map(c => ({ name: c.name, hands: c.hands.length, feet: c.feet.length, speed: c.speed.toFixed(0), size: c.size.toFixed(0) }));
+}
+function run(frames) { for (let i = 0; i < frames; i++) world.step(); }
+function draw(opts) { DrewRender.render(document.getElementById('c').getContext('2d'), world, opts || { labels: true, debug: true }); }
+function stats() { const c = world.creatures[0]; const cc = world.centroid(c); let nan = world.P.some(p => !isFinite(p.x)); return { t: world.t.toFixed(2), cx: cc.x.toFixed(0), cy: cc.y.toFixed(0), failed: world.failed, events: world.events.map(e => e.type).join(','), nan }; }
+</script></body></html>
