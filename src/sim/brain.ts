@@ -31,6 +31,7 @@ export function think(w: World, cr: Creature) {
     b.intentX = tgt.x;
     b.intentY = tgt.y;
     f.saccade = 1;
+    f.surprise = Math.max(f.surprise, BRAIN.notice); // "oh!": eyes widen as they lock on
   }
   let focusX: number, focusY: number;
   if (b.targetX !== null) {
@@ -82,8 +83,10 @@ export function think(w: World, cr: Creature) {
   f.hurt = Math.max(0, f.hurt - dt * 1.5);
   f.happy = Math.max(0, f.happy - dt * 0.5);
   const ang = Math.abs((cr as Creature & { angle?: number }).angle ?? 0);
-  f.upsideT = ang > 2.0 ? f.upsideT + dt : 0;
+  f.upsideT = ang > 2.0 && cr.gait !== 'roll' ? f.upsideT + dt : 0;
   f.dizzy = f.upsideT > 1 ? 1 : Math.max(0, f.dizzy - dt);
+  // facing: the eyes turn to the side the body is heading (and stay there after it stops)
+  if (b.mode === 'walk' && w.t >= b.actAt - ACT.anticipation) f.side += (b.dir - f.side) * 0.18;
 }
 
 /** Is the creature blinking right now? (includes the birth double blink) */

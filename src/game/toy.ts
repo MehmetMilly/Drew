@@ -7,7 +7,7 @@ import { PAPERS, renderDesk, renderPaper } from '../render/materials';
 import { attachPen, LivePt } from '../input/pen';
 import { drawWet, strokeWidths, WetStroke } from './ink';
 import { clientToPage, layoutPage, PageRect } from './view';
-import { pencil, pencilTick, unlockAudio, birthPop } from '../audio/pencil';
+import { pencil, pencilTick, unlockAudio, birthPop, pencilFrame } from '../audio/pencil';
 import { boilState } from '../render/boil';
 
 const TAP_MAX_MOVE = 10;
@@ -154,7 +154,7 @@ export class Toy {
       const n = s.pts.length;
       const a = s.pts[Math.max(0, n - 4)],
         b = s.pts[n - 1];
-      const v = Math.hypot(b.x - a.x, b.y - a.y) / Math.max(1e-3, b.t - a.t);
+      const v = Math.hypot(b.x - a.x, b.y - a.y) / Math.max(1 / 60, b.t - a.t);
       pencil(v, b.p);
       this.drawOverlay(); // immediate: perceived latency under a frame
     }
@@ -201,6 +201,7 @@ export class Toy {
   // ---------------------------------------------------------------- loop
 
   private frame(tms: number) {
+    pencilFrame();
     const t = tms / 1000;
     let dt = this.last ? Math.min(0.1, t - this.last) : 1 / 60;
     // vsync jitter around 60 Hz would alternate 0 and 2 sim steps per frame

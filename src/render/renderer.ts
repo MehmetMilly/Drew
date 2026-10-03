@@ -129,7 +129,7 @@ export class WorldRenderer {
       let sc = 0,
         ss = 0;
       for (const i of ring) {
-        const rx = w.P.rx[i] - rcx,
+        const rx = (w.P.rx[i] - rcx) * cr.flip,
           ry = w.P.ry[i] - rcy,
           qx = this.px(i, a) - hx,
           qy = this.py(i, a) - hy;
@@ -137,6 +137,10 @@ export class WorldRenderer {
         ss += rx * qy - ry * qx;
       }
       angle = Math.atan2(ss, sc);
+      // a roller's eyes stay level while its body turns over, like a hamster in a ball
+      if (cr.gait === 'roll') angle = 0;
+      // the face turns toward where it's heading
+      hx += cr.face.side * r * LOOK.faceTurn;
     } else {
       const i = cr.head.point;
       hx = this.px(i, a);

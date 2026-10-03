@@ -335,6 +335,7 @@ function weld(w: World, strokeIds: number[][], strokeEnds: number[][], out: Buil
     if (!ring) return false;
     return pointInPoly(P.x[e], P.y[e], ring.map((i) => ({ x: P.x[i], y: P.y[i] })));
   };
+  const allEnds = new Set(strokeEnds.flat());
   const S = strokeIds.length;
   for (let a = 0; a < S; a++)
     for (let b = a + 1; b < S; b++) {
@@ -363,7 +364,11 @@ function weld(w: World, strokeIds: number[][], strokeEnds: number[][], out: Buil
               dy = P.y[j] - P.y[e];
             const d = F.hypot(dx, dy);
             if (d >= bd) continue;
-            if (d > BODY.weldDist && q !== undefined && dx * ux + dy * uy < 0.3 * d && !insideLoop(e, j)) continue;
+            // a longer reach only counts when the end aims right at the other stroke (a stroke
+            // that stops short); a spider's foot lying beside the next leg does not
+            // ...or when it meets the other stroke's own end (a hip: legs start at the body's end)
+            const aim = d > BODY.weldEndNear && !allEnds.has(j) ? BODY.weldAimCos : 0.3;
+            if (d > BODY.weldDist && q !== undefined && dx * ux + dy * uy < aim * d && !insideLoop(e, j)) continue;
             bd = d;
             best = j;
           }

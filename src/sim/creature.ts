@@ -19,6 +19,13 @@ export interface Limb {
   toY: number;
   // reach / grab
   reaching: boolean;
+  turn: number; // rad: the arm's pose swung about its root (shape matching follows it)
+  ext: number; // pose stretch, 1 = as drawn
+  joint: number[]; // bend constraints straddling the root: slack while the limb is posed
+  jointK: number[];
+  free: boolean; // hangs only from its root (nothing else tied to it): can swing as one piece
+  turnMin: number; // rad: how far the limb may swing before it would fold onto the body next to it
+  turnMax: number;
   grab: number; // constraint id of a grab, -1 none
   grabBody: number; // body id held, -1 none
 }
@@ -66,6 +73,8 @@ export interface Face {
   hurt: number;
   strain: number;
   upsideT: number;
+  /** -1..1: eyes slide toward the side the creature faces (a face turning to profile). */
+  side: number;
 }
 
 export interface Brain {
@@ -103,6 +112,8 @@ export interface Stats {
   cadence: number;
 }
 
+export type Gait = 'walk' | 'scurry' | 'hop' | 'roll' | 'inch';
+
 export interface Creature {
   id: number;
   alive: boolean;
@@ -115,6 +126,16 @@ export interface Creature {
   limbs: Limb[];
   head: { kind: 'loop' | 'point'; loop: number; point: number; r: number };
   kind: Kind;
+  /** How this body plan moves (from geometry only): legs walk, many legs scurry,
+   *  spring legs hop, a legless loop rolls, a legless line inches. */
+  gait: Gait;
+  /** The drawn front: +1 if the head sits right of the body's middle, -1 left, 0 symmetric. */
+  front: number;
+  /** Mirror scale of the rest shape: 1 = as drawn, -1 = turned around. Eases toward flipTo. */
+  flip: number;
+  flipTo: number;
+  /** While rolling, the upright cheat is off so the body can turn over. */
+  rolling: boolean;
   name: string;
   firstName: string;
   seed: number;
@@ -148,6 +169,7 @@ export function newFace(seed: number): Face {
     hurt: 0,
     strain: 0,
     upsideT: 0,
+    side: 0,
   };
 }
 

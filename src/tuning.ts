@@ -23,7 +23,9 @@ export const BODY = {
   radius: 5,
   bendK: 0.25,
   weldDist: 9,
-  weldEndDist: 28, // physics.md §1: real finger joins on a phone left 11–19 px gaps
+  weldEndDist: 28,
+  weldEndNear: 18, // beyond this, an end must aim at the other stroke...
+  weldAimCos: 0.9, // ...within ~25° // physics.md §1: real finger joins on a phone left 11–19 px gaps
   // physics.md §3: an end within max(22px, 15% of length) of its own start closes a loop
   closeMin: 22,
   closeFrac: 0.15,
@@ -84,7 +86,16 @@ export const ACT = {
   // the envelope is measured on the drawn (curved) chain; a straight arm can't stretch
   // past ~0.9 of it without dragging its root: the skyhook (see DECISIONS.md)
   reachSlack: 0.86,
-  reachShares: [1, 0.7, 0.45, 0.25],
+  reachStretch: 1.08, // a reaching arm's pose stretches at most this much toward a far target
+  poseGain: 0.6, // velocity-servo gain carrying arm points to the swung pose
+  poseSpeed: 0.5, // × reach speed: the most a lagging arm point is pulled (a bent body is not yanked straight)
+  poseCatch: 25, // 1/s: how hard a lagging point catches up (speed = distance × this)
+  swingRate: 7, // rad/s an arm swings about its shoulder (× strength factor)
+  sectorNear: 8, // px: body this close to a limb root is the joint itself, not a neighbour
+  sectorProbe: 45, // px: body within this of a limb root bounds how far the limb may swing
+  sectorClear: 0.4, // rad: a swinging limb stops this far short of the body beside it
+  shoulderSlack: 0.05, // bend stiffness left at a posed limb's root
+  relaxRate: 0.5, // arms ease back to their drawn pose at this fraction of reach speed
   grabSlop: 12,
   throwWindup: 0.1,
   throwSwing: 0.3,
@@ -102,7 +113,8 @@ export const ACT = {
   jumpExtend: 1.45,
   jumpExtendT: 0.12,
   jumpCooldown: 0.9,
-  anticipation: 0.1, // look.md §5: ~100ms wind-up before intent
+  anticipation: 0.14, // look.md §5: wind-up before intent
+  windup: 0.25, // hands draw back by this fraction of the limb before reaching
 };
 
 export const LOCO = {
@@ -128,11 +140,23 @@ export const LOCO = {
   wriggleHold: 0.5, // how firmly the hump follows its wave each substep
   wriggleGrip: 5, // extra servo gain on lifted particles (they have no ground friction)
   arriveDist: 14,
+  frontMin: 0.08, // head offset (× body size) before a body has a front and turns around
+  turnTime: 0.32, // s to mirror around and face the other way
+  turnShape: 0.35, // shape-holding strength while mirroring round
+  turnSnap: 0.4, // |mirror scale| below this is skipped in one step (a body squashed flat tangles)
+  turnWalk: 0.25, // fraction of walking speed kept mid-turn
+  rollGain: 0.2, // servo gain for the rolling velocity field
+  rollSpeed: 2.4, // legless loops roll faster than they could shuffle
+  rollPush: 0.05, // how much of the rolling speed is pushed directly (the rest comes from grip)
+  rollSpin: 1.4, // spin beyond pure rolling: corners catch the page and tip it over (a tumble, not a slide)
+  hopForward: 2.2, // × walking speed carried forward through each hop
+  hopLean: 0.18, // s before take-off the body leans into the hop
 };
 
 export const BRAIN = {
   senseBase: 150,
-  eyeLead: 0.1, // pupils lead the body by ~100ms
+  eyeLead: 0.25, // pupils lock on, then the body follows (0.1 s didn't read in play)
+  notice: 0.55, // eye-widening when a new target is noticed
   intentLine: 0.4,
 };
 
@@ -171,6 +195,7 @@ export const KIND = {
 
 export const LOOK = {
   boilFps: 8,
+  faceTurn: 0.28, // eye cluster shift toward the facing side, × head radius
   birthPop: 0.45, // s for the eyes to pop open and settle
   pointHeadMin: 16, // eye-cluster radius for creatures without a loop head
   pointHeadMax: 26,

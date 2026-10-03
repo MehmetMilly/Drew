@@ -207,6 +207,11 @@ export class World {
       limbs: [],
       head: { kind: 'point', loop: -1, point: ids[0], r: 10 },
       kind: 'biped',
+      gait: 'walk',
+      front: 0,
+      flip: 1,
+      flipTo: 1,
+      rolling: false,
       name: '',
       firstName: '',
       seed,
@@ -468,13 +473,28 @@ export class World {
     cy /= m;
     rcx /= m;
     rcy /= m;
+    // posed limbs: a reaching arm's shape target is its drawn pose swung about the root
+    let pose: Map<number, [number, number]> | null = null;
+    for (const l of cr.limbs) {
+      if (Math.abs(l.turn) < 1e-4 && Math.abs(l.ext - 1) < 1e-4) continue;
+      pose ??= new Map();
+      const co = F.cos(l.turn) * l.ext,
+        si = F.sin(l.turn) * l.ext;
+      for (const i of l.chain) {
+        if (i === l.root) continue;
+        const ox = (P.rx[i] - P.rx[l.root]) * cr.flip,
+          oy = P.ry[i] - P.ry[l.root];
+        pose.set(i, [ox * co - oy * si - ox, ox * si + oy * co - oy]);
+      }
+    }
     let sc = 0,
       ss = 0;
     for (let k = 0; k < n; k++) {
       const i = ids[k],
         mi = P.m[i];
-      const rx = P.rx[i] - rcx,
-        ry = P.ry[i] - rcy,
+      const po = pose?.get(i);
+      const rx = (P.rx[i] - rcx) * cr.flip + (po ? po[0] : 0),
+        ry = P.ry[i] - rcy + (po ? po[1] : 0),
         qx = P.x[i] - cx,
         qy = P.y[i] - cy;
       sc += mi * (rx * qx + ry * qy);
@@ -482,10 +502,10 @@ export class World {
     }
     const raw = F.atan2(ss, sc);
     (cr as Creature & { angle?: number }).angle = raw;
-    const ang = raw * (1 - cr.stats.balance);
+    const ang = cr.rolling ? raw : raw * (1 - cr.stats.balance);
     const co = F.cos(ang),
       si = F.sin(ang);
-    const k0 = SHAPE.k;
+    const k0 = SHAPE.k * (cr.flip !== cr.flipTo ? LOCO.turnShape : 1); // a turning body is led, not forced
     // spring offsets for distal particles
     let spOff: Map<number, [number, number]> | null = null;
     for (const s of cr.springs) {
@@ -504,14 +524,19 @@ export class World {
       mdy = 0;
     for (let k = 0; k < n; k++) {
       const i = ids[k];
-      let rx = P.rx[i] - rcx,
+      let rx = (P.rx[i] - rcx) * cr.flip,
         ry = P.ry[i] - rcy;
       if (spOff) {
         const o = spOff.get(i);
         if (o) {
-          rx += o[0];
+          rx += o[0] * cr.flip;
           ry += o[1];
         }
+      }
+      const po = pose?.get(i);
+      if (po) {
+        rx += po[0];
+        ry += po[1];
       }
       const tx = cx + rx * co - ry * si,
         ty = cy + rx * si + ry * co;

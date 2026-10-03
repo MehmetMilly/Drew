@@ -61,6 +61,9 @@ A creature with no loop is a **worm**: its eyes sit on its highest end. It is st
   - springs → jump and punch
   - loop area → buoyancy
   - bounding box → size
+- **Gait** comes from the body plan, so different bodies visibly move differently: a spring leg **hops**; three or more feet **scurry** (quicker steps); one or two feet **walk**; a legless body with a loop **rolls** (tumbles over its corners); a legless line **inches** like a caterpillar.
+- **Front**: if the head sits clearly to one side of the body, that side is the front. The creature turns round to face where it goes, and its eyes lean that way. Symmetric bodies and scribble masses have no front.
+- **Limbs swing from their root as one piece**, keeping their drawn shape, and stop short of the body beside them. A limb tied to the body at more than its root can only strain its tip toward a target.
 - **Square-cube feel**: strength grows slower than mass. Giants are mighty but lumbering, tiny creatures are quick but weak. This is a core trade-off and it must be felt.
 
 ## 6. Kinds of hero
@@ -106,7 +109,7 @@ In **Sumo**, the brain is the same, except the opponent is the threat, the edge 
 Eyes turn a line into a character, so they get the most care of any visual in the game.
 
 - **Construction**: two wobbly drawn ovals with crisp white fill and black pupils, sized to the head (6–22 px).
-- **Pupils lead the body**: they look at the next target about 100 ms before the body moves. Saccades. A blink every 2–5 s, and a double blink at birth.
+- **Pupils lead the body**: they look at the next target about 250 ms before the body moves, widen when they notice it, and hands wind up away from it first. Saccades. A blink every 2–5 s, and a double blink at birth.
 - **Brows** show the mode: worried in Guard, determined in Intercept, angry when hit, straining in Brace.
 - **Strain**: sweat drops and a red tint when a limb is near its strength limit.
 - **Dizzy**: spiral pupils when flipped for more than 1 s.

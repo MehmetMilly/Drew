@@ -1,7 +1,7 @@
 // Anatomy read (design.md §5–6): head, tips → hands/feet, springs, lumps, stats,
 // kind and name. Runs at birth and after every graft or sever. Geometry only.
 import * as F from './fmath';
-import { KIND, LOCO, LOOK, SHAPE, STRENGTH, WORLD } from '../tuning';
+import { ACT, KIND, LOCO, LOOK, SHAPE, STRENGTH, WORLD } from '../tuning';
 import { CT, PF, STRUCTURAL } from './store';
 import type { Creature, Limb, Spring } from './creature';
 import { EPITHET, Kind, NAMES, PIECE_NAMES } from './names';
@@ -188,9 +188,58 @@ export function readAnatomy(w: World, cr: Creature) {
       toX: 0,
       toY: 0,
       reaching: false,
+      turn: 0,
+      ext: 1,
+      joint: [],
+      jointK: [],
+      free: true,
+      turnMin: -Math.PI,
+      turnMax: Math.PI,
       grab: -1,
       grabBody: -1,
     });
+  }
+  // the shoulder: bends that straddle a limb's root would fight the limb swinging as one piece
+  {
+    const C = w.C;
+    for (const l of limbs) {
+      const inChain = new Set(l.chain.filter((i) => i !== l.root));
+      for (let c = 0; c < C.n; c++) {
+        if (C.dead[c] || C.type[c] !== CT.BEND) continue;
+        const a = inChain.has(C.a[c]),
+          b = inChain.has(C.b[c]);
+        if (a === b || C.a[c] === l.root || C.b[c] === l.root) continue;
+        l.joint.push(c);
+        l.jointK.push(C.k[c]);
+      }
+      // anything else tying the limb to the body (a weld, a spring, a lump) pins it
+      for (const c of cr.cons) {
+        if (C.dead[c] || C.type[c] === CT.BEND) continue;
+        if (inChain.has(C.a[c]) !== inChain.has(C.b[c]) && C.a[c] !== l.root && C.b[c] !== l.root) l.free = false;
+      }
+    }
+  }
+  // swing sector: a limb turns about its root only until it would meet the body beside it
+  for (const l of limbs) {
+    const inChain = new Set(l.chain);
+    const ox = P.rx[l.root],
+      oy = P.ry[l.root];
+    const a0 = F.atan2(P.ry[l.tip] - oy, P.rx[l.tip] - ox);
+    let lo = -Math.PI,
+      hi = Math.PI;
+    // any of the body near the root (neck, head, torso, the other limbs) bounds the swing
+    for (const i of cr.ids) {
+      if (inChain.has(i)) continue;
+      const r = F.hypot(P.rx[i] - ox, P.ry[i] - oy);
+      if (r < ACT.sectorNear || r > ACT.sectorProbe) continue;
+      let d = F.atan2(P.ry[i] - oy, P.rx[i] - ox) - a0;
+      while (d > Math.PI) d -= 2 * Math.PI;
+      while (d < -Math.PI) d += 2 * Math.PI;
+      if (d > 0) hi = Math.min(hi, d);
+      else lo = Math.max(lo, d);
+    }
+    l.turnMin = Math.min(0, lo + ACT.sectorClear);
+    l.turnMax = Math.max(0, hi - ACT.sectorClear);
   }
   // feet alternate in two groups by x
   const feet = limbs.filter((l) => l.foot).sort((a, b) => P.rx[a.tip] - P.rx[b.tip]);
@@ -251,6 +300,33 @@ export function readAnatomy(w: World, cr: Creature) {
   else if (!loops) kind = 'headless';
   else kind = 'biped';
   cr.kind = kind;
+
+  // gait: how this body plan moves (geometry only)
+  const springLegs = cr.springs.some((sp) => sp.leg);
+  if (springLegs) cr.gait = 'hop';
+  else if (feetN >= 3) cr.gait = 'scurry';
+  else if (feetN >= 1) cr.gait = 'walk';
+  else if (loops) cr.gait = 'roll';
+  else cr.gait = 'inch';
+  // front: the side the head is on, in the drawn (rest) frame
+  {
+    let rcx = 0,
+      m = 0;
+    for (const i of cr.ids) {
+      rcx += P.rx[i] * P.m[i];
+      m += P.m[i];
+    }
+    rcx /= m || 1;
+    let hx = 0;
+    if (cr.head.kind === 'loop' && cr.loops[cr.head.loop]) {
+      const ring = cr.loops[cr.head.loop].ring;
+      for (const i of ring) hx += P.rx[i];
+      hx /= ring.length;
+    } else hx = P.rx[cr.head.point];
+    const off = hx - rcx;
+    // scribble masses are stiff: mirroring one round tears it, and a blob has no face side anyway
+    cr.front = Math.abs(off) > LOCO.frontMin * size && !cr.lumps.length ? Math.sign(off) : 0;
+  }
   if (!cr.firstName) {
     cr.firstName = cr.isPiece ? PIECE_NAMES[cr.seed % PIECE_NAMES.length] : NAMES[cr.seed % NAMES.length];
   }

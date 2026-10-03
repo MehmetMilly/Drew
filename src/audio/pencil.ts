@@ -10,6 +10,7 @@ let gain: GainNode | null = null;
 let grain: GainNode | null = null;
 let lfo: OscillatorNode | null = null;
 let level = 0;
+const PENCIL_VOLUME = 0.28; // was 0.55: play-test said too loud
 
 export function audioCtx(): AudioContext | null {
   return ctx;
@@ -67,15 +68,29 @@ export function unlockAudio() {
   }
 }
 
+let lastDrive = -1;
+
 /** Drive the scratch from pen speed (px/s, page space) and pressure (0..1). */
 export function pencil(speed: number, pressure = 0.5, down = true) {
   if (!ctx || !gain || !bp || !lfo) return;
   const t = ctx.currentTime;
-  const target = down ? Math.min(1, speed / 900) : 0;
-  level += (target - level) * 0.5;
-  gain.gain.setTargetAtTime(level * 0.55, t, 0.015);
-  bp.frequency.setTargetAtTime(2200 + 2600 * pressure + 900 * level, t, 0.02);
-  lfo.frequency.setTargetAtTime(18 + 60 * level, t, 0.03);
+  lastDrive = t;
+  // speeds from near-simultaneous events spike; the scratch saturates at 900 px/s anyway
+  const target = down && isFinite(speed) ? Math.min(1, speed / 900) : 0;
+  level += (target - level) * (target > level ? 0.35 : 0.6);
+  gain.gain.setTargetAtTime(level * PENCIL_VOLUME, t, 0.02);
+  bp.frequency.setTargetAtTime(2200 + 1800 * pressure + 700 * level, t, 0.03);
+  lfo.frequency.setTargetAtTime(18 + 50 * level, t, 0.03);
+}
+
+/** Call every frame: a pen that stops moving (or loses its pen-up) falls silent. */
+export function pencilFrame() {
+  if (!ctx || !gain || lastDrive < 0) return;
+  if (ctx.currentTime - lastDrive > 0.06) {
+    level = 0;
+    lastDrive = -1;
+    gain.gain.setTargetAtTime(0, ctx.currentTime, 0.03);
+  }
 }
 
 /** Tiny lift tick. */

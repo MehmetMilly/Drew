@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Phase 1 — The Toy: waiting at the Gate 1 human gate.** All automated checks are green, including the tester's real strokes and a 1,000-stroke Quick, Draw! corpus. Waiting for the play-test notes on the four checklist questions before tagging `gate-1`.
+**Phase 1 — The Toy: Gate 1, round 2.** The first play-test notes are addressed (gaits per body plan, front/back turnaround, intent-reading eyes, whole-arm reach, pencil fix). Waiting for a second play of the toy before tagging `gate-1`.
 
 ## Done
 
@@ -16,18 +16,20 @@
 - Slow time while drawing (eased scale, paper desaturation, vignette), placeholder pencil scratch and birth pop.
 - Debug overlay (D / three-finger tap); undo (Z / two-finger tap); clear (R); tap = walk + reach target.
 - Dev capture page `/capture.html` for ~40 labelled human strokes → `tests/fixtures/human/`.
+- Gate 1 round 1 fixes: hop / scurry / walk / roll / inch gaits from the body plan; front + turnaround; eye lead 0.25 s with notice and hand wind-up; arms swing from the shoulder as one piece within a body-clear sector; weld aim rule (spider regression) with an anatomy verify row; pencil volume and stuck-scratch fix.
 - Perf: 60 fps at ~880 particles under 4× CPU throttle; 0.77 ms/step in Node.
 
 ## Next
 
 1. ~~Capture human strokes~~ done: 34/34 single strokes and 6/6 joins pass; Quick, Draw! corpus added.
-2. Waiting for the Gate 1 checklist notes (four questions), then address them and tag `gate-1`.
+2. ~~Gate 1 notes round 1~~ addressed. Waiting for a second play-test, then tag `gate-1`.
+3. Possible extra: per-kind birth gestures (springy bounces, roller rocks) if birth still feels samey.
 4. Phase 2: drawing grammar, metrics course, `tools/metrics.ts` (`npm run metrics`).
 
 ## Open problems
 
-- Stick figure arms curl inward when the reach target is low or behind (visible in the live strip). Review after play-test.
-- Worm eyes sit on whichever end is highest; a flat worm may crawl tail-first. Design-legal, but check if it reads as wrong.
+- A stick figure can't raise arms above its head (the head blocks the swing sector). Reads fine so far; revisit if levels need overhead reaches.
+- Turnaround squashes the body for a frame or two mid-turn (dog's tail crumples briefly). Watch in play.
 - Birth sound and pencil are synth placeholders until the Phase 3 audio pass.
 - Contact sheets with per-row crops reuse the first row's scale (`src/dev/shots.ts`); keep crops per sheet.
 
@@ -40,12 +42,13 @@
 | classifier: human fixtures | 100.0% (34/34) | PASS |
 | human sloppy joins → one creature | 6/6 | PASS |
 | classifier: Quick, Draw! strokes (1000) | line 100%, circle 98%, triangle 98%, square 99%, zigzag 90% | PASS |
-| determinism: Node ×3 | 44a83fe8 same | PASS |
+| determinism: Node ×3 | 58103074 same | PASS |
 | no-noise tearing (100 creatures × 10 s) | 0 tears in 0 creatures | PASS |
 | monkey (300 scribble sets) | crash 0, NaN 0, vmax 3000 px/s, fell off 0 | PASS |
+| anatomy: canonical bodies (kind, gait, feet, hands) | 12/12 | PASS |
 | distinct bodies (each pair ≥20% on a metric) | 15/15 pairs distinct | PASS |
-| step time @ 906 particles (Node) | 0.78 ms | PASS |
-| determinism: browser vs Node | 44a83fe8 vs 44a83fe8 | PASS |
+| step time @ 906 particles (Node) | 0.85 ms | PASS |
+| determinism: browser vs Node | 58103074 vs 58103074 | PASS |
 | browser fps @ 884 particles, 4× CPU throttle | 60.0 fps, p95 16.7 ms | PASS |
 
 Classifier speed: median 0.14 ms/stroke, max 2.75 ms (desktop Node).

@@ -133,6 +133,32 @@ const nodeHash = detScenario();
   add(`monkey (${N} scribble sets)`, `crash ${crash}, NaN ${nan}, vmax ${vmax.toFixed(0)} px/s, fell off ${left}`, !crash && !nan && vmax <= WORLD.maxSpeed + 1);
 }
 
+// ---- anatomy read of the canonical bodies (catches snapping/weld regressions)
+{
+  const want: Record<string, string> = {
+    stick400: '1:biped:walk:f2h2',
+    stick700: '1:biped:walk:f2h2',
+    stick1100: '1:biped:walk:f2h2',
+    spider: '1:many-legged:scurry:f6h0',
+    worm: '1:worm:inch:f0h1',
+    box: '1:tiny:roll:f0h0',
+    giant: '1:giant:walk:f2h2',
+    hopper: '1:springy:hop:f2h0',
+    reacher: '1:biped:walk:f2h2',
+    bruiser: '1:heavy:walk:f2h2',
+    floater: '1:floaty:walk:f2h0',
+    roof: '1:headless:walk:f2h0',
+  };
+  const bad: string[] = [];
+  for (const [n, exp] of Object.entries(want)) {
+    const crs = spawn(new World({ seed: 1 }), CANON[n](360));
+    const c = crs[0];
+    const got = c ? `${crs.length}:${c.kind}:${c.gait}:f${c.limbs.filter((l) => l.foot).length}h${c.limbs.filter((l) => !l.foot).length}` : 'none';
+    if (got !== exp) bad.push(`${n} ${got} (want ${exp})`);
+  }
+  add('anatomy: canonical bodies (kind, gait, feet, hands)', bad.length ? bad.join('; ') : `${Object.keys(want).length}/${Object.keys(want).length}`, !bad.length);
+}
+
 // ---- distinct bodies
 {
   const names = ['stick700', 'spider', 'worm', 'box', 'giant', 'hopper'];
