@@ -45,6 +45,14 @@ const add = (check: string, result: string, pass: boolean) => {
       add('classifier: human fixtures', `${(h.rate * 100).toFixed(1)}% (${h.ok}/${h.n})`, h.rate >= 0.95);
       if (h.rate < 0.95) console.log(h.table);
     }
+    // multi-stroke drawings from the capture page should each be ONE creature
+    const joins: { name: string; strokes: { x: number; y: number }[][] }[] = readdirSync(dir)
+      .filter((f) => f.endsWith('.json'))
+      .flatMap((f) => JSON.parse(readFileSync(`${dir}/${f}`, 'utf8')).joins ?? []);
+    if (joins.length) {
+      const split = joins.filter((j) => spawn(new World({ seed: 1 }), j.strokes).length !== 1);
+      add('human sloppy joins → one creature', `${joins.length - split.length}/${joins.length}`, split.length === 0);
+    }
   }
 }
 

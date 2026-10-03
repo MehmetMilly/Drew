@@ -1,0 +1,24 @@
+// Smoke test for capture.html: draw a few prompted strokes and read the bar back.
+import { createServer } from 'vite';
+import { chromium } from '@playwright/test';
+import { drawStrokes } from './livepen';
+import { line, circle } from '../src/sim/canon';
+const server = await createServer({ server: { port: 5193, host: '127.0.0.1' }, logLevel: 'error' });
+await server.listen();
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: false });
+const errs: string[] = [];
+page.on('pageerror', (e) => errs.push(String(e)));
+await page.goto('http://127.0.0.1:5193/capture.html');
+await page.waitForFunction('window.drew');
+await drawStrokes(page, [line(200, 600, 500, 650)], 400);
+await page.waitForTimeout(600);
+console.log(await page.textContent('#bar'));
+for (let i = 0; i < 8; i++) await page.click('#skip');
+await drawStrokes(page, [circle(360, 600, 120)], 600);
+await page.waitForTimeout(600);
+console.log(await page.textContent('#bar'));
+await page.screenshot({ path: 'review/capture.png' });
+console.log('errors:', errs);
+await browser.close();
+await server.close();

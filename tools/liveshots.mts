@@ -1,0 +1,28 @@
+import { createServer } from 'vite';
+import { chromium } from '@playwright/test';
+import { writeFileSync } from 'node:fs';
+import { drawStrokes } from './livepen';
+import { CANON } from '../src/sim/canon';
+const server = await createServer({ server: { port: 5194, host: '127.0.0.1' }, logLevel: 'error' });
+await server.listen();
+const browser = await chromium.launch({ args: ['--use-angle=metal', '--enable-gpu-rasterization', '--ignore-gpu-blocklist'] });
+const page = await browser.newPage({ viewport: { width: 390, height: 700 }, deviceScaleFactor: 1 });
+const errs: string[] = []; page.on('pageerror', e => errs.push(String(e))); page.on('console', m => m.type()==='error' && errs.push(m.text()));
+await page.goto('http://127.0.0.1:5194/');
+await page.waitForFunction(() => (window as any).drew);
+await page.waitForTimeout(300);
+const shots: string[] = [];
+const snap = async () => { shots.push((await page.screenshot()).toString('base64')); };
+await drawStrokes(page, CANON.stick700(360), 900, snap);
+await snap();
+await page.waitForTimeout(450); await snap();
+await page.waitForTimeout(650); await snap();
+await page.waitForTimeout(250); await snap();
+await page.mouse.click(330, 420); await page.waitForTimeout(150); await snap();
+await page.waitForTimeout(900); await snap();
+await page.waitForTimeout(900); await snap();
+// stitch in page
+const sheet = await page.evaluate(`(async (imgs) => { const ims = await Promise.all(imgs.map(b => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = 'data:image/png;base64,' + b; }))); const w = ims[0].width, h = ims[0].height; const c = document.createElement('canvas'); c.width = w * ims.length; c.height = h; const g = c.getContext('2d'); ims.forEach((im, k) => g.drawImage(im, k * w, 0)); return c.toDataURL('image/png'); })(${JSON.stringify(shots)})`) as string;
+writeFileSync('review/live-pen.png', Buffer.from(sheet.split(',')[1], 'base64'));
+console.log('errors:', errs);
+await browser.close(); await server.close();

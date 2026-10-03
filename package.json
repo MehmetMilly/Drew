@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "verify": "tsx tools/verify.ts",
     "metrics": "tsx tools/metrics.ts",
-    "shots": "tsx tools/shots.ts"
+    "shots": "tsx tools/shots.ts",
+    "shots:live": "tsx tools/liveshots.mts"
   },
   "keywords": [],
   "author": "",
