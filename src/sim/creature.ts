@@ -79,6 +79,10 @@ export interface Face {
 
 export interface Brain {
   mode: 'idle' | 'walk' | 'reach' | 'guard' | 'intercept' | 'brace' | 'carry' | 'sleep';
+  /** level plan (design §8) driving the walk/reach targets; 'toy' on the blank page */
+  plan: 'toy' | 'guard' | 'intercept' | 'brace' | 'hug';
+  /** body id the hands are after, -1 */
+  targetBody: number;
   targetX: number | null;
   reachX: number;
   reachY: number;
@@ -177,6 +181,8 @@ export function newFace(seed: number): Face {
 export function newBrain(): Brain {
   return {
     mode: 'idle',
+    plan: 'toy',
+    targetBody: -1,
     targetX: null,
     reachX: 0,
     reachY: 0,

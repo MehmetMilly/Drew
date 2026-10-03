@@ -93,6 +93,7 @@ export function actuate(w: World, cr: Creature, h: number) {
         l.swing = false;
         stance.add(l.tip);
         if (P.flags[l.tip] & PF.GROUND) P.flags[l.tip] |= PF.PINNED;
+        P.fr[l.tip] = b.plan === 'brace' ? ACT.braceFriction : 1; // feet dig in to brace
       }
     }
   }
@@ -127,14 +128,25 @@ export function actuate(w: World, cr: Creature, h: number) {
       react(w, cr, new Set(l.chain), h);
     }
   }
+  // ---------------- held things: carry, then throw up and away from Little Guy
+  for (const l of hands) if (l.grabBody >= 0) holdAndThrow(w, cr, l, h);
   if (acting && b.hasReach) {
     const range = senseRange(cr);
     for (const l of hands) {
+      if (l.grabBody >= 0) continue;
       const tip = l.tip;
       const d = F.hypot(b.reachX - P.x[tip], b.reachY - P.y[tip]);
       if (d > range) continue;
       reachTo(w, cr, l, b.reachX, b.reachY, h);
       react(w, cr, new Set(l.chain), h);
+      // grab: the tip closes on a grabbable it wants
+      const tb = b.targetBody >= 0 ? w.bodies[b.targetBody] : null;
+      if (tb && tb.alive && tb.grabbable && tb.held < 0 && F.hypot(tb.x - P.x[tip], tb.y - P.y[tip]) < tb.r + ACT.grabSlop) {
+        tb.held = cr.id;
+        tb.data.grabT = w.t;
+        l.grabBody = tb.id;
+        w.emit({ type: 'grab', cr: cr.id, x: tb.x, y: tb.y });
+      }
       // spring arm: punch when the target is in arm's reach
       if (l.spring >= 0 && d < l.len * 1.3) trigger(cr.springs[l.spring], 'punch');
     }
@@ -216,6 +228,45 @@ function reachTo(w: World, cr: Creature, l: Limb, tx: number, ty: number, h: num
     servo(w, i, (dx / d) * sp, (dy / d) * sp, ACT.poseGain, h);
   }
   l.reaching = true;
+}
+
+function holdAndThrow(w: World, cr: Creature, l: Limb, h: number) {
+  const P = w.P;
+  const body = w.bodies[l.grabBody];
+  if (!body || !body.alive || body.held !== cr.id) {
+    l.grabBody = -1;
+    return;
+  }
+  const t = w.t - body.data.grabT;
+  const g = w.guy;
+  const gx = g && g.alive ? P.x[g.hip] : w.W / 2;
+  const away = Math.sign(P.x[l.root] - gx) || cr.brain.dir || 1;
+  if (t < ACT.holdTime) {
+    // hold it up over the shoulder (wind-up)
+    reachTo(w, cr, l, P.x[l.root] - away * l.len * 0.3, P.y[l.root] - l.len, h);
+  } else {
+    // swing up and away from Little Guy
+    reachTo(w, cr, l, P.x[l.root] + away * l.len, P.y[l.root] - l.len * 0.7, h);
+  }
+  react(w, cr, new Set(l.chain), h);
+  // the held thing rides on the hand
+  const tip = l.tip;
+  const dx = body.x - P.x[tip],
+    dy = body.y - P.y[tip];
+  const d = F.hypot(dx, dy) || 1;
+  body.x = body.px = P.x[tip] + (dx / d) * body.r;
+  body.y = body.py = P.y[tip] + (dy / d) * body.r;
+  if (t >= ACT.holdTime + ACT.throwTime) {
+    // release: speed scales with strength (puppeted intent; the flight is physics)
+    const sp = ACT.throwSpeed * Math.min(1.4, Math.sqrt(cr.stats.strength));
+    const ux = away * 0.6,
+      uy = -0.8;
+    body.held = -1;
+    body.px = body.x - ux * sp * h;
+    body.py = body.y - uy * sp * h;
+    l.grabBody = -1;
+    w.emit({ type: 'throw', cr: cr.id, x: body.x, y: body.y });
+  }
 }
 
 /** Ease a limb's pose turn/stretch toward a goal, at most `step` rad this call. */

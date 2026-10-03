@@ -11,6 +11,9 @@ import { mulberry32, Rng, hashFloat } from './rng';
 import { Pt } from './geom';
 import { think } from './brain';
 import { actuate } from './actuators';
+import { preHazards, postHazards, asleep } from './hazards';
+import { actuateGuy, type Guy } from './littleguy';
+import { levelStep, type LevelRun } from './level';
 
 export interface Terrain {
   pts: Pt[];
@@ -39,6 +42,8 @@ export interface Body {
   held: number; // creature id holding it, -1
   grabbable: boolean;
   angle: number;
+  hw?: number; // box bodies (crusher walls): half extents; r is 0
+  hh?: number;
   data: Record<string, number>;
 }
 
@@ -83,6 +88,8 @@ export class World {
   nanSeen = false;
   // toy / level hooks
   toyTarget: { x: number; y: number } | null = null;
+  guy: Guy | null = null;
+  level: LevelRun | null = null;
   /** step time of the last step in ms (filled by callers that measure) */
   lastStepMs = 0;
 
@@ -461,6 +468,8 @@ export class World {
     const h = WORLD.dt / WORLD.substeps;
     for (let s = 0; s < WORLD.substeps; s++) {
       for (const cr of live) if (cr.alive) actuate(this, cr, h);
+      if (this.guy) actuateGuy(this, this.guy, h);
+      preHazards(this, h);
       this.integrate(h);
       this.buildHash();
       this.buildPairs();
@@ -477,7 +486,9 @@ export class World {
       this.checkTears();
     }
     if (this.tearsThisStep) this.sever();
+    postHazards(this);
     this.cleanup();
+    if (this.level) levelStep(this);
     this.t += WORLD.dt;
     this.steps++;
   }
@@ -504,13 +515,14 @@ export class World {
       P.flags[i] &= ~PF.GROUND;
     }
     for (const b of this.bodies) {
-      if (!b.alive || b.held >= 0) continue;
+      if (!b.alive || b.held >= 0 || asleep(this, b)) continue;
       const vx = (b.x - b.px) * 0.999,
         vy = (b.y - b.py) * 0.999;
       b.px = b.x;
       b.py = b.y;
       b.x += vx;
-      b.y += vy + (b.m > 0 ? g : 0);
+      if (b.hw) b.y = b.py = b.data.rail; // walls slide on a rail
+      else b.y += vy + (b.m > 0 ? g : 0);
     }
   }
 
@@ -734,7 +746,7 @@ export class World {
     }
     if (last) {
       for (const b of this.bodies) {
-        if (!b.alive || b.held >= 0) continue;
+        if (!b.alive || b.held >= 0 || b.hw || asleep(this, b)) continue;
         this.bodyTerrain(b);
       }
     }
@@ -848,7 +860,7 @@ export class World {
             const ny = cy + (k >= 2 ? 1 : 0);
             if (nx < 0 || nx >= gw || ny >= gh) continue;
             for (let j = k === 0 ? this.next[i] : this.head[ny * gw + nx]; j !== NO_HIT; j = this.next[j]) {
-              if (P.owner[j] === oi && oi >= 0) continue;
+              if (P.owner[j] === oi && oi !== -1) continue;
               const dx = P.x[j] - P.x[i],
                 dy = P.y[j] - P.y[i];
               if (dx * dx + dy * dy >= R2) continue;
@@ -899,7 +911,11 @@ export class World {
     const pr = BODY.radius;
     for (const b of this.bodies) {
       if (!b.alive) continue;
-      const bw = b.held >= 0 ? 0 : b.m > 0 ? 1 / b.m : 0;
+      if (b.hw) {
+        this.collideBox(b);
+        continue;
+      }
+      const bw = b.held >= 0 || asleep(this, b) ? 0 : b.m > 0 ? 1 / b.m : 0;
       const reach = b.r + pr;
       // query cells covering the body
       const span = Math.ceil(reach / this.cell);
@@ -930,13 +946,13 @@ export class World {
       void cx;
       void cy;
     }
-    // body vs body
+    // body vs body (circles)
     for (let a = 0; a < this.bodies.length; a++) {
       const A = this.bodies[a];
-      if (!A.alive) continue;
+      if (!A.alive || A.hw) continue;
       for (let c = a + 1; c < this.bodies.length; c++) {
         const B = this.bodies[c];
-        if (!B.alive) continue;
+        if (!B.alive || B.hw) continue;
         const dx = B.x - A.x,
           dy = B.y - A.y;
         const R = A.r + B.r;
@@ -956,6 +972,34 @@ export class World {
     }
   }
 
+  /** A sliding wall against particles: push out along the shallowest face, mass-weighted
+   *  in x only (the wall is on a rail), so ink can hold a wall that has limited force. */
+  private collideBox(b: Body) {
+    const P = this.P;
+    const pr = BODY.radius;
+    const hw = b.hw! + pr,
+      hh = b.hh! + pr;
+    const bw = asleep(this, b) ? 0 : 1 / b.m;
+    for (let j = 0; j < P.n; j++) {
+      if (!(P.flags[j] & PF.ALIVE)) continue;
+      const dx = P.x[j] - b.x,
+        dy = P.y[j] - b.y;
+      if (dx <= -hw || dx >= hw || dy <= -hh || dy >= hh) continue;
+      const ox = hw - Math.abs(dx),
+        oy = hh - Math.abs(dy);
+      if (oy < ox) {
+        P.y[j] += Math.sign(dy) * oy; // over or under the wall: just pushed out
+        continue;
+      }
+      const wp = P.im[j];
+      const ws = wp + bw;
+      if (!ws) continue;
+      const push = Math.sign(dx) * ox;
+      P.x[j] += push * (wp / ws);
+      b.x -= push * (bw / ws);
+    }
+  }
+
   // ------------------------------------------------------------------ tearing
 
   private checkTears() {
@@ -970,6 +1014,7 @@ export class World {
       const a = C.a[c],
         b = C.b[c];
       if (P.owner[a] >= 0 && turning[P.owner[a]]) continue;
+      if (P.flags[a] & PF.GUY) continue; // Little Guy bends, he doesn't tear (he poofs instead)
       const d = F.hypot(P.x[b] - P.x[a], P.y[b] - P.y[a]);
       const rest = C.rest[c];
       C.strain[c] = d / rest - 1;

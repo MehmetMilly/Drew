@@ -350,7 +350,7 @@ export class WorldRenderer {
   private drawCreatureFace(g: Ctx, cr: Creature, o: RenderOpts, frame: number) {
     const v = this.headView(cr, o.alpha);
     // a point head (worm): small eyes perched on the end
-    drawFace(g, cr, { ...v, blinking: isBlinking(this.w, cr), mode: cr.brain.mode, frame, t: o.realT, age: this.w.t - cr.bornAt });
+    drawFace(g, cr, { ...v, blinking: isBlinking(this.w, cr), mode: cr.brain.plan !== 'toy' && cr.brain.plan !== 'hug' && cr.brain.mode !== 'idle' ? cr.brain.plan : cr.brain.mode, frame, t: o.realT, age: this.w.t - cr.bornAt });
   }
 
   private drawIntent(g: Ctx, cr: Creature, o: RenderOpts) {

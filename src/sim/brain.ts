@@ -6,6 +6,8 @@ import * as F from './fmath';
 import { ACT, BRAIN, LOCO, LOOK, WORLD } from '../tuning';
 import type { Creature } from './creature';
 import { hashNoise } from './rng';
+import { guyCentre } from './littleguy';
+import { mainThreat } from './level';
 import type { World } from './world';
 
 export function senseRange(cr: Creature) {
@@ -20,7 +22,8 @@ export function think(w: World, cr: Creature) {
   const head = w.headPos(cr);
 
   // ---- decisions
-  const tgt = w.toyTarget;
+  if (w.level && w.guy) planLevel(w, cr, c);
+  const tgt = w.level ? null : w.toyTarget;
   if (tgt && (b.targetX !== tgt.x || b.reachY !== tgt.y || !b.hasReach)) {
     b.targetX = tgt.x;
     b.reachX = tgt.x;
@@ -87,6 +90,61 @@ export function think(w: World, cr: Creature) {
   f.dizzy = f.upsideT > 1 ? 1 : Math.max(0, f.dizzy - dt);
   // facing: the eyes turn to the side the body is heading (and stay there after it stops)
   if (b.mode === 'walk' && w.t >= b.actAt - ACT.anticipation) f.side += (b.dir - f.side) * 0.18;
+}
+
+/** Level brain (design §8): brace against pushers, intercept threats between them and
+ *  Little Guy (hands reach for the threat), else guard beside him; HUG goals walk into him. */
+function planLevel(w: World, cr: Creature, c: { x: number; y: number }) {
+  const b = cr.brain,
+    f = cr.face;
+  const g = w.guy!;
+  const gc = g.alive ? guyCentre(w, g) : { x: w.level!.def.guy.x, y: w.level!.def.guy.y - 20 };
+  const th = mainThreat(w);
+  const half = cr.stats.w / 2;
+  let plan: Creature['brain']['plan'] = 'guard';
+  let tx = gc.x,
+    reach: { x: number; y: number; body: number } | null = null;
+  if (w.level!.def.goal.type === 'hug') {
+    plan = 'hug';
+    tx = gc.x;
+    reach = { x: gc.x, y: gc.y, body: -1 };
+  } else if (th) {
+    const side = Math.sign(th.x - gc.x) || 1;
+    const dist = F.hypot(th.x - gc.x, th.y - gc.y) - th.r - (th.hw ?? 0);
+    const approach = F.hypot(th.x - th.sx, th.y - th.sy) / WORLD.dt;
+    const soon = dist < senseRange(cr) + BRAIN.interceptExtra || dist < approach * BRAIN.predict;
+    if (th.kind === 'crusher') {
+      // brace: get between the wall and him, and lean into the wall
+      const face = th.x - side * th.hw!;
+      const near = Math.abs(face - gc.x) < BRAIN.braceDist + cr.stats.w;
+      plan = near || soon ? 'brace' : 'guard';
+      tx = plan === 'brace' ? face - side * Math.max(4, half * 0.4) + side * BRAIN.bracePush : gc.x + side * (half + BRAIN.guardGap);
+      if (plan === 'brace') reach = { x: face, y: Math.min(gc.y - 20, c.y), body: th.id };
+    } else if (soon) {
+      plan = 'intercept';
+      tx = gc.x + side * (half + BRAIN.guardGap);
+      reach = { x: th.x, y: th.y, body: th.id };
+    } else tx = gc.x + side * (half + BRAIN.guardGap);
+  }
+  // other creatures already guard that side: stand a little further out
+  tx = Math.max(10, Math.min(WORLD.W - 10, tx));
+  const changed = plan !== b.plan || (reach?.body ?? -2) !== b.targetBody;
+  b.plan = plan;
+  b.targetX = tx;
+  b.hasReach = reach !== null;
+  b.targetBody = reach?.body ?? -1;
+  if (reach) {
+    b.reachX = reach.x;
+    b.reachY = reach.y;
+  }
+  if (changed) {
+    b.actAt = Math.max(w.t + BRAIN.eyeLead + ACT.anticipation, cr.bornAt + 0.35);
+    b.intentAt = w.t;
+    b.intentX = reach ? reach.x : tx;
+    b.intentY = reach ? reach.y : gc.y;
+    f.saccade = 1;
+    if (plan !== 'guard') f.surprise = Math.max(f.surprise, BRAIN.notice);
+  }
 }
 
 /** Is the creature blinking right now? (includes the birth double blink) */

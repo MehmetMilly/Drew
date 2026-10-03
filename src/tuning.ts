@@ -82,6 +82,9 @@ export const SHAPE = {
 
 export const ACT = {
   reachSpeed: 900,
+  holdTime: 0.25, // s a grabbed thing is held before the throw
+  throwTime: 0.3, // s of swing before release
+  braceFriction: 3,
   reachGain: 0.25,
   reachEnvelope: 1.05,
   // the envelope is measured on the drawn (curved) chain; a straight arm can't stretch
@@ -97,7 +100,7 @@ export const ACT = {
   sectorClear: 0.4, // rad: a swinging limb stops this far short of the body beside it
   shoulderSlack: 0.05, // bend stiffness left at a posed limb's root
   relaxRate: 0.5, // arms ease back to their drawn pose at this fraction of reach speed
-  grabSlop: 12,
+  grabSlop: 12, // physics.md §6: tip within target radius + this grabs
   throwWindup: 0.1,
   throwSwing: 0.3,
   throwSpeed: 950,
@@ -160,6 +163,11 @@ export const BRAIN = {
   eyeLead: 0.25, // pupils lock on, then the body follows (0.1 s didn't read in play)
   notice: 0.55, // eye-widening when a new target is noticed
   intentLine: 0.4,
+  interceptExtra: 60, // px beyond sense range at which a threat still draws an intercept
+  predict: 1.5, // s: a threat this many seconds from Little Guy at its speed is intercepted
+  braceDist: 60, // a wall within this (+ body width) of him is braced against
+  bracePush: 40, // px past the wall face the brace walks toward (so it keeps leaning in)
+  guardGap: 20, // px between Little Guy and a guard's near side
 };
 
 export const STRENGTH = {
@@ -218,4 +226,49 @@ export const COLORS = {
   blue: '#7FB2E5',
   green: '#2FA84F',
   cream: '#F4F1E8',
+};
+
+// Little Guy (design.md §10)
+export const GUY = {
+  height: 40,
+  radius: 5,
+  mass: 3, // whole ragdoll: light enough to be flung
+  standGain: 0.3, // upright servo while a foot is down
+  standRate: 12, // 1/s: how fast he straightens
+  cowerDrop: 8, // px he crouches when scared
+  cowerDist: 260, // a threat this close makes him cower
+  startleHop: 260, // px/s up when a big creature is born
+  hugDist: 30, // a creature particle this close (and settled) is a hug
+  crushGap: 14, // walls closer than his width around him: crushed
+  boulderKill: 260, // px/s relative speed of a boulder hitting him
+  enemyKill: 120, // px/s: an enemy touching him faster than this
+  blastKill: 140, // bomb lethal radius (physics.md §10)
+};
+
+// Hazards (physics.md §10); difficulty lives in each level's entity parameters
+export const HAZ = {
+  boulderR: 48,
+  boulderMass: 80,
+  bombR: 15,
+  bombMass: 3,
+  bombBounce: 0.12, // low: bouncy bombs ricochet off any passive shape (spike lesson)
+  bombFuse: 3.2,
+  blastRadius: 170,
+  blastSpeed: 900, // px/s outward kick at the centre
+  blastCut: 55,
+  crusherW: 40,
+  crusherMass: 40,
+  crusherSpeed: 70,
+  crusherForce: 3000, // mass × px/s²: the motor's limit
+  ninjaR: 16,
+  ninjaMass: 8,
+  ninjaApex: 220,
+  ninjaTell: 0.5, // s of crouch before the leap
+};
+
+export const LEVEL = {
+  autoStart: 2.5, // s: the countdown starts at the first birth, or now
+  hugHold: 0.4, // s of contact that counts as a hug
+  foresee: 0.5, // s: a sleeping threat this close to waking already counts
+  readTime: 1.0, // s the title holds the first frame (design §2)
 };

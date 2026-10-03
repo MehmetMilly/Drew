@@ -13,7 +13,7 @@ export interface FaceView {
   er: number; // eye radius
   gap: number; // half distance between eyes
   blinking: boolean;
-  mode: Creature['brain']['mode'];
+  mode: Creature['brain']['mode'] | Creature['brain']['plan'];
   frame: number; // boil frame
   t: number;
   age: number; // sim seconds since birth
