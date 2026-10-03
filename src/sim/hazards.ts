@@ -19,7 +19,9 @@ export type Entity =
   | { type: 'crusher'; x: number; y: number; h: number; w?: number; dir: 1 | -1; at?: number; speed?: number; force?: number; teeth?: boolean }
   | { type: 'ninja'; x: number; y: number; tx: number; ty: number; at: number; apex?: number }
   /** a rubber ball (2-5): a bouncy threat launched at `at` with (vx, vy) */
-  | { type: 'ball'; x: number; y: number; vx: number; vy: number; at: number; r?: number }
+  | { type: 'ball'; x: number; y: number; vx: number; vy: number; at: number; r?: number; life?: number }
+  /** a sumo bully (3-2): stamps, then shoves at Little Guy with a limited-force motor */
+  | { type: 'sumo'; x: number; y: number; at: number; speed?: number; force?: number }
   /** a SCORE ball held up by a little player standing at (x, y + its height) */
   | { type: 'cargo'; x: number; y: number }
   /** a spike floor along [x0, x1] with its teeth standing on ground at y: cuts what lands on it */
@@ -40,9 +42,11 @@ export function spawnEntity(w: World, e: Entity): Body | null {
     case 'ninja':
       return w.addBody({ kind: 'ninja', x: e.x, y: e.y, r: HAZ.ninjaR, m: HAZ.ninjaMass, restitution: 0.2, friction: 0.5, grabbable: true, data: { tx: e.tx, ty: e.ty, at: e.at, apex: e.apex ?? HAZ.ninjaApex, threat: 1, sleep: e.at, state: NINJA.CROUCH, leapAt: -9, stunUntil: 0, wasHeld: 0, stallT: 0 } });
     case 'ball':
-      return w.addBody({ kind: 'ball', x: e.x, y: e.y, r: e.r ?? HAZ.ballR, m: HAZ.ballMass, restitution: HAZ.ballBounce, friction: 0.05, grabbable: true, data: { vx: e.vx, vy: e.vy, threat: 1, sleep: e.at, life: e.at + HAZ.ballLife } });
+      return w.addBody({ kind: 'ball', x: e.x, y: e.y, r: e.r ?? HAZ.ballR, m: HAZ.ballMass, restitution: HAZ.ballBounce, friction: 0.05, grabbable: true, data: { vx: e.vx, vy: e.vy, threat: 1, sleep: e.at, life: e.at + (e.life ?? HAZ.ballLife) } });
     case 'cargo':
       return w.addBody({ kind: 'cargo', x: e.x, y: e.y, r: HAZ.cargoR, m: HAZ.cargoMass, restitution: HAZ.cargoBounce, friction: 0.4, grabbable: true, data: { cargo: 1, hx: e.x, hy: e.y, parked: 1, restT: 0, backAt: -1 } });
+    case 'sumo':
+      return w.addBody({ kind: 'sumo', x: e.x, y: e.y, r: HAZ.sumoR, m: HAZ.sumoMass, restitution: 0.05, friction: 0.9, data: { threat: 1, pusher: 1, sleep: e.at, speed: e.speed ?? HAZ.sumoSpeed, force: e.force ?? HAZ.sumoForce, at: e.at } });
     case 'spikes':
       return null; // part of the ground: the level runner cuts what lands on it
   }
@@ -99,6 +103,8 @@ export function preHazards(w: World, h: number) {
       b.data.sawing = b.data.teeth && b.data.dir * v < b.data.speed * HAZ.sawStall && brace < b.data.force ? 1 : 0;
       b.px = b.x - (v + a * h) * h;
       b.py = b.y;
+    } else if (b.kind === 'sumo') {
+      sumoMotor(w, b, h);
     } else if (b.kind === 'boulder') {
       // bracers take the boulder's momentum out along the line from it to them
       brakeBoulder(w, b, h);
@@ -234,6 +240,22 @@ function grind(w: World, b: Body) {
     if (best < 0) return;
     w.cut(best, 'grind');
   }
+}
+
+// ------------------------------------------------------------------ the sumo
+
+/** Stamp (telegraph), then shove at him along the ground; bracers push back on the motor. */
+function sumoMotor(w: World, b: Body, h: number) {
+  const g = w.guy;
+  if (w.t < b.data.at + HAZ.sumoStamp || !g?.alive) return;
+  const dir = Math.sign(w.P.x[g.hip] - b.x) || 1;
+  b.data.dir = dir;
+  const v = (b.x - b.px) / h;
+  const lim = b.data.force / b.m;
+  let a = Math.max(-lim, Math.min(lim, (dir * b.data.speed - v) / h));
+  const hold = braceOn(w, b) / b.m;
+  if (hold > 0) a -= dir * hold;
+  b.px = b.x - (v + a * h) * h;
 }
 
 // ------------------------------------------------------------------ SCORE balls

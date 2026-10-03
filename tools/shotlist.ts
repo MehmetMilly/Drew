@@ -32,6 +32,7 @@ export const SHOTS: Record<string, any[]> = {
   giant: [{ label: 'giant', draw: [{ canon: 'giant', x: 300 }], target: { x: 600, y: 300, at: 0.5 }, times: T }],
   birth: [{ label: 'birth', draw: [{ canon: 'stick700', x: 360 }], wet: true, times: [0, 0, 0.02, 0.08, 0.14, 0.22, 0.32, 0.6], crop: { x: 240, y: 880, w: 240, h: 240 } }],
   levels: ['1-1', '1-2', '1-3', '1-4', '1-5'].flatMap((id) => [0, 1].map((ref) => ({ label: id, level: id, ref, draw: [], times: [0.2, 1, 2, 3, 4.5, 6] }))),
-  ch2: ['2-1', '2-2', '2-3', '2-4', '2-5'].flatMap((id) => [0, 1].map((ref) => ({ label: id, level: id, ref, draw: [], times: [0.2, 1, 2, 3, 4.5, 6] }))),
+  ch3: ['3-1', '3-2', '3-3', '3-4', '3-5'].flatMap((id) => [0, 1].map((ref) => ({ label: id, level: id, ref, draw: [], times: [0.2, 1, 2, 3, 4.5, 6] }))),
+  ch2: ['2-1', '2-2', '2-3', '2-4', '2-5'].flatMap((id) => [0, 1, 2].map((ref) => ({ label: id, level: id, ref, draw: [], times: [0.2, 1, 2, 3, 4.5, 6] }))),
   debug: [{ label: 'debug', draw: [{ canon: 'reacher', x: 200 }, { canon: 'hopper', x: 520 }], target: { x: 420, y: 800, at: 0.3 }, times: [0.2, 0.8, 1.5], debug: true }],
 };

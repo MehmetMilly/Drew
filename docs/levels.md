@@ -97,11 +97,11 @@ Starting numbers; tune them from metrics.
 
 | # | Name | Goal | Setup | Why the lazy answer fails | Intended bodies | Draw / Ink |
 |---|---|---|---|---|---|---|
-| 2-1 | Step Up | HOME | A ledge 1.3 × the hopper's jump; flag on top. Hint: *zigzags are springy* | nothing passive moves him | springy, very long-legged giant, long-armed (lift) | 0.05 / 2500 |
-| 2-2 | Mind the Gap | HOME | A pit as wide as 1.2 × a 700-ink stick figure's stride | worms and boxes fall in | springy, giant striding across, many-legged spanning | 0.05 / 2500 |
-| 2-3 | Help Them Score | SCORE 2 in 12 s | Two little players hold balls under a high hoop | nothing passive dunks | springy, long-armed, giant | 0.05 / 2500 |
-| 2-4 | Spike Floor | HOME | A spiked floor between him and the flag; spikes cut tips that land on them | ground-walkers lose their feet | springy (few contacts), giant with stilts (shrinking!), long-armed passing him over | 0.06 / 3000 |
-| 2-5 | Pinball Panic | SAVE 6 | Rubber balls launched from both sides and above, ricocheting | shields get flanked; balls hit him from the side | spring-fisted, many-armed, two creatures | 0.08 / 3000 |
+| 2-1 | Step Up | HOME | A 150 px ledge (higher than any walker steps and than a plain hopper's 113 px jump); the flag is on top, 180 px from its edge. Hint: *zigzags are springy* | nothing passive moves him: a pillar or a thick scrawl is carried to the wall and stops there | springy (a 1.1× hopper clears it), giant (carries him on its head, tosses him up), biped with hands (tosses him up) | 0.05 / 2500 |
+| 2-2 | Mind the Gap | HOME | A 210 px pit, no page floor; the flag is 140 px past the far edge | worms and boxes fall in with him; nothing without a hand or a spring gets him across | springy (hops it), giant, biped with hands (toss him across) | 0.05 / 2500 |
+| 2-3 | Help Them Score | SCORE 3 in 12 s | Three little players at the left edge hold balls; the hoop is high at the right (rim 720 px up, x 640) | nothing passive dunks; each ball has to be fetched, carried across the page and shot | giant, biped, long-armed | 0.05 / 2500 |
+| 2-4 | Spike Floor | HOME | A 240 px spike floor between him and the flag | ground-walkers lose their feet on the teeth | springy (hops over), giant (carries him above them), biped with hands (tosses him over) | 0.06 / 3000 |
+| 2-5 | Pinball Panic | SAVE 6 | Two bombs drop into the bowl beside him (as in 1-4) while rubber balls ricochet in from the left and from above | domes and cages stay inside the blast radius; balls flank a shield | biped reacher, giant, many-legged | 0.08 / 3000 |
 
 ### Chapter 3, Heavy Stuff: scribble lumps (paper: brown kraft)
 

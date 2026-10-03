@@ -2,13 +2,14 @@
 // watches Little Guy's fate and the goal each step, and keeps an event log for
 // epitaphs and money moments. Pure and deterministic.
 import * as F from './fmath';
-import { ACT, BODY, GUY, HAZ, LEVEL, WORLD } from '../tuning';
+import { ACT, BODY, BRAIN, GUY, HAZ, LEVEL, WORLD } from '../tuning';
 import { spawnEntity, attacking, type Entity } from './hazards';
 import { CT, PF } from './store';
-import { spawnGuy, thinkGuy, killGuy, guyCentre, dismount, hopDown, type Guy, type GuyHat } from './littleguy';
+import { spawnGuy, thinkGuy, killGuy, guyCentre, dismount, hopDown, setMood, type Guy, type GuyHat } from './littleguy';
 import type { Pt } from './geom';
 import type { World, Body } from './world';
 import type { Creature } from './creature';
+import { startProps, type Prop } from './props';
 
 /** HOME: the flag's foot stands at (x, y) on the ground; the pole is LEVEL.flagH tall. */
 /** SCORE: n balls dropped down through the hoop (rim centre x, y) within `seconds`. */
@@ -35,6 +36,8 @@ export interface LevelDef {
   /** false: no page floor; the level's terrain is all the ground there is (gaps are pits) */
   floor?: boolean;
   entities: Entity[];
+  /** Chapter 3 props: wind, cracked floors, rope bridges, see-saws (props.ts) */
+  props?: Prop[];
   guy: { x: number; y: number; hat?: GuyHat };
   anatomyMatters: boolean;
   /** where the lazy baselines are drawn (levels.md §3): centre of Little Guy's spot */
@@ -55,6 +58,8 @@ export interface LevelRun {
   hugger: number;
   seen: number; // events processed
   squeezeT: number; // s he has been squeezed by ink a pusher is shoving
+  blocked?: boolean; // HOME: he can't walk to the flag (read once, routeBlocked)
+  tossedAt?: number; // HOME: level time a carrier last tossed him over a wall or pit
   stallT?: number; // HOME: s his carrier has made no progress
   score: number; // SCORE: balls through the hoop so far
   log: { t: number; type: string; cr?: number; v?: number; text?: string }[];
@@ -64,6 +69,7 @@ export function startLevel(w: World, def: LevelDef) {
   // a level without the page floor has pits that open off the bottom of the page
   if (def.floor === false) w.terrain = w.terrain.filter((T) => T.kind !== 'floor');
   for (const t of def.terrain) w.addTerrain(t);
+  if (def.props?.length) w.props = startProps(w, def.props);
   w.guy = spawnGuy(w, def.guy.x, def.guy.y, def.guy.hat ?? 'none');
   for (const e of def.entities) spawnEntity(w, e);
   w.level = { def, startedAt: -1, result: 'play', resultAt: -1, cause: '', hugT: 0, hugger: -1, seen: 0, squeezeT: 0, score: 0, log: [] };
@@ -188,15 +194,179 @@ export function handCanReach(w: World, cr: (typeof w.creatures)[number], g: Guy)
 export function canCarry(w: World, cr: Creature, g: Guy) {
   const P = w.P;
   const feet = Math.max(P.y[g.footL], P.y[g.footR]);
-  return feet - P.y[perchOf(w, cr)] <= GUY.scrambleMax || handCanReach(w, cr, g);
+  return feet - P.y[perchOf(w, cr)] <= scrambleLimit(w) || handCanReach(w, cr, g);
+}
+
+/** HOME: can he walk to the flag himself (level ground the whole way)? Terrain is static, so
+ *  this is read once per level: a step up, a pit or spikes on the way make it a blocked route. */
+export function routeBlocked(w: World): boolean {
+  const L = w.level!;
+  if (L.blocked !== undefined) return L.blocked;
+  const goal = L.def.goal;
+  let blocked = false;
+  if (goal.type === 'home') {
+    const x0 = L.def.guy.x;
+    const dir = Math.sign(goal.x - x0) || 1;
+    const spikes = L.def.entities.filter((e) => e.type === 'spikes') as { x0: number; x1: number }[];
+    let prev = L.def.guy.y;
+    for (let x = x0; (x - goal.x) * dir < 0 && !blocked; x += dir * 8) {
+      const y = w.groundY(x, L.def.guy.y - 200);
+      if (!isFinite(y) || Math.abs(y - prev) > GUY.stepMax || spikes.some((s) => x > s.x0 - 10 && x < s.x1 + 10)) blocked = true;
+      else prev = y;
+    }
+    if (Math.abs(goal.y - prev) > GUY.stepMax) blocked = true;
+  }
+  return (L.blocked = blocked);
+}
+
+/** The tallest top he will scramble up: anything on a route he can't walk, else a modest climb. */
+export function scrambleLimit(w: World): number {
+  return routeBlocked(w) ? GUY.scrambleFar : GUY.scrambleMax;
+}
+
+/** HOME: where a carrier with a hand can toss him, over a wall or a pit (or spikes) right ahead
+ *  of its front foot: a ballistic launch from where he sits, aimed to land on the far side.
+ *  null when it has no hand, nothing blocks the way, or the far side is out of its arm's range. */
+export function tossPlan(w: World, cr: Creature, g: Guy): { x: number; y: number; vx: number; vy: number } | null {
+  const goal = w.level!.def.goal;
+  // a worm is all arm and a tiny one too small to throw anyone: only a creature with a body to pull against tosses
+  if (goal.type !== 'home' || cr.kind === 'worm' || cr.kind === 'tiny' || !cr.limbs.some((l) => !l.foot && l.spring < 0 && l.len > GUY.tossArm)) return null;
+  const P = w.P;
+  const ce = w.centroid(cr);
+  const dir = Math.sign(goal.x - ce.x) || 1;
+  let feetY = -Infinity;
+  for (const i of cr.ids) feetY = Math.max(feetY, P.y[i]);
+  const feet = cr.limbs.filter((l) => l.foot);
+  const xs = feet.length ? feet.map((l) => P.x[l.tip]) : cr.ids.map((i) => P.x[i]);
+  const front = dir > 0 ? Math.max(...xs) : Math.min(...xs);
+  const spikes = w.level!.def.entities.filter((e) => e.type === 'spikes') as { x0: number; x1: number }[];
+  const inSpikes = (x: number) => spikes.some((s) => x > s.x0 - 12 && x < s.x1 + 12);
+  const wall = (x: number) => w.terrainDepth(x, feetY - BRAIN.wallProbe, 6) > 0;
+  const hole = (x: number) => w.terrainDepth(x, feetY + BRAIN.gapProbe, BRAIN.gapProbe) <= 0 || inSpikes(x);
+  // the obstacle: the first wall, hole or spikes within reach of the front foot
+  let edge = NaN;
+  for (let d = 6; d <= GUY.tossReach; d += 6) {
+    const x = front + dir * d;
+    if (wall(x) || hole(x)) {
+      edge = x;
+      break;
+    }
+  }
+  if (isNaN(edge)) return null;
+  // where he can land: the first stretch of solid, spike-free ground at about this level or higher
+  const vmax = ACT.tossSpeed * Math.min(1.4, Math.sqrt(cr.stats.strength));
+  const c0 = { x: P.x[g.chest], y: P.y[g.chest] };
+  // solid, spike-free ground here and a little further on, at about this level or higher
+  const ok = (x: number) => {
+    const t = w.groundY(x, feetY - 320);
+    return isFinite(t) && t < feetY + 60 && !hole(x) && !inSpikes(x + dir * 30) && w.groundY(x + dir * 30, feetY - 320) - t < 25;
+  };
+  let land = NaN;
+  for (let d = 0; d < vmax; d += 8) {
+    if (ok(edge + dir * d)) {
+      land = edge + dir * (d + GUY.tossLand);
+      break;
+    }
+  }
+  if (isNaN(land)) return null;
+  const top = w.groundY(land, feetY - 320);
+  if (!isFinite(top)) return null;
+  const ty = top - GUY.height * 0.5;
+  // the lowest arc that clears the wall's edge (raise the peak until it does)
+  const grav = WORLD.gravity;
+  const h = WORLD.dt / WORLD.substeps;
+  for (let extra = 0; extra <= 160; extra += 40) {
+    const peak = Math.min(c0.y, ty) - GUY.tossApex - extra;
+    const vy = -Math.sqrt(2 * grav * (c0.y - peak)) * GUY.tossLift;
+    const vx = aimToss(c0.x, c0.y, vy, land, ty, grav, h);
+    if (F.hypot(vx, vy) > vmax) continue;
+    // fly it: the arc must clear the terrain until just before it lands
+    let clear = true;
+    let dx = vx * h,
+      dy = vy * h,
+      x = c0.x,
+      y = c0.y;
+    for (let k = 0; k < 400 && clear; k++) {
+      dx *= WORLD.damping;
+      dy = dy * WORLD.damping + grav * h * h;
+      x += dx;
+      y += dy;
+      if (y >= ty && dy > 0) break;
+      if (w.terrainDepth(x, y, 8) > 0 && y < ty - 24) clear = false;
+    }
+    if (clear) return { x: land, y: ty, vx, vy };
+  }
+  return null;
+}
+
+/** The horizontal speed that carries him from (x, y), launched up at vy, down onto (tx, ty).
+ *  Solved by flying it, since the world's drag slows a particle (a drag-free arc lands short). */
+function aimToss(x: number, y: number, vy: number, tx: number, ty: number, grav: number, h: number): number {
+  const reach = (vx: number): number => {
+    let dx = vx * h,
+      dy = vy * h,
+      px = x,
+      py = y;
+    for (let k = 0; k < 400; k++) {
+      dx *= WORLD.damping;
+      dy = dy * WORLD.damping + grav * h * h;
+      px += dx;
+      py += dy;
+      if (py >= ty && dy > 0) return px;
+    }
+    return px;
+  };
+  let lo = -2000,
+    hi = 2000;
+  for (let k = 0; k < 24; k++) {
+    const mid = (lo + hi) / 2;
+    if (reach(mid) < tx) lo = mid;
+    else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+
+/** A carrier's hand tosses the rider over what blocks the way: he is launched, passes through it. */
+function tossGuy(w: World, g: Guy, cr: Creature, t: { x: number; y: number; vx: number; vy: number }) {
+  const h = WORLD.dt / WORLD.substeps;
+  g.hopFrom = cr.id;
+  g.hopUntil = w.t + GUY.tossClear;
+  dismount(g);
+  g.heldBy = -1;
+  const P = w.P;
+  for (const i of g.ids) {
+    P.px[i] = P.x[i] - t.vx * h;
+    P.py[i] = P.y[i] - t.vy * h;
+  }
+  cr.brain.tossT = w.t;
+  w.level!.tossedAt = w.t;
+  cr.brain.tossX = t.x;
+  cr.brain.tossY = t.y - GUY.tossFollow; // the arm flings up after him, not down onto the ground he lands on
+  setMood(w, g, 'flail');
+  w.emit({ type: 'throw', cr: cr.id, x: P.x[g.chest], y: P.y[g.chest] });
+}
+
+/** He is sitting on his perch (not still scrambling up to it). */
+export function seated(w: World, g: Guy): boolean {
+  const P = w.P;
+  if (g.ride < 0 || g.perch < 0) return false;
+  return F.hypot((P.x[g.footL] + P.x[g.footR]) / 2 - P.x[g.perch], (P.y[g.footL] + P.y[g.footR]) / 2 - (P.y[g.perch] - BODY.radius - GUY.radius)) < GUY.tossSeat;
 }
 
 function board(w: World, g: Guy) {
   const P = w.P;
+  // just off a carrier (set down for a reason): no climbing straight back on
+  if (g.ride >= 0 || g.heldBy >= 0) g.wasRiding = true;
+  else if (g.wasRiding) (g.offAt = w.t), (g.wasRiding = false);
   if (g.ride >= 0) {
     const cr = w.creatures[g.ride];
     g.upsideT = cr ? cr.face.upsideT : 99;
     g.walkTo = null;
+    // a carrier with a hand, at a wall or pit it can toss him over: it does
+    if (cr && w.t - cr.brain.tossT > 0.8 && seated(w, g)) {
+      const tp = tossPlan(w, cr, g);
+      if (tp) return void tossGuy(w, g, cr, tp);
+    }
     // a carrier stalled near the flag (a wall, the page edge) lets him hop down for the last steps
     const goal = w.level!.def.goal as { x: number; y: number };
     const c = guyCentre(w, g);
@@ -230,14 +400,15 @@ function board(w: World, g: Guy) {
   const tall = feet - P.y[p] > GUY.climbMax;
   const lift = tall && handCanReach(w, best.cr, g);
   // too tall to scramble up and no hand to lift him: he walks home with it beside him
-  if (!lift && feet - P.y[p] > GUY.scrambleMax) return void (g.walkTo = goal.x);
-  if (best.gap < GUY.boardDist && grounded && !lift) {
+  if (!lift && feet - P.y[p] > scrambleLimit(w)) return void (g.walkTo = goal.x);
+  if (best.gap < GUY.boardDist && grounded && !lift && w.t - g.offAt > GUY.reboard) {
     // climb on: a quick hop onto a low top, a scramble up a tall one (the soft attachment pulls)
     g.ride = best.cr.id;
     g.perch = p;
     g.rideAt = w.t;
-    g.climbFor = tall ? (feet - P.y[p]) / GUY.scrambleSpeed + GUY.climbTime : GUY.climbTime;
+    g.climbFor = tall ? ((feet - P.y[p]) / GUY.scrambleSpeed) * GUY.scrambleSlack + GUY.climbTime : GUY.climbTime;
     g.walkTo = null;
+    g.wasRiding = true;
     w.emit({ type: 'board', cr: best.cr.id, x: c.x, y: c.y });
     return;
   }

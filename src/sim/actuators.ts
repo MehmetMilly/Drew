@@ -2,7 +2,7 @@
 // particle's implied velocity toward a desired one with a gain below 1. Targets
 // are clamped to what the body can physically reach.
 import * as F from './fmath';
-import { ACT, LEVEL, LOCO, WORLD } from '../tuning';
+import { ACT, GUY, LEVEL, LOCO, WORLD } from '../tuning';
 import { PF } from './store';
 import type { Creature, Limb, Spring } from './creature';
 import type { Body, World } from './world';
@@ -173,7 +173,7 @@ export function actuate(w: World, cr: Creature, h: number) {
       }
       // carry: the tip closes on Little Guy (design §8: a free hand grabs)
       // (any of his particles: the tip touching him shoves him, so it rarely reaches his chest)
-      if (b.reachGuy && guy && guy.alive && guy.heldBy < 0 && guy.ride < 0 && !holding && guy.ids.some((i) => F.hypot(P.x[i] - P.x[tip], P.y[i] - P.y[tip]) < ACT.grabGuy)) {
+      if (b.reachGuy && guy && guy.alive && guy.heldBy < 0 && guy.ride < 0 && !holding && w.t - (w.level?.tossedAt ?? -99) > GUY.tossClear && guy.ids.some((i) => F.hypot(P.x[i] - P.x[tip], P.y[i] - P.y[tip]) < ACT.grabGuy)) {
         guy.heldBy = cr.id;
         guy.heldTip = tip;
         guy.walkTo = null;
@@ -319,6 +319,33 @@ function holdAndThrow(w: World, cr: Creature, l: Limb, h: number) {
   }
 }
 
+/** The horizontal speed that carries a ball launched up at `vy` from (x, y) down through the rim
+ *  at hoop.x. Solved by flying it (the world's drag slows a ball, so a drag-free arc lands short). */
+function aimShot(x: number, y: number, vy: number, hoop: { x: number; y: number }, g: number, h: number): number {
+  const cross = (vx: number): number => {
+    let dx = vx * h,
+      dy = vy * h,
+      px = x,
+      py = y;
+    for (let k = 0; k < 400; k++) {
+      dx *= 0.999;
+      dy = dy * 0.999 + g * h * h;
+      px += dx;
+      py += dy;
+      if (py >= hoop.y && dy > 0) return px;
+    }
+    return px;
+  };
+  let lo = -2000,
+    hi = 2000;
+  for (let k = 0; k < 24; k++) {
+    const mid = (lo + hi) / 2;
+    if (cross(mid) < hoop.x) lo = mid;
+    else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+
 /** SCORE: hold the ball up and shoot it when an arc through the hoop is in reach of the
  *  creature's arm (strength); a ball already over the rim is just dropped in (a dunk). */
 function shoot(w: World, cr: Creature, l: Limb, body: Body, hoop: { x: number; y: number }, t: number, h: number) {
@@ -339,8 +366,8 @@ function shoot(w: World, cr: Creature, l: Limb, body: Body, hoop: { x: number; y
   if (Math.abs(body.x - hoop.x) < LEVEL.hoopW / 2 - body.r && body.y < hoop.y - body.r) {
     // over the rim: let go
   } else if (body.y > apex) {
-    vy = -Math.sqrt(2 * g * (body.y - apex));
-    vx = (hoop.x - body.x) / (-vy / g + Math.sqrt((2 * ACT.shotApex) / g));
+    vy = -Math.sqrt(2 * g * (body.y - apex)) * ACT.shotLift;
+    vx = aimShot(body.x, body.y, vy, hoop, g, h);
   } else {
     vx = (hoop.x - body.x) / Math.sqrt((2 * Math.max(1, hoop.y - body.y)) / g);
   }

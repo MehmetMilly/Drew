@@ -43,6 +43,8 @@ export interface Guy {
   /** s the ridden creature has been upside down */
   upsideT: number;
   rideAt: number; // when he climbed on (the hop up is forgiven the slip test)
+  offAt: number; // level time he last got off (or was set down from) a carrier
+  wasRiding: boolean;
   hopFrom: number; // the carrier he just hopped off (no collision with it until hopUntil)
   hopUntil: number;
   climbFor: number; // s the climb may take (a scramble up a giant takes longer)
@@ -109,6 +111,8 @@ export function spawnGuy(w: World, x: number, groundY: number, hat: GuyHat = 'no
     rideAt: -9,
     climbFor: 0,
     hopFrom: -1,
+    offAt: -9,
+    wasRiding: false,
     hopUntil: -9,
   };
 }

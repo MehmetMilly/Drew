@@ -109,8 +109,10 @@ export const ACT = {
   throwSwing: 0.3,
   throwSpeed: 950,
   shotApex: 46, // px above the rim: a shot's arc peaks here, then drops through
+  shotLift: 1.03, // × the launch speed that would just reach the arc's peak (drag takes a little)
   shotMax: 1.15, // a shot needs at most this × the creature's throw speed (else it walks closer)
   throwSpeedStrength: 250,
+  tossSpeed: 760, // px/s: how hard a hand tosses Little Guy over a wall or pit (× √strength, at most 1.4)
   punchCompress: 0.45,
   punchCompressT: 0.15,
   punchExtend: 1.35,
@@ -173,6 +175,7 @@ export const LOCO = {
 
 export const BRAIN = {
   // carry (HOME): how far ahead it looks for walls, ledges and gaps, and where it waits for him
+  tossSwing: 0.4, // s the arm that tossed Little Guy keeps swinging after him
   lookAhead: 28,
   wallProbe: 18,
   gapProbe: 30,
@@ -286,11 +289,23 @@ export const GUY = {
   homeDist: 46, // px: his centre this close to the flag pole (x) and below its top: home
   climbTime: 0.5, // s: the hop onto a perch
   climbSpeed: 420, // px/s cap on the hop
-  scrambleSpeed: 160, // px/s up a creature taller than he can hop (hands can't reach him)
+  scrambleSpeed: 300, // px/s up a creature taller than he can hop (hands can't reach him)
   hopVx: 150, // px/s: hopping down off a stalled carrier toward the flag
   hopVy: 240,
   hopClear: 0.5, // s he passes through the carrier he hopped off
+  scrambleSlack: 1.5, // × the scramble time he is given before the slip test applies (a tall carrier sways)
+  scrambleFar: 1000, // px: when the route is blocked (a ledge, a pit, spikes) he will scramble up a giant to ride it
+  tossSeat: 30, // px: sitting on his perch (not still scrambling up) to be carried off or tossed
+  tossArm: 50, // px: a hand at least this long can toss him
+  tossReach: 60, // px: a carrier with a hand this close to a wall or pit (from its front foot) tosses him over it
+  tossFollow: 260, // px above where he lands the tossing arm swings
+  tossClear: 8, // s he passes through the carrier that tossed him (its arms lie over where he lands)
+  tossLift: 1.03, // × the launch speed that would just reach the peak (drag takes a little)
+  tossLand: 60, // px past the far edge he is aimed to land
+  tossApex: 80, // px above the higher of launch and landing the toss peaks
+  stepMax: 30, // px: a step in the ground he can walk up or down himself
   scrambleMax: 500, // px: a top higher than this he won't scramble up (he walks home beside it)
+  reboard: 1.0, // s after getting off before he climbs on again
   flagWalk: 200, // px: this close to the flag he walks the rest himself
   stallDrop: 0.6, // s a carrier may stall near the flag before he hops down
 };
@@ -347,6 +362,11 @@ export const HAZ = {
   passOver: 30, // px above its top the pass is aimed
   passApex: 70, // px the pass rises above that
   passEvery: 1.2, // s between passes from one player
+  sumoR: 46, // the sumo bully (3-2): a heavy round pusher
+  sumoMass: 600,
+  sumoSpeed: 60, // px/s he shoves at
+  sumoForce: 900000, // mass × px/s²: his legs' limit (bracers take theirs off it)
+  sumoStamp: 1.0, // s of stamping before the shove
   spikeH: 22, // px: spike teeth height above the ground they stand on
 };
 
@@ -364,4 +384,43 @@ export const LEVEL = {
   hoopBoard: 60, // px: the backboard above the rim
   cargoBack: 1.6, // s a loose ball lies still before a little player takes it back
   scoreBack: 0.9, // s after a score before the ball is back with its player
+};
+
+export const PROP = {
+  // wind (physics.md §8): px/s² on a mass-1 particle; lumps (5×) resist, Little Guy (0.5) flies
+  gust: 0.3, // share the wind dips by in its gusts
+  windBody: 1, // the same push on loose bodies, per unit mass
+  shadeLen: 90, // px: ink this close upwind of Little Guy, at his height (±shadeH), shelters him...
+  shadeH: 34,
+  shade: 0.15, // ...down to this share of the wind
+  riderWind: 0.35, // riding or held, he hunkers down and holds on
+  // cracked floors and rope bridges (physics.md §10)
+  crackH: 40, // px: slab thickness
+  bridgeH: 10,
+  touch: 4, // px above a slab that still counts as resting on it
+  landMin: 120, // px/s: slowing faster than this in a step is a landing (impact = Σ m·Δv)
+  peakFade: 0.97, // the drawn strain eases back after a load goes
+  chunk: 46, // px: falling pieces of a broken slab
+  // see-saw: a heavy rigid plank on a pivot
+  plankMass: 400,
+  plankHalf: 7, // px: half its thickness
+  seesawTilt: 0.32, // rad it tips before an end meets the ground
+  seesawDamp: 0.995,
+};
+
+export const WATER = {
+  // buoyancy is a force per particle (px/s² on mass 1): ink floats a little short of its weight
+  buoy: 1550,
+  loopBuoy: 7, // + this × (loop area / ring points): loops float
+  loopMax: 4000,
+  guyBuoy: 500, // Little Guy can't swim: he sinks
+  floatAccel: 2600, // floating things (ducks, rafts) on the surface
+  full: 24, // px under before buoyancy is full (a soft surface)
+  drag: 4, // per s
+  swim: 120, // px/s a paddler swims at...
+  swimBase: 0.35, // ...times this + each limb or spring's share (paddling)
+  swimLimb: 0.15,
+  swimWet: 0.3, // share of its body under before it swims
+  swimGain: 0.05,
+  drown: 1.0, // s with his head under
 };

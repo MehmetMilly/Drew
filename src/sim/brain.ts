@@ -7,7 +7,7 @@ import { ACT, BRAIN, GUY, LOCO, LOOK, WORLD } from '../tuning';
 import type { Creature } from './creature';
 import { hashNoise } from './rng';
 import { guyCentre } from './littleguy';
-import { mainThreat, perchOf, handCanReach, canCarry } from './level';
+import { mainThreat, perchOf, handCanReach, canCarry, seated } from './level';
 import type { World } from './world';
 
 export function senseRange(cr: Creature) {
@@ -147,6 +147,8 @@ function planLevel(w: World, cr: Creature, c: { x: number; y: number }) {
     if (mine) {
       plan = 'carry';
       tx = goal.x + (c.x - gc.x); // bring *him* over the flag, wherever he sits on it
+      // it waits while he scrambles aboard (a giant would walk off before he reached the top)
+      if (g.ride === cr.id && !seated(w, g)) tx = c.x;
       reach = null;
       // look one body length ahead: a wall or ledge to hop, a gap to clear, the goal above
       const dir = Math.sign(goal.x - c.x) || 1;
@@ -157,6 +159,9 @@ function planLevel(w: World, cr: Creature, c: { x: number; y: number }) {
       b.jump = Math.abs(goal.x - c.x) > GUY.homeDist * 0.5 && (wall || gap || above);
     } else if (g.ride >= 0 || g.heldBy >= 0) {
       // someone else has him: walk along behind
+      tx = gc.x - fdir * (half + BRAIN.guardGap);
+    } else if (Math.abs(gc.x - goal.x) < GUY.flagWalk && Math.abs(gc.y - (goal.y - GUY.height / 2)) < GUY.height) {
+      // he is down and walking the last steps himself: stand clear behind him (not in his way)
       tx = gc.x - fdir * (half + BRAIN.guardGap);
     } else if (!canCarry(w, cr, g)) {
       // too tall to ride and no hand to lift him: lead him home, a step ahead
@@ -174,6 +179,8 @@ function planLevel(w: World, cr: Creature, c: { x: number; y: number }) {
       }
     }
   }
+  // a toss just happened (level.ts tossGuy): the arm that threw him swings out after him
+  if (goal.type === 'home' && w.t - b.tossT < BRAIN.tossSwing) reach = { x: b.tossX, y: b.tossY, body: -1 };
   // score (design §8): fetch a ball from a little player, carry it under the hoop, shoot
   if (goal.type === 'score' && plan === 'guard') {
     const hoop = goal.hoop;

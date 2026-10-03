@@ -85,6 +85,10 @@ export interface Brain {
   reachGuy: boolean;
   /** carry: spring legs jump now (a wall, ledge or gap ahead, or the goal above) */
   jump: boolean;
+  /** carry: level time it last tossed Little Guy over a wall or pit, and where (its arm swings there) */
+  tossT: number;
+  tossX: number;
+  tossY: number;
   /** body id the hands are after, -1 */
   targetBody: number;
   targetX: number | null;
@@ -189,6 +193,9 @@ export function newBrain(): Brain {
     plan: 'toy',
     reachGuy: false,
     jump: false,
+    tossT: -9,
+    tossX: 0,
+    tossY: 0,
     targetBody: -1,
     targetX: null,
     reachX: 0,

@@ -1,7 +1,7 @@
 // The simulation world (physics.md §2). Fixed 60 Hz step, 2 substeps, 10 iterations,
 // shape matching every 3rd iteration. Pure and deterministic.
 import * as F from './fmath';
-import { BODY, CREATURE_COLLIDE, LOCO, SHAPE, WORLD } from '../tuning';
+import { BODY, CREATURE_COLLIDE, GUY, LOCO, SHAPE, WORLD } from '../tuning';
 import { Particles, Constraints, PF, CT, STRUCTURAL } from './store';
 import { buildBodies, components, PenPt } from './build';
 import { readAnatomy, makeSprings, seedOf } from './anatomy';
@@ -14,6 +14,7 @@ import { actuate } from './actuators';
 import { preHazards, postHazards, asleep, attacking } from './hazards';
 import { actuateGuy, GUY_OWNER, type Guy } from './littleguy';
 import { levelStep, spikeCut, type LevelRun } from './level';
+import { windForces, waterForces, swingPlanks, collidePlanks, stepProps, stepWater, type PropState } from './props';
 
 export interface Terrain {
   pts: Pt[];
@@ -23,6 +24,7 @@ export interface Terrain {
   maxY: number;
   friction: number;
   kind: string;
+  broken?: boolean; // a cracked floor or a bridge that gave way (props.ts): no longer there
 }
 
 export interface Body {
@@ -76,6 +78,7 @@ export class World {
   skins: SkinPart[] = [];
   terrain: Terrain[] = [];
   bodies: Body[] = [];
+  props: PropState | null = null; // Chapter 3 props: wind, slabs that break, see-saws
   events: SimEvent[] = [];
   t = 0;
   steps = 0;
@@ -474,7 +477,9 @@ export class World {
       for (const cr of live) if (cr.alive) actuate(this, cr, h);
       if (this.guy) actuateGuy(this, this.guy, h);
       preHazards(this, h);
+      if (this.props) windForces(this, this.props, h), waterForces(this, this.props, h);
       this.integrate(h);
+      if (this.props) swingPlanks(this.props);
       this.buildHash();
       this.buildPairs();
       for (let it = 0; it < WORLD.iterations; it++) {
@@ -484,6 +489,7 @@ export class World {
         if (it % WORLD.shapeEvery === 0) for (const cr of live) if (cr.alive) this.shapeMatch(cr);
         if (it % 2 === 1) this.collideParticles();
         this.collideBodies();
+        if (this.props) collidePlanks(this, this.props);
         if (it % 2 === 1 || lastIt) this.collideTerrain(lastIt);
       }
       this.contactFriction(h);
@@ -491,6 +497,7 @@ export class World {
     }
     postHazards(this);
     if (this.level) spikeCut(this);
+    if (this.props) stepProps(this, this.props), stepWater(this, this.props);
     // after the hazards: a blade or a saw cuts in postHazards, and the pieces must come apart
     if (this.tearsThisStep) this.sever();
     this.cleanup();
@@ -685,6 +692,7 @@ export class World {
   terrainHit(x: number, y: number, r: number): { nx: number; ny: number; depth: number; fr: number } | null {
     let best: { nx: number; ny: number; depth: number; fr: number } | null = null;
     for (const T of this.terrain) {
+      if (T.broken) continue;
       if (x < T.minX - r || x > T.maxX + r || y < T.minY - r || y > T.maxY + r) continue;
       const pts = T.pts;
       let inside = false;
@@ -752,7 +760,7 @@ export class World {
     }
     if (last) {
       for (const b of this.bodies) {
-        if (!b.alive || b.held >= 0 || b.hw || asleep(this, b)) continue;
+        if (!b.alive || b.held >= 0 || b.hw || asleep(this, b) || b.kind === 'chunk') continue;
         this.bodyTerrain(b);
       }
     }
@@ -860,6 +868,8 @@ export class World {
     // a rider is a soft attachment to his carrier: they don't collide (design §10)
     const g = this.guy;
     const rider = g && g.alive ? (g.ride >= 0 ? g.ride : g.heldBy >= 0 ? g.heldBy : this.t < g.hopUntil ? g.hopFrom : -9) : -9;
+    // tossed over a pit: he passes through the carrier and whatever pieces it falls apart into
+    const tossed = !!g && g.alive && this.t - (this.level?.tossedAt ?? -99) < GUY.tossClear;
     for (let cy = 0; cy < gh; cy++)
       for (let cx = 0; cx < gw; cx++) {
         for (let i = this.head[cy * gw + cx]; i !== NO_HIT; i = this.next[i]) {
@@ -873,7 +883,7 @@ export class World {
               if (oi === GUY_OWNER || P.owner[j] === GUY_OWNER) {
                 // ...and he walks between the legs of a creature leading him home
                 const o = oi === GUY_OWNER ? P.owner[j] : oi;
-                if (o === rider || (o >= 0 && this.creatures[o]?.brain.plan === 'escort')) continue;
+                if (o === rider || tossed || (o >= 0 && this.creatures[o]?.brain.plan === 'escort')) continue;
               }
               const dx = P.x[j] - P.x[i],
                 dy = P.y[j] - P.y[i];
@@ -924,7 +934,7 @@ export class World {
     const P = this.P;
     const pr = BODY.radius;
     for (const b of this.bodies) {
-      if (!b.alive) continue;
+      if (!b.alive || b.kind === 'chunk') continue; // debris of a broken floor just tumbles away
       if (b.hw) {
         this.collideBox(b);
         continue;
@@ -968,10 +978,10 @@ export class World {
     // body vs body (circles)
     for (let a = 0; a < this.bodies.length; a++) {
       const A = this.bodies[a];
-      if (!A.alive || A.hw) continue;
+      if (!A.alive || A.hw || A.kind === 'chunk') continue;
       for (let c = a + 1; c < this.bodies.length; c++) {
         const B = this.bodies[c];
-        if (!B.alive || B.hw) continue;
+        if (!B.alive || B.hw || B.kind === 'chunk') continue;
         const dx = B.x - A.x,
           dy = B.y - A.y;
         const R = A.r + B.r;
