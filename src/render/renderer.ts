@@ -1,5 +1,7 @@
 // Composes a frame of the world on the page canvas (page space 720×1280).
 import { COLORS, LOOK, WORLD, PEN } from '../tuning';
+import { drawBodies, drawGuy, drawBursts, drawCountdown, type Burst } from './stage';
+import { guyCentre } from '../sim/littleguy';
 import { World, SimEvent } from '../sim/world';
 import type { Creature } from '../sim/creature';
 import { PF, CT } from '../sim/store';
@@ -46,6 +48,7 @@ export class WorldRenderer {
   plates: Plate[] = [];
   private dusts: Dust[] = [];
   private snaps: Snap[] = [];
+  bursts: Burst[] = [];
   private seen = 0;
   private terrainCache = new Map<number, { xs: number[]; ys: number[]; s: number[] }>();
 
@@ -56,6 +59,7 @@ export class WorldRenderer {
     this.plates = [];
     this.dusts = [];
     this.snaps = [];
+    this.bursts = [];
     this.seen = 0;
     this.terrainCache.clear();
   }
@@ -79,6 +83,12 @@ export class WorldRenderer {
       this.plates.push({ cr: e.cr, text: e.text, t0: e.t + 0.1, angle: -hashNoise(cr.seed, 9) * 0.12 });
     } else if (e.type === 'dust' && e.pts) this.dusts.push({ pts: e.pts, t0: e.t });
     else if (e.type === 'tear' && e.x !== undefined) this.snaps.push({ x: e.x, y: e.y!, t0: e.t });
+    else if (e.type === 'boom') this.bursts.push({ kind: 'boom', x: e.x!, y: e.y!, t0: e.t });
+    else if (e.type === 'guyDied') this.bursts.push({ kind: 'poof', x: e.x!, y: e.y!, t0: e.t });
+    else if (e.type === 'win' && w.guy?.alive) {
+      const c = guyCentre(w, w.guy);
+      this.bursts.push({ kind: 'heart', x: c.x, y: c.y, t0: e.t });
+    }
   }
 
   draw(g: Ctx, o: RenderOpts) {
@@ -86,13 +96,17 @@ export class WorldRenderer {
     this.events();
     if (!this.pattern) this.pattern = graphitePattern(g);
     const frame = boilFrame(o.realT);
+    drawCountdown(g, w);
     this.drawTerrain(g, frame);
+    drawBodies(g, w, o.alpha, frame);
     for (const cr of w.creatures) if (cr.alive) this.drawShadow(g, cr, o.alpha);
     this.drawInk(g, o.alpha, frame);
     this.drawDust(g);
     for (const cr of w.creatures) if (cr.alive) this.drawCreatureFace(g, cr, o, frame);
     if (o.intentLines !== false) for (const cr of w.creatures) if (cr.alive) this.drawIntent(g, cr, o);
+    if (w.guy) drawGuy(g, w, w.guy, o.alpha, frame);
     this.drawSnaps(g);
+    drawBursts(g, this.bursts, w.t);
     this.drawPlates(g, o.alpha);
     if (o.debug) this.drawDebug(g, o);
   }
