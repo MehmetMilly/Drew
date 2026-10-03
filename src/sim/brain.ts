@@ -7,7 +7,7 @@ import { ACT, BRAIN, GUY, LOCO, LOOK, WORLD } from '../tuning';
 import type { Creature } from './creature';
 import { hashNoise } from './rng';
 import { guyCentre } from './littleguy';
-import { mainThreat, perchOf, handCanReach, canCarry, seated } from './level';
+import { mainThreat, carryGoal, perchOf, handCanReach, canCarry, seated } from './level';
 import type { World } from './world';
 
 export function senseRange(cr: Creature) {
@@ -138,7 +138,9 @@ function planLevel(w: World, cr: Creature, c: { x: number; y: number }) {
   b.reachGuy = false;
   b.jump = false;
   const goal = w.level!.def.goal;
-  if (goal.type === 'home' && plan === 'guard' && g.alive) {
+  const cg = carryGoal(w);
+  if (cg && plan === 'guard' && g.alive) {
+    const goal = cg;
     const P = w.P;
     const fdir = Math.sign(goal.x - gc.x) || 1;
     const mine = g.ride === cr.id || g.heldBy === cr.id;
@@ -156,13 +158,16 @@ function planLevel(w: World, cr: Creature, c: { x: number; y: number }) {
       const wall = w.terrainDepth(ax, feetY - BRAIN.wallProbe, 6) > 0;
       const gap = w.terrainDepth(ax, feetY + BRAIN.gapProbe, BRAIN.gapProbe) <= 0;
       const above = goal.y < feetY - BRAIN.goalAbove && Math.abs(goal.x - c.x) < half + BRAIN.lookAhead * 4;
-      b.jump = Math.abs(goal.x - c.x) > GUY.homeDist * 0.5 && (wall || gap || above);
+      b.jump = goal.home && Math.abs(goal.x - c.x) > GUY.homeDist * 0.5 && (wall || gap || above);
     } else if (g.ride >= 0 || g.heldBy >= 0) {
       // someone else has him: walk along behind
       tx = gc.x - fdir * (half + BRAIN.guardGap);
     } else if (Math.abs(gc.x - goal.x) < GUY.flagWalk && Math.abs(gc.y - (goal.y - GUY.height / 2)) < GUY.height) {
       // he is down and walking the last steps himself: stand clear behind him (not in his way)
       tx = gc.x - fdir * (half + BRAIN.guardGap);
+    } else if (!canCarry(w, cr, g) && !goal.home) {
+      // in the water nobody can lead him anywhere: stay close
+      tx = gc.x + fdir * (half + BRAIN.guardGap);
     } else if (!canCarry(w, cr, g)) {
       // too tall to ride and no hand to lift him: lead him home, a step ahead
       plan = 'escort';

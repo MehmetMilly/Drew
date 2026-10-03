@@ -135,3 +135,19 @@ Every Chapter 2 row of `npm run verify` is green and Chapter 1 is unchanged. Wha
 - **2-1** ledge 150, flag 180 px past its edge. Refs: hopper ×1.1, giant, reacher. **2-2** pit 210 px; refs hopper, giant, reacher (the spider bridges the pit with its legs and stalls there; it has no hand to toss with). **2-3** is now SCORE 3: with two balls every ref finished in 2.5–3 s (window 3–12); three little players at the left edge, hoop at x 640, creatures born at x 330 (4–8 s). **2-4** spikes 370–610, flag at 678 (a giant born at x 300 stood on the spikes at birth); window 2.5–14 because the toss is quick. **2-5** is 1-4's bowl with bombs (fuse 3.5) plus three rubber balls with a 1.8 s life (`ball.life`, new entity field).
 - **2-5 design**: rubber balls alone are blocked by any dome, box or cage, so every lazy shape won; the bombs' lethal radius is what denies a shield (a ricocheting ball that settles beside him in the bowl was knocked into him by the creature, so balls vanish after 1.8 s). Robustness here is chaotic: the bomb fuse alone moved the worst ref from 65 % to 90 % (3.2 and 3.5 are green, 3.1 and 3.3 are not). If this level goes red after a physics change, retune the fuse first.
 - **Known weak**: a lying 200 px line (worm) wins 2 of 5 on 2-2 and a box wins 2 of 5 on 2-4 (one lazy winner is allowed, never the roof); on 2-2 the worm launches itself and Little Guy several hundred px when it is born over him (not investigated; creature physics). The hopper on 2-2 is 95 %. `tools/shotlist.ts` `ch2` now shows all three refs.
+
+## 2026-10-03 — Phase 4: Chapter 3/4 engine
+
+- **Props** (`src/sim/props.ts`, `LevelDef.props`):
+  - **Wind:** a force per particle, so lumps resist through mass and Little Guy (mass 0.5 per particle) is blown hardest. Ink just upwind of him shelters him (×0.15), and riding he hunkers down (×0.35). Without shelter, no carrier could hold him in a breeze that heavy bodies could walk into.
+  - **Cracked floors:** slabs of terrain that break above a landing impulse (Σ m·Δv).
+  - **Rope bridges:** slabs that snap above a resting load, drawn as planks that sag with strain.
+  - **See-saws:** a heavy rigid plank solved against particles in the constraint loop. A push turns it by its inverse inertia, so a heavy drop on one end flings the other.
+  - Broken slabs leave felt chunks that tumble through everything.
+- **Sumo bully** (hazard): a heavy round pusher with a limited-force motor, stamping for 1 s first. Bracers take their force off it, as with walls.
+- **Water:** a surface that can rise, with a current.
+  - Buoyancy is a force per particle: ink is 1550 against 1800 gravity, so it sinks slowly; loops add 7 × area / ring points; lumps sink through mass. Little Guy sinks.
+  - Drag and current, and paddling: a creature at least 30% under that wants to go somewhere swims, faster with more limbs.
+  - He drowns after 1 s with his head under.
+- **Rescue from water:** in a level with water, the HOME carry brain runs with a "goal" at his starting x and far overhead (`carryGoal`). He boards whoever can carry him, and the carrier holds him there.
+- **Papers:** kraft `#C9A97A` (the look-and-feel value) and cold-press watercolour. Water is a watercolour wash with pigment pooling along the surface edge. It is a paper material, not the non-photo-blue guide colour.

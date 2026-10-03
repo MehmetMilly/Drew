@@ -116,7 +116,7 @@ export function levelStep(w: World) {
   }
   if (L.startedAt < 0 && w.t >= LEVEL.autoStart) L.startedAt = w.t;
   const th = mainThreat(w);
-  if (L.def.goal.type === 'home' && g.alive && L.result === 'play') board(w, g);
+  if (carryGoal(w) && g.alive && L.result === 'play') board(w, g);
   thinkGuy(w, g, th ? { x: th.x, y: th.y } : null);
   if (L.result !== 'play') return;
 
@@ -195,6 +195,15 @@ export function canCarry(w: World, cr: Creature, g: Guy) {
   const P = w.P;
   const feet = Math.max(P.y[g.footL], P.y[g.footR]);
   return feet - P.y[perchOf(w, cr)] <= scrambleLimit(w) || handCanReach(w, cr, g);
+}
+
+/** Where a carrier takes him: the HOME flag, or in a level with water, up out of it right where
+ *  he started (a far-off y, so no "nearly home" rule fires). null: nobody carries him. */
+export function carryGoal(w: World): { x: number; y: number; home: boolean } | null {
+  const d = w.level!.def;
+  if (d.goal.type === 'home') return { x: d.goal.x, y: d.goal.y, home: true };
+  if (w.props?.pools.length) return { x: d.guy.x, y: -1e4, home: false };
+  return null;
 }
 
 /** HOME: can he walk to the flag himself (level ground the whole way)? Terrain is static, so
@@ -368,19 +377,19 @@ function board(w: World, g: Guy) {
       if (tp) return void tossGuy(w, g, cr, tp);
     }
     // a carrier stalled near the flag (a wall, the page edge) lets him hop down for the last steps
-    const goal = w.level!.def.goal as { x: number; y: number };
+    const goal = carryGoal(w)!;
     const c = guyCentre(w, g);
     const ce = cr ? w.centroid(cr) : c;
     const moving = cr ? Math.abs(cr.brain.wantVx) > 5 && F.hypot(ce.x - (cr.lastX ?? ce.x), 0) > 0.3 : false;
     if (cr) cr.lastX = ce.x;
     w.level!.stallT = moving ? 0 : (w.level!.stallT ?? 0) + WORLD.dt;
-    if (Math.abs(c.x - goal.x) < GUY.flagWalk && w.level!.stallT > GUY.stallDrop && w.t - g.rideAt > g.climbFor) hopDown(w, g, goal.x);
+    if (goal.home && Math.abs(c.x - goal.x) < GUY.flagWalk && w.level!.stallT > GUY.stallDrop && w.t - g.rideAt > g.climbFor) hopDown(w, g, goal.x);
     return;
   }
   if (g.heldBy >= 0) return void (g.walkTo = null);
   const grounded = (P.flags[g.footL] | P.flags[g.footR]) & PF.GROUND;
   const c = guyCentre(w, g);
-  const goal = w.level!.def.goal as { x: number; y: number };
+  const goal = carryGoal(w)!;
   // the last few steps home he walks himself (a carrier that can't get closer set him down)
   if (Math.abs(c.x - goal.x) < GUY.flagWalk && Math.abs(c.y - (goal.y - GUY.height / 2)) < GUY.height) return void (g.walkTo = goal.x);
   const feet = Math.max(P.y[g.footL], P.y[g.footR]);
