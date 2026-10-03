@@ -25,12 +25,14 @@ export function hallCanvas(heroes: Hero[], onPick: (h: Hero) => void): { el: HTM
   const g = c.getContext('2d')!;
   // each hero fitted into its cell once
   const fitted = heroes.map((h) => fit(h.strokes, CELL_W - PAD * 2, CELL_H - PAD * 2 - 34));
+  const eyes = heroes.map((h, k) => (h.eye ? fitted[k].map(h.eye) : null));
   let frame = -1,
     raf = 0;
   const draw = (t: number) => {
     const f = boilState.enabled ? Math.floor((t / 1000) * LOOK.boilFps) % LOOK.boilFrames : 0;
-    if (f !== frame) {
-      frame = f;
+    const tick = Math.floor(t / 66); // eyes move at 15 fps, lines boil at 8
+    if (tick !== frame) {
+      frame = tick;
       g.setTransform(c.width / W, 0, 0, c.height / H, 0, 0);
       g.clearRect(0, 0, W, H);
       heroes.forEach((h, k) => {
@@ -42,7 +44,7 @@ export function hallCanvas(heroes: Hero[], onPick: (h: Hero) => void): { el: HTM
         g.lineWidth = 2.6;
         g.lineCap = 'round';
         g.lineJoin = 'round';
-        fitted[k].forEach((s, si) => {
+        fitted[k].strokes.forEach((s, si) => {
           g.beginPath();
           let len = 0;
           s.forEach((p, i) => {
@@ -53,6 +55,27 @@ export function hallCanvas(heroes: Hero[], onPick: (h: Hero) => void): { el: HTM
           });
           g.stroke();
         });
+        // eyes: alive in the gallery too, each blinking on its own clock
+        const e = eyes[k];
+        if (e) {
+          const shut = (t / 1000 + k * 1.37) % 3.9 < 0.13;
+          const look = Math.sin(t / 1700 + k) * 1.6;
+          for (const sx of [-5.5, 5.5]) {
+            g.fillStyle = '#FFFDF6';
+            g.strokeStyle = COLORS.felt;
+            g.lineWidth = 1.6;
+            g.beginPath();
+            g.ellipse(e.x + sx, e.y, 5, shut ? 0.8 : 6, 0, 0, Math.PI * 2);
+            g.fill();
+            g.stroke();
+            if (!shut) {
+              g.fillStyle = COLORS.felt;
+              g.beginPath();
+              g.arc(e.x + sx + look, e.y + 1, 2.4, 0, Math.PI * 2);
+              g.fill();
+            }
+          }
+        }
         g.fillStyle = COLORS.felt;
         g.font = '22px "Patrick Hand", cursive';
         g.textAlign = 'center';
@@ -89,5 +112,6 @@ export function fit(strokes: { x: number; y: number }[][], w: number, h: number)
   const k = Math.min(1, w / Math.max(1, x1 - x0), h / Math.max(1, y1 - y0));
   const ox = (w - (x1 - x0) * k) / 2,
     oy = h - (y1 - y0) * k;
-  return strokes.map((s) => s.map((p) => ({ x: ox + (p.x - x0) * k, y: oy + (p.y - y0) * k })));
+  const map = (p: { x: number; y: number }) => ({ x: ox + (p.x - x0) * k, y: oy + (p.y - y0) * k });
+  return { strokes: strokes.map((s) => s.map(map)), map };
 }

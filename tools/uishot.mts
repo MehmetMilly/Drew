@@ -12,7 +12,12 @@ const errs: string[] = [];
 page.on('pageerror', (e) => errs.push(String(e)));
 const names = ['Kevin the Biped', 'June the Many-Legged', 'Otto the Giant', 'Pip the Worm', 'Bruno the Heavy', 'Ada the Long-Armed', 'Moss the Blob'];
 const bodies = [CANON.stick700(300), CANON.spider(300), CANON.giant(300), CANON.worm(300), CANON.bruiser(300), CANON.reacher(300), CANON.box(300)];
-const hall = bodies.map((b, i) => ({ name: names[i], kind: 'x', level: '1-' + ((i % 5) + 1), strokes: b, at: Date.now(), epitaph: 'Caught a bomb.' }));
+const top = (b: { x: number; y: number }[][]) => {
+  let x = 0, n = 0, y = Infinity;
+  for (const s of b) for (const p of s) (x += p.x, n++, (y = Math.min(y, p.y)));
+  return { x: x / n, y: y + 18 };
+};
+const hall = bodies.map((b, i) => ({ name: names[i], kind: 'x', level: '1-' + ((i % 5) + 1), strokes: b, at: Date.now(), epitaph: 'Caught a bomb.', eye: top(b) }));
 await page.addInitScript((h) => {
   if (!sessionStorage.getItem('seeded')) {
     localStorage.setItem('drew-save', JSON.stringify({ v: 1, cleared: { '1-1': true, '1-2': true }, badges: { '1-1': ['Worm'] }, fails: {}, hall: h, settings: {} }));

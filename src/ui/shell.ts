@@ -73,7 +73,7 @@ export class Shell {
     else if (s === 'sketchbook') this.sketchbook();
     else if (s === 'hero' && hero) {
       this.toy.load(null);
-      this.toy.adopt(hero.strokes);
+      this.toy.adopt(hero.strokes, hero.name);
       this.hud(null, 'sketchbook');
       const tag = el('div', 'hero-tag', `<b>${hero.name}</b>${hero.epitaph ? `<small>${hero.epitaph}</small>` : ''}<small>${hero.level} · ${new Date(hero.at).toLocaleDateString()}</small>`);
       this.root.append(tag);

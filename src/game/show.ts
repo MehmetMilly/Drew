@@ -14,7 +14,8 @@ const MOMENT_AFTER = 0.6;
 const MOMENT_SPEED = 0.3;
 const PEN_SPEED = 1.5; // Watch timelapse, × the player's own pen speed
 const STROKE_GAP = 0.15;
-const ZOOM = 0.12;
+const ZOOM = 0.35;
+const LEAD_IN = 0.4; // Watch starts this long before the first drawing
 const SLICE_MS = 5; // catch-up budget per frame
 
 const stepOf = (t: number) => Math.max(0, Math.round(t / WORLD.dt));
@@ -31,6 +32,7 @@ export class Show {
   private penT = 0;
   private momentT0 = 0;
   private shown: Replay;
+  private lead = 0; // Watch: the hidden fast-forward over the empty start
 
   constructor(
     def: LevelDef,
@@ -50,7 +52,8 @@ export class Show {
     const m = moment?.t ?? endStep * WORLD.dt;
     this.from = stepOf(m - MOMENT_BEFORE);
     this.to = Math.min(this.endStep, stepOf(m + MOMENT_AFTER));
-    this.phase = kind === 'watch' ? 'action' : moment ? 'catchup' : 'done';
+    this.lead = kind === 'watch' && births.length ? Math.max(0, births[0].step - stepOf(LEAD_IN)) : 0;
+    this.phase = kind === 'watch' ? (this.lead ? 'catchup' : 'action') : moment ? 'catchup' : 'done';
   }
 
   get visible() {
@@ -74,6 +77,11 @@ export class Show {
   update(dt: number, now: number) {
     if (this.titleUp(now)) return;
     if (this.phase === 'catchup') {
+      if (this.kind === 'watch') {
+        const t0 = performance.now();
+        while (performance.now() - t0 < SLICE_MS) if (this.main.advanceQuiet(this.lead, 4)) return void (this.phase = 'action');
+        return;
+      }
       if (this.catchUp() && now >= this.visibleAt) this.startMoment();
       return;
     }
@@ -222,7 +230,7 @@ function drawPencilSprite(g: Ctx, x: number, y: number) {
   g.fillStyle = '#DCD6C8'; // plain wood-and-paint, no job colour
   g.fillRect(22, -9, 90, 18);
   g.strokeRect(22, -9, 90, 18);
-  g.fillStyle = '#E58C8C';
+  g.fillStyle = '#CDB8B0'; // a worn eraser, no job colour
   g.fillRect(112, -9, 16, 18);
   g.strokeRect(112, -9, 16, 18);
   g.restore();

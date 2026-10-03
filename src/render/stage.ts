@@ -140,13 +140,13 @@ function drawNinja(g: Ctx, w: World, b: Body, x: number, y: number, frame: numbe
   if (w.t >= b.data.at && w.t < b.data.at + 0.6) drawBang(g, x, y - r - 26, w.t - b.data.at);
 }
 
-export function drawBang(g: Ctx, x: number, y: number, age: number) {
+export function drawBang(g: Ctx, x: number, y: number, age: number, color: string = COLORS.red) {
   const s = Math.min(1, age / 0.08) * (age > 0.45 ? Math.max(0, 1 - (age - 0.45) / 0.15) : 1);
   if (s <= 0) return;
   g.save();
   g.translate(x, y);
   g.scale(s, s);
-  g.fillStyle = COLORS.red;
+  g.fillStyle = color;
   g.font = 'bold 30px "Gochi Hand", cursive';
   g.textAlign = 'center';
   g.fillText('!', 0, 0);
@@ -249,7 +249,7 @@ export function drawGuy(g: Ctx, w: World, guy: Guy, alpha: number, frame: number
     g.closePath();
     g.fill();
   }
-  if (guy.mood === 'startle' && w.t - guy.moodT < 0.6) drawBang(g, hx + 8, hy - 14, w.t - guy.moodT);
+  if (guy.mood === 'startle' && w.t - guy.moodT < 0.6) drawBang(g, hx + 8, hy - 14, w.t - guy.moodT, COLORS.felt); // his surprise, not a threat
 }
 
 /** Blasts, poofs, hearts. */
@@ -317,12 +317,17 @@ export function drawBursts(g: Ctx, bursts: Burst[], t: number) {
       g.translate(b.x, b.y - 30 - age * 18);
       g.scale(s, s);
       g.globalAlpha = age > 1.2 ? 1 - (age - 1.2) / 0.4 : 1;
-      g.fillStyle = COLORS.red;
+      // highlighter heart with a felt outline (red is for threats only)
+      g.fillStyle = COLORS.yellow;
+      g.strokeStyle = COLORS.felt;
+      g.lineWidth = 2;
+      g.lineJoin = 'round';
       g.beginPath();
       g.moveTo(0, 6);
       g.bezierCurveTo(-14, -4, -8, -14, 0, -6);
       g.bezierCurveTo(8, -14, 14, -4, 0, 6);
       g.fill();
+      g.stroke();
       g.restore();
     }
   }

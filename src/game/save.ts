@@ -11,6 +11,7 @@ export interface Hero {
   strokes: { x: number; y: number }[][];
   at: number; // Date.now()
   epitaph?: string;
+  eye?: { x: number; y: number }; // where its face sits, in stroke coordinates
 }
 
 export interface SaveData {

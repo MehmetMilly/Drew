@@ -67,6 +67,16 @@ export class Replay {
     return w.steps >= step;
   }
 
+  /** Step toward `step` without bearing a birth due exactly there (Watch draws it first). */
+  advanceQuiet(step: number, budget: number): boolean {
+    const w = this.world;
+    while (w.steps < step && budget-- > 0) {
+      if (this.due()) return true;
+      w.step();
+    }
+    return w.steps >= step || !!this.due();
+  }
+
   /** The birth due at the current step, if any (Watch draws it before it's born). */
   due(): Birth | null {
     const b = this.births[this.next];

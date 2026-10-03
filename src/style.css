@@ -125,7 +125,7 @@ body.slow #backdrop {
   gap: 34px;
 }
 .notes .n1 { --tilt: -2deg; }
-.notes .n2 { --tilt: 1.5deg; margin-left: 60px; animation-delay: 40ms; background: #d9ecff; }
+.notes .n2 { --tilt: 1.5deg; margin-left: 60px; animation-delay: 40ms; }
 .notes .n3 { --tilt: -1deg; margin-left: 20px; animation-delay: 80ms; }
 .tab {
   position: absolute;
@@ -203,7 +203,7 @@ body.slow #backdrop {
   right: 18px;
   top: 10px;
   font-size: 40px;
-  color: #2fa84f;
+  color: #3a3a40; /* a graphite tick: green belongs to the stamp */
 }
 .hud {
   position: absolute;
@@ -233,11 +233,17 @@ body.slow #backdrop {
 }
 .endcard {
   position: absolute;
-  left: 90px;
-  right: 90px;
-  top: 690px;
+  left: 60px;
+  right: 60px;
+  top: 650px;
+  padding: 34px 20px 30px;
   text-align: center;
   pointer-events: none;
+  /* a fresh sheet laid over the page so the card never fights the action behind it */
+  background: rgba(250, 246, 234, 0.94);
+  box-shadow: 0 14px 30px -14px rgba(27, 27, 31, 0.45);
+  transform: rotate(-0.6deg);
+  animation: slap 260ms cubic-bezier(0.23, 1, 0.32, 1) both;
 }
 .plate {
   display: inline-block;
@@ -263,7 +269,7 @@ body.slow #backdrop {
   margin-bottom: 26px;
 }
 .badges small {
-  font-size: 22px;
+  font-size: 28px;
   opacity: 0.65;
   margin-left: 8px;
 }
@@ -334,12 +340,12 @@ body.slow #backdrop {
   top: 740px;
   left: 50%;
   transform: translateX(-50%);
-  color: #7fb2e5;
+  color: #3a3a40;
   opacity: 1;
 }
 .note.small.watch {
   --tilt: 1.5deg;
-  background: #d9ecff;
+  background: #fffdf6;
 }
 .scrim {
   position: absolute;
@@ -461,7 +467,7 @@ body.slow #backdrop {
   right: 60px;
   top: 990px;
   --tilt: 2deg;
-  background: #d9ecff;
+  background: #fffdf6;
 }
 .note.blank b {
   font-size: 34px;
@@ -482,4 +488,52 @@ body.slow #backdrop {
   display: block;
   font-size: 26px;
   opacity: 0.7;
+}
+
+/* washi tape holds each sticky note to the page */
+.note:not(.small)::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -14px;
+  width: 92px;
+  height: 26px;
+  transform: translateX(-50%) rotate(-3deg);
+  background: repeating-linear-gradient(45deg, rgba(200, 190, 170, 0.55) 0 8px, rgba(220, 212, 194, 0.55) 8px 16px);
+  box-shadow: 0 1px 2px rgba(27, 27, 31, 0.08);
+}
+.note {
+  position: relative;
+}
+.settings-note,
+.pause-note,
+.note.blank {
+  position: absolute;
+}
+/* a locked note carries a small graphite padlock doodle */
+.note.locked::after {
+  content: '';
+  position: absolute;
+  right: 22px;
+  top: 22px;
+  width: 26px;
+  height: 22px;
+  border: 3px solid #3a3a40;
+  border-radius: 4px;
+  box-sizing: border-box;
+  box-shadow: 0 -10px 0 -4px transparent;
+}
+.note.locked::before {
+  /* the shackle replaces the tape on locked notes */
+  width: 16px !important;
+  height: 14px !important;
+  left: auto !important;
+  right: 27px;
+  top: 10px !important;
+  transform: none !important;
+  background: none !important;
+  border: 3px solid #3a3a40;
+  border-bottom: 0;
+  border-radius: 9px 9px 0 0;
+  box-shadow: none !important;
 }

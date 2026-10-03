@@ -112,12 +112,17 @@ export class Toy {
   }
 
   /** A Hall hero lives again on the blank page: its strokes, stood on the floor. */
-  adopt(strokes: { x: number; y: number }[][]) {
+  adopt(strokes: { x: number; y: number }[][], name?: string) {
     let x0 = Infinity, x1 = -Infinity, y1 = -Infinity;
     for (const st of strokes) for (const p of st) (x0 = Math.min(x0, p.x), x1 = Math.max(x1, p.x), y1 = Math.max(y1, p.y));
     const dx = WORLD.W / 2 - (x0 + x1) / 2,
       dy = WORLD.floorY - 6 - y1;
-    this.world.addStrokes(strokes.map((st) => st.map((p, i) => ({ x: p.x + dx, y: p.y + dy, t: i * 0.008, p: 0.5 }))));
+    const born = this.world.addStrokes(strokes.map((st) => st.map((p, i) => ({ x: p.x + dx, y: p.y + dy, t: i * 0.008, p: 0.5 }))));
+    // the Hall's name is the hero's name: one source of truth
+    if (name && born[0]) {
+      born[0].name = name;
+      born[0].firstName = name.split(' ')[0];
+    }
     this.hintAlpha = 0;
     birthPop();
   }
@@ -427,7 +432,16 @@ export class Toy {
       const kinds = [...new Set(heroes.map((h) => h.kind))];
       const best = this.world.creatures[L.hugger >= 0 ? L.hugger : this.world.guy?.hugging ?? -1] ?? this.world.creatures.find((c) => c.alive);
       const ep = epitaph(this.world);
-      const fresh = recordWin(this.level.id, kinds, best ? { name: best.name, kind: best.kind, level: this.level.id, strokes: best.strokes, at: Date.now(), epitaph: ep } : null);
+      let eye: { x: number; y: number } | undefined;
+      if (best) {
+        // the face, carried back into the drawing's own frame (translation only)
+        const h = this.world.headPos(best),
+          c = this.world.centroid(best);
+        let sx = 0, sy = 0, n = 0;
+        for (const st of best.strokes) for (const p of st) (sx += p.x, sy += p.y, n++);
+        eye = { x: h.x - c.x + sx / n, y: h.y - c.y + sy / n };
+      }
+      const fresh = recordWin(this.level.id, kinds, best ? { name: best.name, kind: best.kind, level: this.level.id, strokes: best.strokes, at: Date.now(), epitaph: ep, eye } : null);
       this.winInfo = { level: this.level, heroes, newBadges: fresh, epitaph: ep, strokes: this.drawn };
       this.endStep = this.world.steps;
       this.show = new Show(this.level, this.births, pickMoment(this.world), this.endStep, 'highlight', this.now + LEVEL.cardDelay, loadSave().settings.reducedMotion);
