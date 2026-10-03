@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Phase 3 — Chapter 1 vertical slice: built, waiting at Gate 3 (human play-test).** Not tagged until the tester passes it.
+**Phase 4 — Chapters 2–5 and the finale.** Gate 3 passed with feedback and was tagged `gate-3`. Chapter 2 engine is done; its levels are being tuned.
 
 ## Done
 
@@ -28,12 +28,21 @@
   - Audio, by the audio agent: buses with ducking and slow-time low-pass; doodle voices; every sim event voiced; loops for boulder, crusher and fuse; a procedural calm/action music placeholder; Kenney CC0 samples (CREDITS.md).
   - PWA: manifest, icons, offline service worker (checked offline), safe-area layout.
   - Critic pass done (DECISIONS.md).
+- Gate 3 response: the lazy set gained scrawl, scrawl wall, pillar and cage, each run with jitter; hazards beat passive ink (the ninja cuts and vaults, boulders grind, walls saw); the win flow is now replay first, then the stamp and the end card.
+- Phase 4 so far:
+  - HOME goal: a flag, boarding, riding, lifting by hand, carry jumps, a hop down from a stalled carrier, and escort for creatures too tall to ride. All 14 canonical bodies get him home on flat ground.
+  - SCORE goal: little players pass balls up to a creature's hands; it shoots or dunks through the hoop.
+  - Spike floors, rubber balls, graph paper.
+  - Chapter screen pages between chapters; thumbnails show every goal and hazard.
+  - Fixed a brain bug where creatures on guard re-decided every frame.
 - Perf: 60 fps at ~880 particles under 4× CPU throttle; 0.77 ms/step in Node.
 
 ## Next
 
-1. **Gate 3**: the tester plays Chapter 1 on a phone (`npm run dev`, LAN URL). Questions: is it fun, do the levels read, does the camera feel too far out, how is the audio balance?
-2. After Gate 3: Phase 4 (Chapters 2–5 and the finale). Water and wind come before Chapter 4.
+1. Chapter 2 levels green (level-author running).
+2. Chapter 3 mechanics: fan wind, sumo bully, see-saw, rope bridge, cracked floors.
+3. Chapter 4: water, buoyancy, current, ducks and bucket, raft, kraken. Chapter 5: scissors, fire, smudgers, the Big Eraser, finale and credits.
+4. Revisit 1-4's big-dome weakness.
 
 ## Open problems
 
