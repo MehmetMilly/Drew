@@ -112,3 +112,11 @@ Download from the web yourself. Licences were checked in October 2026; re-check 
 - **Voices**: sit above the world sound effects.
 - **Ambience**: barely noticeable, so you only notice it when it stops.
 - **Device check**: verify on phone speakers, where very low frequencies vanish. Give every low impact an upper-mid component so it still reads.
+
+## 8. Implementation status (2026-10-03)
+
+Code lives in `src/audio/`: `mixer.ts` (buses, ducking, slow time), `samples.ts` (pools with variation and voice limits), `synth.ts` (one-shots and loops), `voice.ts` (doodle voices), `music.ts` (adaptive loop), `sfx.ts` (event router and per-frame layer), `pencil.ts` (pencil, unlock). Shipped files and licences: `CREDITS.md`.
+
+- Music is a procedural placeholder in the style of §5; stock tracks are still to be chosen (see `music.ts` header).
+- Not built yet because the sim emits no event for them: water, fire, scissors, eraser. Spring creak before a boing has no event either.
+- Hooks for the shell: `sfxUi('tap' | 'back' | 'page')`, `sfxCountdown(n)`, `sfxFail()` in `sfx.ts`. `pencilTick()` unlocks audio on the first press.

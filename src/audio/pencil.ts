@@ -1,70 +1,89 @@
-// Placeholder pencil scratch (audio.md §3): band-passed noise whose grain density
-// follows pen speed and brightness follows pressure. The audio subagent replaces
-// the mixer around it in Phase 3; the pencil stays synthesised by design.
+// The pencil (audio.md §3): the lead instrument. A synthesised graphite scratch on its own
+// bus (never ducked, never slow-filtered): band-passed noise with granular amplitude jitter
+// whose density follows pen speed and whose brightness follows pressure, plus a low paper
+// body under it. Also the pen-lift tick and the birth pop.
+import { audioCtx, buses, initAudio, noise, rnd } from './mixer';
+import { loadSamples } from './samples';
 
-let ctx: AudioContext | null = null;
+export { audioCtx };
+
 let src: AudioBufferSourceNode | null = null;
+let src2: AudioBufferSourceNode | null = null;
 let bp: BiquadFilterNode | null = null;
-let hp: BiquadFilterNode | null = null;
+let body: BiquadFilterNode | null = null;
 let gain: GainNode | null = null;
+let bodyGain: GainNode | null = null;
 let grain: GainNode | null = null;
 let lfo: OscillatorNode | null = null;
+let lfo2: OscillatorNode | null = null;
 let level = 0;
+let built = false;
 const PENCIL_VOLUME = 0.28; // was 0.55: play-test said too loud
 
-export function audioCtx(): AudioContext | null {
-  return ctx;
-}
-
-/** Create/resume the context on a user gesture. */
+/** Create/resume the context on a user gesture and build the pencil. */
 export function unlockAudio() {
-  try {
-    if (!ctx) {
-      const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      ctx = new AC();
-      const len = ctx.sampleRate * 2;
-      const buf = ctx.createBuffer(1, len, ctx.sampleRate);
-      const d = buf.getChannelData(0);
-      // crackly noise: white noise with sparse louder grains (graphite on tooth)
-      let seed = 12345;
-      for (let i = 0; i < len; i++) {
-        seed = (seed * 1664525 + 1013904223) >>> 0;
-        const r = seed / 4294967296;
-        seed = (seed * 1664525 + 1013904223) >>> 0;
-        const spike = seed / 4294967296 > 0.985 ? 3 : 1;
-        d[i] = (r * 2 - 1) * 0.5 * spike;
-      }
-      src = ctx.createBufferSource();
-      src.buffer = buf;
-      src.loop = true;
-      hp = ctx.createBiquadFilter();
-      hp.type = 'highpass';
-      hp.frequency.value = 900;
-      bp = ctx.createBiquadFilter();
-      bp.type = 'bandpass';
-      bp.frequency.value = 3200;
-      bp.Q.value = 0.9;
-      grain = ctx.createGain();
-      grain.gain.value = 0.6;
-      // fast amplitude flutter = grain density
-      lfo = ctx.createOscillator();
-      lfo.type = 'square';
-      lfo.frequency.value = 35;
-      const lfoAmt = ctx.createGain();
-      lfoAmt.gain.value = 0.35;
-      lfo.connect(lfoAmt).connect(grain.gain);
-      gain = ctx.createGain();
-      gain.gain.value = 0;
-      src.connect(hp).connect(bp).connect(grain).connect(gain).connect(ctx.destination);
-      src.start();
-      lfo.start();
-      document.addEventListener('visibilitychange', () => {
-        if (!document.hidden) ctx?.resume();
-      });
+  const ctx = initAudio();
+  const b = buses();
+  if (!ctx || !b) return;
+  if (!built) {
+    built = true;
+    // graphite on tooth: white noise with sparse louder grains
+    const len = ctx.sampleRate * 2;
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    let seed = 12345;
+    for (let i = 0; i < len; i++) {
+      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+      const r = seed / 4294967296;
+      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+      const spike = seed / 4294967296 > 0.985 ? 3 : 1;
+      d[i] = (r * 2 - 1) * 0.5 * spike;
     }
-    if (ctx.state === 'suspended') ctx.resume();
-  } catch {
-    ctx = null;
+    src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 900;
+    bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 3200;
+    bp.Q.value = 0.9;
+    grain = ctx.createGain();
+    grain.gain.value = 0.6;
+    // fast amplitude flutter = grain density
+    lfo = ctx.createOscillator();
+    lfo.type = 'square';
+    lfo.frequency.value = 35;
+    const lfoAmt = ctx.createGain();
+    lfoAmt.gain.value = 0.35;
+    lfo.connect(lfoAmt).connect(grain.gain);
+    // a slower, irregular second flutter so the grains never sound like a motor
+    lfo2 = ctx.createOscillator();
+    lfo2.type = 'triangle';
+    lfo2.frequency.value = 11;
+    const lfo2Amt = ctx.createGain();
+    lfo2Amt.gain.value = 0.18;
+    lfo2.connect(lfo2Amt).connect(grain.gain);
+    gain = ctx.createGain();
+    gain.gain.value = 0;
+    src.connect(hp).connect(bp).connect(grain).connect(gain).connect(b.pencil);
+    // paper body: the low rub of the page under the lead
+    src2 = ctx.createBufferSource();
+    src2.buffer = noise();
+    src2.loop = true;
+    body = ctx.createBiquadFilter();
+    body.type = 'bandpass';
+    body.frequency.value = 680;
+    body.Q.value = 0.8;
+    bodyGain = ctx.createGain();
+    bodyGain.gain.value = 0;
+    src2.connect(body).connect(bodyGain).connect(b.pencil);
+    src.start();
+    src2.start(0, 0.7);
+    lfo.start();
+    lfo2.start();
+    loadSamples();
   }
 }
 
@@ -72,57 +91,76 @@ let lastDrive = -1;
 
 /** Drive the scratch from pen speed (px/s, page space) and pressure (0..1). */
 export function pencil(speed: number, pressure = 0.5, down = true) {
-  if (!ctx || !gain || !bp || !lfo) return;
+  const ctx = audioCtx();
+  if (!ctx || !gain || !bp || !lfo || !lfo2 || !body || !bodyGain) return;
   const t = ctx.currentTime;
   lastDrive = t;
   // speeds from near-simultaneous events spike; the scratch saturates at 900 px/s anyway
   const target = down && isFinite(speed) ? Math.min(1, speed / 900) : 0;
   level += (target - level) * (target > level ? 0.35 : 0.6);
-  gain.gain.setTargetAtTime(level * PENCIL_VOLUME, t, 0.02);
+  // per-event grain jitter: a slow stroke is a few distinct grains, a fast one a steady rasp
+  const jitter = 1 - 0.28 * (1 - level) * Math.random();
+  gain.gain.setTargetAtTime(level * PENCIL_VOLUME * jitter, t, 0.02);
   bp.frequency.setTargetAtTime(2200 + 1800 * pressure + 700 * level, t, 0.03);
-  lfo.frequency.setTargetAtTime(18 + 50 * level, t, 0.03);
+  lfo.frequency.setTargetAtTime((18 + 50 * level) * rnd(0.85, 1.15), t, 0.03);
+  lfo2.frequency.setTargetAtTime(7 + 16 * level * rnd(0.8, 1.2), t, 0.05);
+  bodyGain.gain.setTargetAtTime(level * (0.25 + 0.55 * pressure) * PENCIL_VOLUME * 0.6, t, 0.03);
+  body.frequency.setTargetAtTime(520 + 400 * pressure + 200 * level, t, 0.04);
 }
 
 /** Call every frame: a pen that stops moving (or loses its pen-up) falls silent. */
 export function pencilFrame() {
-  if (!ctx || !gain || lastDrive < 0) return;
+  const ctx = audioCtx();
+  if (!ctx || !gain || !bodyGain || lastDrive < 0) return;
   if (ctx.currentTime - lastDrive > 0.06) {
     level = 0;
     lastDrive = -1;
     gain.gain.setTargetAtTime(0, ctx.currentTime, 0.03);
+    bodyGain.gain.setTargetAtTime(0, ctx.currentTime, 0.03);
   }
 }
 
-/** Tiny lift tick. */
+/** Tiny lift tick (also the UI press tick: the first gesture unlocks audio). */
 export function pencilTick() {
-  if (!ctx) return;
+  unlockAudio();
+  const ctx = audioCtx();
+  const b = buses();
+  if (!ctx || !b) return;
   const t = ctx.currentTime;
   const o = ctx.createOscillator();
   const g = ctx.createGain();
   o.type = 'triangle';
-  o.frequency.setValueAtTime(2400, t);
+  o.frequency.setValueAtTime(2400 * (1 + (Math.random() * 2 - 1) * 0.06), t);
   o.frequency.exponentialRampToValueAtTime(900, t + 0.03);
   g.gain.setValueAtTime(0.12, t);
   g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
-  o.connect(g).connect(ctx.destination);
+  o.connect(g).connect(b.pencil);
   o.start(t);
   o.stop(t + 0.06);
 }
 
-/** Birth: a soft whoosh as time snaps back, then a rising "bloop" as the eyes pop. */
+/** Birth: a soft paper pop as time snaps back, then a rising "bloop" as the eyes pop. */
 export function birthPop(delay = 0) {
-  if (!ctx) return;
+  const ctx = audioCtx();
+  const b = buses();
+  if (!ctx || !b) return;
   const t = ctx.currentTime + delay;
-  // whoosh: band-passed noise sweeping up
+  // paper pop: a short low-passed noise thwap
+  const pn = ctx.createBufferSource();
+  pn.buffer = noise();
+  const plp = ctx.createBiquadFilter();
+  plp.type = 'bandpass';
+  plp.frequency.value = 1100;
+  plp.Q.value = 0.9;
+  const pg = ctx.createGain();
+  pg.gain.setValueAtTime(0.0001, t);
+  pg.gain.exponentialRampToValueAtTime(0.28, t + 0.004);
+  pg.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+  pn.connect(plp).connect(pg).connect(b.ui);
+  pn.start(t, rnd(0, 1.5), 0.08);
+  // whoosh: band-passed noise sweeping up (the music snapping back)
   const n = ctx.createBufferSource();
-  const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.25), ctx.sampleRate);
-  const d = buf.getChannelData(0);
-  let s = 7;
-  for (let i = 0; i < d.length; i++) {
-    s = (s * 16807) % 2147483647;
-    d[i] = (s / 2147483647) * 2 - 1;
-  }
-  n.buffer = buf;
+  n.buffer = noise();
   const f = ctx.createBiquadFilter();
   f.type = 'bandpass';
   f.Q.value = 1.2;
@@ -132,9 +170,8 @@ export function birthPop(delay = 0) {
   ng.gain.setValueAtTime(0.0001, t);
   ng.gain.exponentialRampToValueAtTime(0.09, t + 0.08);
   ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.24);
-  n.connect(f).connect(ng).connect(ctx.destination);
-  n.start(t);
-  n.stop(t + 0.25);
+  n.connect(f).connect(ng).connect(b.ui);
+  n.start(t, rnd(0, 1.5), 0.26);
   // bloop: sine with a fast upward pitch bend
   const o = ctx.createOscillator();
   const g = ctx.createGain();
@@ -145,7 +182,7 @@ export function birthPop(delay = 0) {
   g.gain.setValueAtTime(0.0001, t2);
   g.gain.exponentialRampToValueAtTime(0.22, t2 + 0.015);
   g.gain.exponentialRampToValueAtTime(0.0001, t2 + 0.16);
-  o.connect(g).connect(ctx.destination);
+  o.connect(g).connect(b.ui);
   o.start(t2);
   o.stop(t2 + 0.18);
 }
