@@ -66,9 +66,9 @@ Unit-test the classifier against labelled fixtures, aiming for 95% agreement:
 
 - **Reach envelope**: a hand's target is clamped to a circle around the limb's root (its first welded particle), with radius 1.05 × limb length. **Spike lesson:** unclamped or positional pulls act as skyhooks and launch the whole creature off the page.
 - **Reach**: servo the tip and the 3 particles behind it (shares 1, 0.7, 0.45, 0.25) toward the clamped target. Speed is about 900 px/s scaled by strength, with gain 0.25.
-- **Grab**: a tip within (target radius + 12 px) of a grabbable it wants creates a temporary constraint. Grabbables are bombs, balls, cargo, Little Guy, small enemies, and opponent ink in Sumo.
+- **Grab**: a tip within (target radius + 12 px) of a grabbable it wants creates a temporary constraint. Grabbables are bombs, balls, cargo, Little Guy, small enemies, and opponent ink in Sumo. A thing just thrown cannot be grabbed again for 0.5 s (it has to fly; an instant regrab had kept every throw from leaving the hand). Spring arms never grab: they punch.
 - **Throw**: wind up for 0.1 s (move the tip back), swing toward a point inside the envelope that is up and away from Little Guy, then release after about 0.3 s or when tip speed passes a threshold. Release speed scales with strength.
-- **Punch** (spring arm): compress the spring to 0.45 × rest for 0.15 s, release to 1.35 × rest for 0.1 s with high stiffness, then return. Cooldown 0.8 s.
+- **Punch** (spring arm): compress the spring to 0.45 × rest for 0.15 s, release to 1.35 × rest for 0.1 s with high stiffness, then return. Cooldown 0.5 s. A spring arm fires when its target, led by its own velocity over the punch's wind-up, will be within 20 px of the fully extended fist; a creature with spring arms stands about 0.8 × arm length off a threat so the fist can reach it.
 - **Jump** (spring leg): the same compress-and-release, triggered by the brain (section 8 of `design.md`).
 - **Locomotion** has three parts:
   1. **Body servo**, only while the creature touches ground: every particle is servoed horizontally toward the desired speed with a small gain (about 0.06 per substep, scaled by strength over mass). Desired speed comes from anatomy: legs give 0.8–2.4 × base, and footless bodies get 0.3 × base.
@@ -76,7 +76,7 @@ Unit-test the classifier against labelled fixtures, aiming for 95% agreement:
   3. **Stepping**: a swing foot arcs to a new foothold one stride ahead (stride ∝ leg length, cadence ∝ 1/√leg length), with feet alternating in two groups.
 
   **Spike lesson:** without planting and stepping the servo works but reads as gliding. Footless bodies get a visible travelling wriggle along their length while they creep.
-- **Brace**: hands servo toward the pushing surface, and feet get friction × 3 and stay planted.
+- **Brace**: hands servo toward the pushing surface, and feet get friction × 3 and stay planted. A bracing creature with a foot on the ground that touches a pusher (wall or boulder) pushes it back with `ACT.braceForce` × strength × feet factor (0.5 + 0.25 per grounded foot, at most 1.5); footless bodies cannot brace. Mass alone is not a brace: a lump lying in the way is only friction and gets shoved, sawn or ground through.
 - **Strain** is measured as constraint stretch on driven limbs and fed to the face (sweat, red tint).
 
 ## 7. Collisions
@@ -94,15 +94,16 @@ Unit-test the classifier against labelled fixtures, aiming for 95% agreement:
 ## 9. Tearing and severing
 
 - A chain link tears when stretched past 2.3 × its rest length. A weld tears past rest + 24 px. Hazards cut links directly.
-- After any tear, recompute connected components. A piece of 60 px or more with no eyes is re-read as a new creature (see `design.md` section 7); smaller pieces become dust.
+- After any tear, recompute connected components. A piece of 60 px or more with no eyes is re-read as a new creature (see `design.md` section 7); smaller pieces become dust. Hazard cuts made during a step are severed in the same step (severing runs after the hazards; it used to run before them, so blade and blast cuts never split anything).
 - **Normal acting must never tear.** Test: 100 random creatures acting for 10 s with no hazards produce zero tears.
 
 ## 10. Hazard physics notes
 
-- **Crushers** are motors with limited force, not kinematic walls, so a body that pushes back can genuinely hold them. Rigid ink does not: a wall stalls on any strut (a box, a flat worm) and recoils by mass share, so a pair of walls cannot crush a strut. Levels use one heavy wall (mass 1600) that shoves whatever lies between it and Little Guy against him; a wall face within `GUY.crushReach` of him kills.
-- **Boulders** are heavy circles; their speed on contact decides whether they crush.
+- **Pushers** (crushers and boulders) shove ink, and can kill through it: ink a pusher is touching that stays more than 4 px deep inside Little Guy for 0.15 s means he is squeezed with nowhere to go (crushed). Thick or heavy passive ink is therefore not a wall.
+- **Crushers** are motors with limited force, not kinematic walls, so a body that pushes back (brace force) can genuinely hold them; a braced wall eases back at most 40 px/s. Rigid ink does not: a wall stalls on any strut and recoils by mass share. A saw-toothed wall that is stalled (slower than half its speed) and not out-braced cuts every link with an end within 9 px of its face. Levels use one heavy wall (mass 1600) that shoves whatever lies between it and Little Guy against him or over a drop; a wall face within `GUY.crushReach` of him kills.
+- **Boulders** are heavy circles (mass per level); their speed on contact decides whether they squash (260 px/s), and one that rests against him for 0.5 s squashes him too (slowing it is not stopping it). Bracers each take velocity toward them off the boulder, up to their brace force. A boulder slower than 60 px/s pressing on ink that is not bracing it grinds through it: 3 links per step, nearest first.
 - **Bombs**: fuse timer, low restitution, grabbable. On explosion: an outward impulse that falls off over 170 px, a 140 px lethal radius for Little Guy, and links cut within 55 px.
-- **Enemies** (ninja, bully, sumo): capsule bodies with scripted motion (telegraph → act) and knockback; dizzy for 1 s after a hard hit. The ninja is grabbable, dashes at Little Guy after landing, and cuts every link he touches while attacking (his blade reaches 10 px past his body).
+- **Enemies** (ninja, bully, sumo): capsule bodies with scripted motion (telegraph → act) and knockback. The ninja crouches, leaps to a landing point, then dashes at Little Guy. While dashing he vaults (110 px over the higher of him and Little Guy, at most every 0.5 s) over terrain or ink that stops him, and leaps up at Little Guy when he is above and within 200 px. While attacking (leap or dash) he passes through ink and cuts every link passing within 8 px of him; he kills on a hard hit or a blade held against Little Guy for 0.2 s (10 px blade reach). He stops only by being caught (a free hand reaching for him that gets within reach grabs before the blade cuts it), then thrown (dizzy 1.2 s from the release), or struck: a hand, fist, lump or extending spring moving at him faster than 220 px/s knocks him 520 px/s along the blow and leaves him dizzy for 1 s. Dizzy or carried, he cannot hurt anyone.
 - **Scissors** follow a path and cut every link they cross. **Fire** spreads along links from contact at a fixed px/s, burning them. **Smudgers** delete particles they touch at a rate.
 - **Cracked floors** break above an impulse threshold. **Rope bridges** break above a load threshold. **See-saws** are a hinged plank body.
 

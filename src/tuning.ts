@@ -101,6 +101,7 @@ export const ACT = {
   shoulderSlack: 0.05, // bend stiffness left at a posed limb's root
   relaxRate: 0.5, // arms ease back to their drawn pose at this fraction of reach speed
   grabSlop: 12, // physics.md §6: tip within target radius + this grabs
+  regrab: 0.5, // s after a throw before a hand may grab the same thing again (it has to fly)
   throwWindup: 0.1,
   throwSwing: 0.3,
   throwSpeed: 950,
@@ -109,7 +110,14 @@ export const ACT = {
   punchCompressT: 0.15,
   punchExtend: 1.35,
   punchExtendT: 0.1,
-  punchCooldown: 0.8,
+  punchCooldown: 0.5,
+  punchAim: 20, // px: a spring arm punches when its target will be this close to the fully extended fist
+  // brace (physics.md §6): a bracing creature with a foot down pushes back on the pusher it
+  // touches with braceForce × strength × feet factor (mass·px/s²); footless bodies can't brace
+  braceForce: 900000,
+  braceFeetBase: 0.5, // feet factor = base + each × feet, at most max: a biped 1.0, a spider 1.5
+  braceFeetEach: 0.25,
+  braceFeetMax: 1.5,
   springK: 0.9, // spring constraint stiffness at rest
   springKFire: 1.0,
   jumpCompress: 0.5,
@@ -167,7 +175,10 @@ export const BRAIN = {
   predict: 1.5, // s: a threat this many seconds from Little Guy at its speed is intercepted
   braceDist: 60, // a wall within this (+ body width) of him is braced against
   bracePush: 40, // px past the wall face the brace walks toward (so it keeps leaning in)
+  braceMeet: 220, // px: a boulder is braced against at most this far in front of him (not chased up its slope)
   guardGap: 20, // px between Little Guy and a guard's near side
+  lead: 0.15, // s: hands reach for where a moving threat will be
+  punchStand: 0.8, // × spring-arm length: how far from a threat a puncher stands
 };
 
 export const STRENGTH = {
@@ -242,10 +253,14 @@ export const GUY = {
   crushGap: 14, // walls closer than his width around him: crushed
   crushReach: 50, // a wall face this close to him has squeezed everything else out: crushed
   boulderKill: 260, // px/s relative speed of a boulder hitting him
+  pinTime: 0.5, // s a boulder may rest against him before its weight squashes him
   bladeReach: 10, // px: a ninja's blade reaches this far past his body
   stabTime: 0.2, // s an attacking enemy may stay against him
   enemyKill: 120, // px/s: an enemy touching him faster than this
   blastKill: 140, // bomb lethal radius (physics.md §10)
+  squeezeContact: 3, // px: ink this close to a pusher is being shoved by it
+  squeezeDepth: 4, // px: shoved ink (or the pusher) this deep inside him...
+  squeezeTime: 0.15, // ...for this long: he has nowhere to go, crushed
 };
 
 // Hazards (physics.md §10); difficulty lives in each level's entity parameters
@@ -268,9 +283,27 @@ export const HAZ = {
   ninjaMass: 40,
   ninjaApex: 220,
   ninjaTell: 0.5, // s of crouch before the leap
-  ninjaCut: 8, // px beyond his body at which his blade cuts links
+  ninjaCut: 8, // px beyond his body at which his blade cuts links (any link passing that close)
   ninjaRun: 260, // px/s: dash along the ground after landing
   ninjaRunGain: 0.08,
+  ninjaVault: 110, // px above the higher of him and Little Guy: the hop over what blocks his dash
+  ninjaVaultCool: 0.5, // s between leaps
+  ninjaVaultRise: 30, // px: Little Guy this far above him...
+  ninjaVaultRange: 200, // ...and this close: he vaults up at him
+  ninjaLook: 18, // px ahead of him the dash checks for ground in the way
+  strikeSpeed: 220, // px/s: a hand, fist or spring moving at him this fast knocks him away
+  strikeSlop: 8, // px beyond contact at which a strike lands (about one substep of a punch)
+  ninjaKnock: 520, // px/s he is knocked away along the blow
+  ninjaKnockUp: 260, // px/s of that upward
+  ninjaStun: 1.0, // s dizzy after a knock (physics.md §10)
+  ninjaThrownStun: 1.2, // s dizzy after being thrown (counted from the release)
+  braceContact: 4, // px: a creature this close to a pusher is touching it (and can brace)
+  crusherBack: 40, // px/s: the most a braced wall is eased back
+  sawStall: 0.5, // a toothed wall slower than this × its speed, and not out-braced, is stalled by ink...
+  sawReach: 9, // ...and its teeth cut every link with an end this close to its face
+  grindStall: 60, // px/s: a boulder this slow, pressing on ink that is not bracing it, grinds through it...
+  grindReach: 4, // ...cutting links with an end this close to its surface...
+  grindRate: 3, // ...this many per step, nearest first
 };
 
 export const LEVEL = {

@@ -2,8 +2,9 @@
 // watches Little Guy's fate and the goal each step, and keeps an event log for
 // epitaphs and money moments. Pure and deterministic.
 import * as F from './fmath';
-import { GUY, LEVEL, WORLD } from '../tuning';
-import { spawnEntity, type Entity } from './hazards';
+import { BODY, GUY, LEVEL, WORLD } from '../tuning';
+import { spawnEntity, attacking, type Entity } from './hazards';
+import { PF } from './store';
 import { spawnGuy, thinkGuy, killGuy, guyCentre, type GuyHat } from './littleguy';
 import type { Pt } from './geom';
 import type { World, Body } from './world';
@@ -24,6 +25,8 @@ export interface LevelDef {
   draw: number; // world time scale while ink is wet
   ink: number; // px budget
   terrain: Pt[][];
+  /** false: no page floor; the level's terrain is all the ground there is (gaps are pits) */
+  floor?: boolean;
   entities: Entity[];
   guy: { x: number; y: number; hat?: GuyHat };
   anatomyMatters: boolean;
@@ -44,14 +47,17 @@ export interface LevelRun {
   hugT: number;
   hugger: number;
   seen: number; // events processed
+  squeezeT: number; // s he has been squeezed by ink a pusher is shoving
   log: { t: number; type: string; cr?: number; v?: number; text?: string }[];
 }
 
 export function startLevel(w: World, def: LevelDef) {
+  // a level without the page floor has pits that open off the bottom of the page
+  if (def.floor === false) w.terrain = w.terrain.filter((T) => T.kind !== 'floor');
   for (const t of def.terrain) w.addTerrain(t);
   w.guy = spawnGuy(w, def.guy.x, def.guy.y, def.guy.hat ?? 'none');
   for (const e of def.entities) spawnEntity(w, e);
-  w.level = { def, startedAt: -1, result: 'play', resultAt: -1, cause: '', hugT: 0, hugger: -1, seen: 0, log: [] };
+  w.level = { def, startedAt: -1, result: 'play', resultAt: -1, cause: '', hugT: 0, hugger: -1, seen: 0, squeezeT: 0, log: [] };
 }
 
 /** Seconds left on the SAVE countdown (null when the goal has none or it hasn't started). */
@@ -91,7 +97,7 @@ export function levelStep(w: World) {
       const c = guyCentre(w, g);
       if (F.hypot(c.x - e.x!, c.y - e.y!) < GUY.blastKill) killGuy(w, g, 'blast');
     }
-    if (['born', 'piece', 'graft', 'tear', 'boom', 'grab', 'throw', 'punch', 'guyDied', 'ninjaLeap', 'fell'].includes(e.type)) L.log.push({ t: e.t, type: e.type, cr: e.cr, text: e.text });
+    if (['born', 'piece', 'graft', 'tear', 'boom', 'grab', 'throw', 'punch', 'knock', 'guyDied', 'ninjaLeap', 'fell'].includes(e.type)) L.log.push({ t: e.t, type: e.type, cr: e.cr, text: e.text });
   }
   if (L.startedAt < 0 && w.t >= LEVEL.autoStart) L.startedAt = w.t;
   const th = mainThreat(w);
@@ -167,10 +173,13 @@ function checkDeaths(w: World) {
         rvy = (b.y - b.sy) / h - (P.y[g.hip] - P.sy[g.hip]) / h;
       const sp = F.hypot(rvx, rvy);
       if (b.kind === 'boulder' && sp > GUY.boulderKill) return killGuy(w, g, 'squashed');
-      // a ninja in his leap or dash kills on a hard hit, or on a blade held against him (not while carried off)
-      if (b.kind === 'ninja' && b.data.state >= 1 && b.held < 0 && (sp > GUY.enemyKill || b.data.touchT > GUY.stabTime)) return killGuy(w, g, 'ninja');
+      // a boulder that comes to rest against him has its weight on him (slowing it is not stopping it)
+      if (b.kind === 'boulder' && b.data.touchT > GUY.pinTime) return killGuy(w, g, 'squashed');
+      // a ninja in his leap or dash kills on a hard hit, or on a blade held against him (not while carried off or dizzy)
+      if (b.kind === 'ninja' && attacking(b) && (sp > GUY.enemyKill || b.data.touchT > GUY.stabTime)) return killGuy(w, g, 'ninja');
     }
   }
+  if (squeezed(w)) return killGuy(w, g, 'crushed');
   // crushed: a wall closes right up to him (ink in between has been squeezed out), or he is
   // trapped between two walls / a wall and the page edge
   const walls = w.bodies.filter((b) => b.alive && b.kind === 'crusher' && (b.data.sleep ?? 0) <= w.t);
@@ -180,4 +189,45 @@ function checkDeaths(w: World) {
   const rx = right.length ? Math.min(...right) : WORLD.W;
   if ((left.length && c.x - lx < GUY.crushReach) || (right.length && rx - c.x < GUY.crushReach)) return killGuy(w, g, 'crushed');
   if ((left.length || right.length) && rx - lx < GUY.crushGap) return killGuy(w, g, 'crushed');
+}
+
+/** Squeezed (design §10, "gap narrower than his width"): ink that a pusher (wall, boulder) is
+ *  shoving, or the pusher itself, stays deep inside him. He is light, so an overlap only
+ *  lasts when he has nowhere left to go: against the page edge, a wall, the ground. */
+function squeezed(w: World): boolean {
+  const L = w.level!,
+    g = w.guy!,
+    P = w.P;
+  const pushers = w.bodies.filter((b) => b.alive && b.data.pusher && (b.data.sleep ?? 0) <= w.t);
+  if (!pushers.length) return false;
+  const contact = BODY.radius + GUY.squeezeContact;
+  const shoved = new Set<number>();
+  for (const cr of w.creatures) {
+    if (!cr.alive) continue;
+    for (const b of pushers) {
+      let hit = false;
+      for (const i of cr.ids) {
+        if (b.hw) hit = Math.abs(P.x[i] - b.x) < b.hw + contact && Math.abs(P.y[i] - b.y) < b.hh! + contact;
+        else hit = F.hypot(P.x[i] - b.x, P.y[i] - b.y) < b.r + contact;
+        if (hit) break;
+      }
+      if (hit) {
+        shoved.add(cr.id);
+        break;
+      }
+    }
+  }
+  let deep = 0;
+  const r2 = 2 * BODY.radius;
+  for (const i of g.ids) {
+    if (shoved.size)
+      w.forNear(P.x[i], P.y[i], (j) => {
+        if (P.flags[j] & PF.GUY || !(P.flags[j] & PF.ALIVE) || !shoved.has(P.owner[j])) return;
+        const ov = r2 - F.hypot(P.x[j] - P.x[i], P.y[j] - P.y[i]);
+        if (ov > deep) deep = ov;
+      });
+    for (const b of pushers) if (!b.hw) deep = Math.max(deep, b.r + GUY.radius - F.hypot(P.x[i] - b.x, P.y[i] - b.y));
+  }
+  L.squeezeT = deep > GUY.squeezeDepth ? L.squeezeT + WORLD.dt : 0;
+  return L.squeezeT > GUY.squeezeTime;
 }

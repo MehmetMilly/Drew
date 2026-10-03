@@ -60,6 +60,34 @@ export function scribbleBlob(cx: number, cy: number, r: number, n = 16): Pt[] {
   }
   return poly(vs);
 }
+/** A line gone over again and again (the lazy "thick wall"): `passes` back-and-forth strokes
+ *  from (x0,y0) to (x1,y1), spread across `thick` px, with a little hand wobble. One stroke. */
+export function scrawl(x0: number, y0: number, x1: number, y1: number, passes = 8, thick = 14): Pt[] {
+  const dx = x1 - x0,
+    dy = y1 - y0;
+  const L = F.hypot(dx, dy) || 1;
+  const ux = dx / L,
+    uy = dy / L;
+  const nx = -uy,
+    ny = ux;
+  const n = Math.max(2, Math.ceil(L / 4));
+  const out: Pt[] = [];
+  for (let k = 0; k < passes; k++) {
+    const off = thick * (passes > 1 ? k / (passes - 1) - 0.5 : 0);
+    const fwd = k % 2 === 0;
+    for (let i = 0; i <= n; i++) {
+      const s = fwd ? i / n : 1 - i / n;
+      const wob = 2.5 * F.sin(s * 9 + k * 1.7);
+      // a pass falls a little short of the last one's end, as a hand does
+      const e = 0.04 * ((k * 5) % 3) * (fwd ? 1 : -1);
+      const a = s * L * (1 - 0.06 * ((k * 3) % 2)) + e * L;
+      if (k > 0 && i === 0) continue;
+      out.push({ x: x0 + ux * a + nx * (off + wob), y: y0 + uy * a + ny * (off + wob) });
+    }
+  }
+  return out;
+}
+
 export function shift(strokes: Pt[][], dx: number, dy = 0): Pt[][] {
   return strokes.map((s) => s.map((p) => ({ x: p.x + dx, y: p.y + dy })));
 }
@@ -158,6 +186,35 @@ export function bruiser(x: number): Pt[][] {
   ];
 }
 
+/** Long-Armed: a short body with arms longer than it is tall (design §6). */
+export function longarm(x: number): Pt[][] {
+  const hipY = G - 55;
+  const neck = hipY - 60;
+  return [
+    circle(x, neck - 20, 20),
+    line(x, neck, x, hipY),
+    line(x, neck + 10, x - 172, neck - 34),
+    line(x, neck + 10, x + 172, neck - 34),
+    line(x, hipY, x - 28, G),
+    line(x, hipY, x + 28, G),
+  ];
+}
+
+/** Spring-armed puncher: a short stick figure whose long arms are zigzag springs. */
+export function puncher(x: number): Pt[][] {
+  const hipY = G - 70;
+  const neck = hipY - 80;
+  const sy = neck + 16;
+  return [
+    circle(x, neck - 26, 26),
+    line(x, neck, x, hipY),
+    springLine(x, sy, x - 150, sy + 20, 7, 11),
+    springLine(x, sy, x + 150, sy + 20, 7, 11),
+    line(x, hipY, x - 30, G),
+    line(x, hipY, x + 30, G),
+  ];
+}
+
 export function floater(x: number): Pt[][] {
   const cy = G - 150;
   return [circle(x, cy - 40, 40), circle(x, cy + 45, 45), line(x - 30, cy + 85, x - 45, G), line(x + 30, cy + 85, x + 45, G)];
@@ -174,6 +231,8 @@ export const CANON: Record<string, (x: number) => Pt[][]> = {
   hopper,
   reacher,
   bruiser,
+  longarm,
+  puncher,
   floater,
   roof,
 };

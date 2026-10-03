@@ -35,23 +35,29 @@ Build each level in flat greybox first: felt-tip black terrain, red hazards, yel
 
 Every level ships with data-defined test drawings, stored as stroke point lists in the level file.
 
-- **Reference solutions**: at least 3, each a different hero kind (`design.md` section 6), and every one must WIN. They prove the three badge slots are reachable. Author them by solving the level in the dev build with the capture tool.
+- **Reference solutions**: at least 3, each a different hero kind (`design.md` section 6), and every one must WIN. The kind checked is the one each reference is actually **born as** (a long-armed label on a drawing that reads Biped does not count). They prove the three badge slots are reachable. Author them by solving the level in the dev build with the capture tool.
 - **Robustness**: each reference solution, run 20 times with seeded jitter (position ±20 px, scale ±10%, rotation ±5°), wins at least 80% of the time. Knife-edge levels feel like luck.
-- **Boring baselines**: run four lazy drawings, auto-placed at sensible positions near Little Guy:
-  - a 200 px straight line
-  - a 120 px box
-  - a roof arc spanning Little Guy
-  - a scribbled blob
+- **Boring baselines**: eight lazy drawings, auto-placed near Little Guy (toward the first threat):
+  - **line**: a 200 px straight line held beside him
+  - **box**: a 120 px box beside him
+  - **roof**: an arc spanning him
+  - **blob**: a scribbled blob beside him
+  - **scrawl**: a 160 px line gone over 8 times (a thick lump) lying on the ground in front of him
+  - **scrawlWall**: the same scrawl stood up as a 170 px wall between him and the threat
+  - **pillar**: a 240 px vertical line between him and the threat
+  - **cage**: a 110 px box drawn around him
 
-  On levels flagged `anatomyMatters`, which is every level from 1-3 on, **at most one baseline may win, and never the roof**. If a baseline wins too often, redesign the threat so the level needs a verb (remove, brace, reach, carry, float, jump), not a shape.
+  Each baseline is played as drawn plus 4 jittered placements, and counts as a win when it wins at least 2 of those 5 runs. On levels flagged `anatomyMatters` (every story level except 1-1), **at most one baseline may win, and never the roof, the scrawl or the scrawl wall**. Thickness and mass are not answers: if a baseline wins too often, redesign the threat so the level needs a verb (catch, throw, punch, brace, reach, carry, float, jump), not a shape.
 - **Pacing**: the time from first touch to result for each reference solution falls in the level's window (3–12 s).
 
-Print one table: level | references won | robustness % | baselines (line/box/roof/blob) | pass or fail.
+Print one table: level | references won | robustness % | baselines (each with its wins out of 5) | pass or fail.
 
 **Common ways to deny passive answers**, learned from the spike:
 
-- bombs that stop where they land and roll into dips
+- bombs that drop onto him: whatever only shields him keeps the bomb within its lethal radius
 - threats arriving from two directions or at two heights
+- a pusher heading into a corner or a drop: a passive lump only slows it, and slowing is not stopping (it grinds through stalled ink, or comes to rest against him)
+- enemies that vault blockers and cut ink while attacking, so only catching, throwing or hitting them works
 - goals that need movement (HOME and SCORE)
 - pushers strong enough to fold a thin arc
 - leaping enemies that arc over low shapes
@@ -82,10 +88,10 @@ Starting numbers; tune them from metrics.
 | # | Name | Goal | Setup | Why the lazy answer fails | Intended bodies | Draw / Ink |
 |---|---|---|---|---|---|---|
 | 1-1 | Hello, Friend | HUG | Little Guy alone and sad. Hint: *Draw him a friend.* | n/a (anything wins) | anything | 0.04 / 3000 |
-| 1-2 | Boulder | SAVE 5 | A boulder rolls down a long slope at him; he's backed against a wall | thin lines and arcs are crushed flat | braced biped, many-legged, giant | 0.04 / 2500 |
-| 1-3 | Walls | SAVE 4 | A saw-toothed wall drives in from the left (mass 1600, 170 px/s) at Little Guy, who stands near the page edge | whatever sits between wall and him is shoved into him and squeezed; a rigid box or arc can't hold it | many-legged, long-armed biped, heavy lumps | 0.05 / 2500 |
-| 1-4 | Bombs in the Bowl | SAVE 5 | He sits in a dip; two low-bounce bombs land on the slopes and roll in | shapes shield, bombs roll into the dip next to him | long-armed, giant (catch high), worm (flick) | 0.05 / 2500 |
-| 1-5 | Ninja | SAVE 4 | A ninja leaps from far left in a high arc at the King on his throne, then dashes at him and cuts the ink he touches | low shapes get jumped over, arcs and boxes get cut and run past | tall long-armed (catch him), giant, stick figure | 0.06 / 2500 |
+| 1-2 | Boulder | SAVE 6 | A heavy boulder (mass 900) rolls down a long gentle slope into the corner where he stands against a wall | lumps and lines only slow it: stalled ink is ground through, and a boulder resting against him for 0.5 s squashes him | many-legged, giant, heavy (brace it off up the slope) | 0.04 / 2500 |
+| 1-3 | Walls | SAVE 5 | A saw-toothed wall drives in from the left (mass 1600, 170 px/s) along a ledge; he stands near the edge over a 200 px pit (no page floor) | whatever lies still between the wall and him is shoved over the edge with him or squeezed into him; a stalled wall saws through passive ink | many-legged, biped, heavy (brace it) | 0.05 / 2500 |
+| 1-4 | Bombs in the Bowl | SAVE 6 | He sits in a dip; two low-bounce bombs drop almost onto him (staggered, 3 s fuses) | anything that only shields him keeps the bomb within its 140 px lethal radius | biped reacher, giant (catch and throw), many-legged | 0.05 / 2500 |
+| 1-5 | Ninja | SAVE 5 | A ninja leaps from far left to mid-page, then dashes at the King on his throne, vaulting anything in the way and cutting the ink he touches | blockers get vaulted, thick scrawls get cut, boxes get run past; he stops only when caught and thrown, punched or knocked dizzy | long-armed (catch), springy (punch), biped | 0.06 / 2500 |
 
 ### Chapter 2, Boing: zigzag springs; HOME and SCORE begin (paper: graph paper)
 
@@ -159,7 +165,7 @@ One file per level (TypeScript or JSON) holding:
 - id, title, hint, paper
 - goal and its parameters
 - draw time scale, ink budget
-- terrain polygons
+- terrain polygons, and `floor: false` to drop the page floor (for pits that really drop to the kill line)
 - entities (type and parameters)
 - Little Guy spawn and variant (plain, crown, party hat)
 - goal region

@@ -2,7 +2,7 @@
 // from LEVEL_METRICS.md; reference solutions are stroke lists (canonical bodies placed
 // where a player would draw them).
 import type { LevelDef } from '../sim/level';
-import { CANON, shift } from '../sim/canon';
+import { CANON } from '../sim/canon';
 
 const FLOOR = 1190;
 
@@ -27,57 +27,61 @@ export const L1_1: LevelDef = {
   window: [1, 12],
 };
 
-// a long slope from the left into a wall on the right; he's backed against the wall
+// a boulder rolls down a long gentle slope into the corner he is backed into. Whatever only
+// slows it is ground through, and a boulder that comes to rest against him squashes him:
+// a creature has to brace it off (feet planted, pushing back) and keep it there
 export const L1_2: LevelDef = {
   id: '1-2',
   title: 'Boulder',
   paper: 'cream',
-  goal: { type: 'save', seconds: 5 },
+  goal: { type: 'save', seconds: 6 },
   draw: 0.04,
   ink: 2500,
   terrain: [
-    [{ x: -200, y: 800 }, { x: 0, y: 880 }, { x: 150, y: 980 }, { x: 260, y: 1090 }, { x: 340, y: 1160 }, { x: 430, y: FLOOR }, { x: -200, y: FLOOR }],
+    [{ x: -200, y: 960 }, { x: 0, y: 980 }, { x: 200, y: 1060 }, { x: 420, y: 1140 }, { x: 640, y: FLOOR }, { x: -200, y: FLOOR }],
     [{ x: 640, y: 960 }, { x: 920, y: 960 }, { x: 920, y: FLOOR }, { x: 640, y: FLOOR }],
   ],
-  entities: [{ type: 'boulder', x: 60, y: 840, at: 1.0 }],
-  guy: { x: 620, y: FLOOR },
-  anatomyMatters: false,
-  baseline: { x: 600, y: FLOOR - 20 },
+  entities: [{ type: 'boulder', x: 60, y: 900, r: 60, m: 900, at: 1.0 }],
+  guy: { x: 598, y: 1178 },
+  anatomyMatters: true,
+  baseline: { x: 590, y: 1158 },
   refs: [
-    { kind: 'Biped', strokes: CANON.stick700(520) },
+    { kind: 'Many-Legged', strokes: CANON.spider(470) },
     { kind: 'Giant', strokes: CANON.giant(300) },
     { kind: 'Heavy', strokes: CANON.bruiser(470) },
   ],
   window: [3, 12],
 };
 
-// a saw-toothed wall drives in from the left with limited force; he is backed against the far wall
+// a saw-toothed wall drives in from the left along a ledge; he stands near its edge over a
+// pit. Whatever lies still between the wall and him is shoved over the edge with him; only a
+// creature that braces (feet planted, pushing back) stops the wall.
 export const L1_3: LevelDef = {
   id: '1-3',
   title: 'Walls',
   paper: 'cream',
-  goal: { type: 'save', seconds: 4 },
+  goal: { type: 'save', seconds: 5 },
   draw: 0.05,
   ink: 2500,
-  terrain: [],
-  entities: [{ type: 'crusher', x: 100, y: FLOOR - 160, h: 320, dir: 1, at: 0.4, speed: 170 }],
-  guy: { x: 600, y: FLOOR },
+  floor: false,
+  terrain: [[{ x: -200, y: FLOOR }, { x: 520, y: FLOOR }, { x: 520, y: 1600 }, { x: -200, y: 1600 }]],
+  entities: [{ type: 'crusher', x: 40, y: FLOOR - 160, h: 320, dir: 1, at: 0.4, speed: 170 }],
+  guy: { x: 470, y: FLOOR },
   anatomyMatters: true,
-  baseline: { x: 600, y: FLOOR - 20 },
+  baseline: { x: 470, y: FLOOR - 20 },
   refs: [
-    { kind: 'Many-Legged', strokes: CANON.spider(430) },
-    { kind: 'Long-Armed', strokes: CANON.reacher(430) },
-    { kind: 'Heavy', strokes: CANON.bruiser(430) },
+    { kind: 'Many-Legged', strokes: CANON.spider(220) },
+    { kind: 'Biped', strokes: CANON.reacher(300) },
+    { kind: 'Heavy', strokes: CANON.bruiser(300) },
   ],
   window: [3, 12],
 };
 
-// he sits in a dip; two low-bounce bombs land on the slopes and roll in
 export const L1_4: LevelDef = {
   id: '1-4',
   title: 'Bombs in the Bowl',
   paper: 'cream',
-  goal: { type: 'save', seconds: 5 },
+  goal: { type: 'save', seconds: 6 },
   draw: 0.05,
   ink: 2500,
   terrain: [
@@ -85,16 +89,16 @@ export const L1_4: LevelDef = {
     [{ x: 390, y: FLOOR }, { x: 560, y: 1000 }, { x: 920, y: 1000 }, { x: 920, y: FLOOR }],
   ],
   entities: [
-    { type: 'bomb', x: 200, y: 300, vx: 40, at: 1.2, fuse: 3.4 },
-    { type: 'bomb', x: 520, y: 260, vx: -40, at: 1.8, fuse: 3.4 },
+    { type: 'bomb', x: 330, y: 300, at: 1.2, fuse: 3.0 },
+    { type: 'bomb', x: 395, y: 200, at: 2.0, fuse: 3.0 },
   ],
   guy: { x: 360, y: FLOOR },
   anatomyMatters: true,
   baseline: { x: 360, y: FLOOR - 20 },
   refs: [
-    { kind: 'Long-Armed', strokes: shift(CANON.reacher(360), 0, 0) },
-    { kind: 'Giant', strokes: CANON.giant(360) },
-    { kind: 'Biped', strokes: CANON.stick1100(360) },
+    { kind: 'Biped', strokes: CANON.reacher(260) },
+    { kind: 'Giant', strokes: CANON.giant(400) },
+    { kind: 'Many-Legged', strokes: CANON.spider(360) },
   ],
   window: [3, 12],
 };
@@ -104,18 +108,18 @@ export const L1_5: LevelDef = {
   id: '1-5',
   title: 'Ninja',
   paper: 'cream',
-  goal: { type: 'save', seconds: 4 },
+  goal: { type: 'save', seconds: 5 },
   draw: 0.06,
   ink: 2500,
   terrain: [[{ x: 470, y: 1110 }, { x: 590, y: 1110 }, { x: 590, y: FLOOR }, { x: 470, y: FLOOR }]],
-  entities: [{ type: 'ninja', x: 40, y: FLOOR - 20, tx: 530, ty: 1090, at: 1.4, apex: 220 }],
+  entities: [{ type: 'ninja', x: 40, y: FLOOR - 20, tx: 300, ty: FLOOR - 20, at: 1.0, apex: 220 }],
   guy: { x: 530, y: 1110, hat: 'crown' },
   anatomyMatters: true,
   baseline: { x: 530, y: 1090 },
   refs: [
-    { kind: 'Long-Armed', strokes: CANON.reacher(400) },
-    { kind: 'Giant', strokes: CANON.giant(300) },
-    { kind: 'Biped', strokes: CANON.stick1100(400) },
+    { kind: 'Long-Armed', strokes: CANON.longarm(330) },
+    { kind: 'Springy', strokes: CANON.puncher(280) },
+    { kind: 'Biped', strokes: CANON.stick700(420) },
   ],
   window: [3, 12],
 };

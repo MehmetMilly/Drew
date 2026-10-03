@@ -11,7 +11,7 @@ import { mulberry32, Rng, hashFloat } from './rng';
 import { Pt } from './geom';
 import { think } from './brain';
 import { actuate } from './actuators';
-import { preHazards, postHazards, asleep } from './hazards';
+import { preHazards, postHazards, asleep, attacking } from './hazards';
 import { actuateGuy, type Guy } from './littleguy';
 import { levelStep, type LevelRun } from './level';
 
@@ -108,12 +108,16 @@ export class World {
   constructor(opts: WorldOpts = {}) {
     this.rng = mulberry32(opts.seed ?? 7);
     if (opts.floor !== false) {
-      this.addTerrain([
-        { x: -200, y: WORLD.floorY },
-        { x: this.W + 200, y: WORLD.floorY },
-        { x: this.W + 200, y: 1600 },
-        { x: -200, y: 1600 },
-      ]);
+      this.addTerrain(
+        [
+          { x: -200, y: WORLD.floorY },
+          { x: this.W + 200, y: WORLD.floorY },
+          { x: this.W + 200, y: 1600 },
+          { x: -200, y: 1600 },
+        ],
+        1,
+        'floor',
+      );
     }
     for (const t of opts.terrain ?? []) this.addTerrain(t);
     this.gw = Math.ceil(this.W / this.cell) + 2;
@@ -485,8 +489,9 @@ export class World {
       this.contactFriction(h);
       this.checkTears();
     }
-    if (this.tearsThisStep) this.sever();
     postHazards(this);
+    // after the hazards: a blade or a saw cuts in postHazards, and the pieces must come apart
+    if (this.tearsThisStep) this.sever();
     this.cleanup();
     if (this.level) levelStep(this);
     this.t += WORLD.dt;
@@ -915,6 +920,8 @@ export class World {
         this.collideBox(b);
         continue;
       }
+      // an attacking ninja passes through ink, cutting it (hazards.ts); only a strike stops him
+      if (attacking(b)) continue;
       const bw = b.held >= 0 || asleep(this, b) ? 0 : b.m > 0 ? 1 / b.m : 0;
       const reach = b.r + pr;
       // query cells covering the body

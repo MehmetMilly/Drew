@@ -192,12 +192,10 @@ const nodeHash = detScenario();
 // ---- levels (levels.md §3): refs win, robust under jitter, lazy baselines fail, pacing
 {
   const { ALL_LEVELS } = await import('../src/levels');
-  const { validate } = await import('./levels');
+  const { validate, baseText } = await import('./levels');
   for (const def of ALL_LEVELS) {
     const r = validate(def, quick ? 5 : 20);
-    const b = Object.entries(r.base)
-      .map(([n, v]) => `${n}${v ? '✓' : '✗'}`)
-      .join(' ');
+    const b = baseText(r);
     add(`level ${def.id} ${def.title}`, `refs ${r.refs}, robust ${Math.round(r.robust * 100)}%, baselines ${b}${r.notes.length ? ' — ' + r.notes.join('; ') : ''}`, r.pass);
   }
 }

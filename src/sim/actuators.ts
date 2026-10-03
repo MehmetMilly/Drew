@@ -5,7 +5,7 @@ import * as F from './fmath';
 import { ACT, LOCO } from '../tuning';
 import { PF } from './store';
 import type { Creature, Limb, Spring } from './creature';
-import type { World } from './world';
+import type { Body, World } from './world';
 import { senseRange } from './brain';
 
 /** Momentum (m·Δv) added by servos since the last reaction, so limbs act as internal forces. */
@@ -139,16 +139,33 @@ export function actuate(w: World, cr: Creature, h: number) {
       if (d > range) continue;
       reachTo(w, cr, l, b.reachX, b.reachY, h);
       react(w, cr, new Set(l.chain), h);
+      // spring arm: punch when the target is in arm's reach (design §8: spring arms punch)
+      if (l.spring >= 0) {
+        // aim the punch at where the target will be when the spring fires
+        const tb = b.targetBody >= 0 ? w.bodies[b.targetBody] : null;
+        let qx = b.reachX,
+          qy = b.reachY,
+          rr = 0;
+        if (tb && tb.alive) {
+          const lead = ACT.punchCompressT + ACT.punchExtendT * 0.5;
+          qx = tb.x + ((tb.x - tb.px) / h) * lead;
+          qy = tb.y + ((tb.y - tb.py) / h) * lead;
+          rr = tb.r;
+        }
+        // ...from where the fist will be at full extension, along the spring
+        const sp = cr.springs[l.spring];
+        const ax = P.x[sp.b] - P.x[sp.a],
+          ay = P.y[sp.b] - P.y[sp.a];
+        const al = F.hypot(ax, ay) || 1;
+        const reachOut = (ACT.punchExtend - 1) * sp.len0;
+        const fx = P.x[tip] + (ax / al) * reachOut,
+          fy = P.y[tip] + (ay / al) * reachOut;
+        if (F.hypot(qx - fx, qy - fy) < rr + ACT.punchAim) trigger(sp, 'punch');
+        continue;
+      }
       // grab: the tip closes on a grabbable it wants
       const tb = b.targetBody >= 0 ? w.bodies[b.targetBody] : null;
-      if (tb && tb.alive && tb.grabbable && tb.held < 0 && F.hypot(tb.x - P.x[tip], tb.y - P.y[tip]) < tb.r + ACT.grabSlop) {
-        tb.held = cr.id;
-        tb.data.grabT = w.t;
-        l.grabBody = tb.id;
-        w.emit({ type: 'grab', cr: cr.id, x: tb.x, y: tb.y });
-      }
-      // spring arm: punch when the target is in arm's reach
-      if (l.spring >= 0 && d < l.len * 1.3) trigger(cr.springs[l.spring], 'punch');
+      if (tb && tb.alive && tb.grabbable && tb.held < 0 && w.t - (tb.data.thrownAt ?? -9) > ACT.regrab && F.hypot(tb.x - P.x[tip], tb.y - P.y[tip]) < tb.r + ACT.grabSlop) grab(w, cr, l, tb);
     }
   }
   // toy jump: spring legs fire when the target is above the creature
@@ -173,6 +190,14 @@ export function actuate(w: World, cr: Creature, h: number) {
       strain = Math.max(strain, dr / (l.len * ACT.reachEnvelope) - 0.85);
     }
   cr.face.strain += (Math.max(0, strain * 4) - cr.face.strain) * 0.05;
+}
+
+/** A hand closes on a body: it is held until thrown (physics.md §6). */
+export function grab(w: World, cr: Creature, l: Limb, tb: Body) {
+  tb.held = cr.id;
+  tb.data.grabT = w.t;
+  l.grabBody = tb.id;
+  w.emit({ type: 'grab', cr: cr.id, x: tb.x, y: tb.y });
 }
 
 function reachTo(w: World, cr: Creature, l: Limb, tx: number, ty: number, h: number) {
@@ -262,6 +287,7 @@ function holdAndThrow(w: World, cr: Creature, l: Limb, h: number) {
     const ux = away * 0.6,
       uy = -0.8;
     body.held = -1;
+    body.data.thrownAt = w.t;
     body.px = body.x - ux * sp * h;
     body.py = body.y - uy * sp * h;
     l.grabBody = -1;

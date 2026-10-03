@@ -2,7 +2,7 @@
 // the four lazy baselines mostly fail, and pacing sits in the level's window.
 import { World } from '../src/sim/world';
 import { startLevel, type LevelDef } from '../src/sim/level';
-import { arc, line, poly, scribbleBlob } from '../src/sim/canon';
+import { arc, line, poly, scrawl, scribbleBlob } from '../src/sim/canon';
 import { mulberry32 } from '../src/sim/rng';
 import type { Pt } from '../src/sim/geom';
 import { spawn, run } from './measure';
@@ -21,10 +21,11 @@ export function attempt(def: LevelDef, strokes: Pt[][], seed = 1, at = 0, limit 
   startLevel(w, def);
   if (at > 0) run(w, at);
   const crs = strokes.length ? spawn(w, strokes) : [];
+  const kinds = crs.map((c) => c.kind as string); // as born (a creature cut apart is re-read)
   const t0 = w.t;
   while (w.level!.result === 'play' && w.t - t0 < limit) run(w, 1 / 60);
   const L = w.level!;
-  return { result: L.result === 'play' ? 'timeout' : L.result, t: w.t - t0, cause: L.cause, kinds: crs.map((c) => c.kind), tears: w.totalTears };
+  return { result: L.result === 'play' ? 'timeout' : L.result, t: w.t - t0, cause: L.cause, kinds, tears: w.totalTears };
 }
 
 export function jitter(strokes: Pt[][], seed: number): Pt[][] {
@@ -62,27 +63,54 @@ export function jitter(strokes: Pt[][], seed: number): Pt[][] {
   return lift ? out.map((st) => st.map((p) => ({ x: p.x, y: p.y + lift }))) : out;
 }
 
-/** The four lazy drawings, placed near Little Guy on the side the first threat comes from. */
+/** Top of the level's terrain at x, at or below fromY (the floor if nothing else). */
+function groundAt(def: LevelDef, x: number, fromY: number): number {
+  const w = new World({ seed: 1, floor: def.floor !== false });
+  for (const t of def.terrain) w.addTerrain(t);
+  const y = w.groundY(x, fromY);
+  return isFinite(y) ? y : 1190;
+}
+
+/** The lazy drawings a real player tries (levels.md §3), placed near Little Guy on the side
+ *  the first threat comes from. `scrawl` and `scrawlWall` are one line gone over 8 times
+ *  (a dense, heavy bar) lying on the ground or standing as a wall; `pillar` is a tall line
+ *  standing between him and the threat; `cage` is a box drawn around him. */
 export function baselines(def: LevelDef): Record<string, Pt[][]> {
   const b = def.baseline ?? { x: def.guy.x, y: def.guy.y - 20 };
   const e = def.entities[0];
   const side = e ? Math.sign(e.x - def.guy.x) || -1 : -1;
   const gy = def.guy.y; // his feet
   const nx = b.x + side * 70; // just beside him, toward the threat
+  const wx = b.x + side * 50; // a wall between them
+  const sx = b.x + side * 100; // a bar laid in front of him, ending just short of him
+  const gs = groundAt(def, sx, gy - 200);
+  const gw = Math.min(groundAt(def, wx, gy - 200), gy);
   return {
     line: [line(nx - 100, gy - 60, nx + 100, gy - 60)],
     box: [poly([{ x: nx - 60, y: gy - 124 }, { x: nx + 60, y: gy - 124 }, { x: nx + 60, y: gy - 4 }, { x: nx - 60, y: gy - 4 }, { x: nx - 60, y: gy - 120 }])],
     roof: [arc(b.x, gy, 80, Math.PI, Math.PI * 2, 40).map((p) => ({ x: p.x, y: p.y - 4 }))],
     blob: [scribbleBlob(nx, gy - 45, 40, 18)],
+    scrawl: [scrawl(sx - 80, gs - 14, sx + 80, gs - 14, 8, 14)],
+    scrawlWall: [scrawl(wx, gw - 8, wx, gw - 178, 8, 16)],
+    pillar: [line(wx, gw - 6, wx + side * 4, gw - 246)],
+    cage: [poly([{ x: b.x - 55, y: gy - 96 }, { x: b.x + 55, y: gy - 96 }, { x: b.x + 55, y: gy - 3 }, { x: b.x - 55, y: gy - 3 }, { x: b.x - 55, y: gy - 92 }])],
   };
 }
+
+/** Lazy drawings that must never win a level where anatomy matters. */
+export const NEVER_WIN = ['roof', 'scrawl', 'scrawlWall'];
+/** Each baseline is played as drawn plus this many jittered placements... */
+export const BASE_JITTERS = 4;
+/** ...and counts as a win when it wins at least this many of those runs. */
+export const BASE_WINS = 2;
 
 export interface LevelReport {
   id: string;
   refs: string; // e.g. "3/3"
   refsOk: boolean;
   robust: number; // worst reference's win rate under jitter
-  base: Record<string, boolean>; // baseline → won
+  base: Record<string, boolean>; // baseline → counts as a win
+  baseRuns: Record<string, number>; // baseline → wins out of 1 + BASE_JITTERS runs
   baseOk: boolean;
   paceOk: boolean;
   pass: boolean;
@@ -96,7 +124,12 @@ export function validate(def: LevelDef, runs = 20): LevelReport {
   refRes.forEach((a, i) => {
     if (a.result !== 'win') notes.push(`ref ${def.refs[i].kind}: ${a.result}${a.cause ? ' (' + a.cause + ')' : ''}`);
   });
-  const kindsDistinct = new Set(def.refs.map((r) => r.kind)).size >= 3;
+  // the kinds the refs are actually born as (design §6), not just their labels
+  const born = refRes.map((a) => a.kinds[0] ?? 'none');
+  def.refs.forEach((r, i) => {
+    if (r.kind.toLowerCase() !== born[i]) notes.push(`ref ${r.kind} is born ${born[i]}`);
+  });
+  const kindsDistinct = new Set(born).size >= 3;
   if (!kindsDistinct) notes.push('refs need 3 different hero kinds');
   let robust = 1;
   def.refs.forEach((r, i) => {
@@ -106,14 +139,27 @@ export function validate(def: LevelDef, runs = 20): LevelReport {
     if (ok / runs < 0.8) notes.push(`ref ${r.kind} robust ${Math.round((100 * ok) / runs)}%`);
   });
   const base: Record<string, boolean> = {};
-  for (const [n, s] of Object.entries(baselines(def))) base[n] = attempt(def, s).result === 'win';
+  const baseRuns: Record<string, number> = {};
+  Object.entries(baselines(def)).forEach(([n, s], bi) => {
+    let wins = attempt(def, s).result === 'win' ? 1 : 0;
+    for (let k = 0; k < BASE_JITTERS; k++) if (attempt(def, jitter(s, 7000 + bi * 31 + k * 7), 3 + k).result === 'win') wins++;
+    baseRuns[n] = wins;
+    base[n] = wins >= BASE_WINS;
+  });
   const baseWins = Object.values(base).filter(Boolean).length;
-  const baseOk = !def.anatomyMatters || (baseWins <= 1 && !base.roof);
+  const baseOk = !def.anatomyMatters || (baseWins <= 1 && !NEVER_WIN.some((n) => base[n]));
   const [lo, hi] = def.window ?? [3, 12];
   const paceOk = refRes.every((a) => a.result !== 'win' || (a.t >= lo && a.t <= hi));
   if (!paceOk) notes.push(`pace ${refRes.map((a) => a.t.toFixed(1)).join('/')} s outside ${lo}–${hi}`);
   const refsOk = won === def.refs.length && def.refs.length >= 3;
-  return { id: def.id, refs: `${won}/${def.refs.length}`, refsOk: refsOk && kindsDistinct, robust, base, baseOk, paceOk, pass: refsOk && kindsDistinct && robust >= 0.8 && baseOk && paceOk, notes };
+  return { id: def.id, refs: `${won}/${def.refs.length}`, refsOk: refsOk && kindsDistinct, robust, base, baseRuns, baseOk, paceOk, pass: refsOk && kindsDistinct && robust >= 0.8 && baseOk && paceOk, notes };
+}
+
+/** "line✗ box✓2/5 …": ✓ marks a baseline that counts as a win, with its wins out of its runs. */
+export function baseText(r: LevelReport): string {
+  return Object.entries(r.base)
+    .map(([n, v]) => `${n}${v ? '✓' : '✗'}${r.baseRuns[n] ? r.baseRuns[n] + '/' + (1 + BASE_JITTERS) : ''}`)
+    .join(' ');
 }
 
 // npx tsx tools/levels.ts [id…]: print the table for some or all levels
@@ -123,9 +169,7 @@ if (process.argv[1]?.endsWith('levels.ts')) {
   const quick = want.includes('--quick');
   for (const def of ALL_LEVELS.filter((l) => !want.filter((x) => !x.startsWith('--')).length || want.includes(l.id))) {
     const r = validate(def, quick ? 5 : 20);
-    const b = Object.entries(r.base)
-      .map(([n, v]) => `${n}${v ? '✓' : '✗'}`)
-      .join(' ');
+    const b = baseText(r);
     console.log(`${r.pass ? '✓' : '✗'} ${def.id.padEnd(4)} refs ${r.refs}  robust ${Math.round(r.robust * 100)}%  base ${b}${r.notes.length ? '  — ' + r.notes.join('; ') : ''}`);
   }
 }

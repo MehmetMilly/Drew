@@ -113,17 +113,24 @@ function planLevel(w: World, cr: Creature, c: { x: number; y: number }) {
     const dist = F.hypot(th.x - gc.x, th.y - gc.y) - th.r - (th.hw ?? 0);
     const approach = F.hypot(th.x - th.sx, th.y - th.sy) / WORLD.dt;
     const soon = dist < senseRange(cr) + BRAIN.interceptExtra || dist < approach * BRAIN.predict;
-    if (th.kind === 'crusher') {
-      // brace: get between the wall and him, and lean into the wall
-      const face = th.x - side * th.hw!;
+    if (th.data.pusher) {
+      // brace (walls, boulders): get between it and him, plant the feet and lean into it
+      const face = th.x - side * (th.hw ?? th.r);
       const near = Math.abs(face - gc.x) < BRAIN.braceDist + cr.stats.w;
       plan = near || soon ? 'brace' : 'guard';
       tx = plan === 'brace' ? face - side * Math.max(4, half * 0.4) + side * BRAIN.bracePush : gc.x + side * (half + BRAIN.guardGap);
-      if (plan === 'brace') reach = { x: face, y: Math.min(gc.y - 20, c.y), body: th.id };
+      // a boulder is met close in front of him, not chased up its slope
+      if (plan === 'brace' && !th.hw) tx = side > 0 ? Math.min(tx, gc.x + half + BRAIN.braceMeet) : Math.max(tx, gc.x - half - BRAIN.braceMeet);
+      if (plan === 'brace') reach = th.hw ? { x: face, y: Math.min(gc.y - 20, c.y), body: th.id } : { x: th.x, y: th.y, body: th.id };
     } else if (soon) {
       plan = 'intercept';
       tx = gc.x + side * (half + BRAIN.guardGap);
-      reach = { x: th.x, y: th.y, body: th.id };
+      // spring arms punch (design §8): a puncher keeps the threat one punch away, on his side of it
+      let punch = 0;
+      for (const l of cr.limbs) if (!l.foot && l.spring >= 0) punch = Math.max(punch, l.len);
+      if (punch) tx = th.x - side * punch * BRAIN.punchStand;
+      // hands go for where it will be, not where it was
+      reach = { x: th.x + (th.x - th.sx) / WORLD.dt * BRAIN.lead, y: th.y + (th.y - th.sy) / WORLD.dt * BRAIN.lead, body: th.id };
     } else tx = gc.x + side * (half + BRAIN.guardGap);
   }
   // other creatures already guard that side: stand a little further out
