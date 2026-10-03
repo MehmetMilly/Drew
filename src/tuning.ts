@@ -23,7 +23,7 @@ export const BODY = {
   radius: 5,
   bendK: 0.25,
   weldDist: 9,
-  weldEndDist: 18,
+  weldEndDist: 28, // physics.md §1: real finger joins on a phone left 11–19 px gaps
   // physics.md §3: an end within max(22px, 15% of length) of its own start closes a loop
   closeMin: 22,
   closeFrac: 0.15,
@@ -42,6 +42,21 @@ export const CLASSIFY = {
   zigMinVerts: 4,
   zigMaxSeg: 45,
   zigMinAdvance: 0.5, // per-tooth progress vs tooth length: springs advance, shading does not
+  hugMaxFrac: 0.25, // an overshoot up to this fraction of its ring's ink...
+  hugDist: 30, // ...that stays this close to the ring is part of the loop
+  // rounded springs (wiggles): see findWave
+  waveSpacing: 6,
+  waveHystDeg: 60,
+  waveMinSwingDeg: 100, // each bend turns the pen at least this much...
+  waveMaxSwingDeg: 330, // ...but less than a full curl (that's a loop)
+  waveMaxBend: 320, // px of ink per bend
+  waveMinBends: 4, // ≈ teeth, like the sharp rule's 4 turns
+  waveMinAspect: 1.4,
+  waveStraightLen: 30, // a lead-in is straight when 30 px of it turns less than...
+  waveStraightDeg: 12,
+  waveLeadMul: 0.75, // ...and longer than this fraction of a typical tooth's ink
+  waveLeadMin: 40, // tooth height / tooth spacing
+  waveMinAdvance: 0.22, // chord / ink over the spring: shading barely advances
   scribbleRadius: 30,
   scribbleRatio: 4.5,
   scribbleRatioSmall: 3.6, // half-size window, catches small scribbled fists

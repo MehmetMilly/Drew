@@ -181,7 +181,66 @@ function fist(r: Rng): Fixture {
   return { name: 'fist', label: ['line', 'scribble'], pts: hand(r, poly(vs), lenOf(vs), 0.6) };
 }
 
-const GENS = [line, arc, sCurve, corner, loop, box, lollipop, zigzag, scribble, fist];
+/** A rounded spring (how most people draw one): a sine-ish wave with tall teeth, any angle. */
+function waveCurve(r: Rng, halves: number, h: number, A: number, lead0: number, lead1: number): { c: Curve; len: number } {
+  const ang = r() * 6.28,
+    sharp = 0.6 + r() * 0.5;
+  const W = halves * h;
+  const L = lead0 + W + lead1;
+  const ca = Math.cos(ang),
+    sa = Math.sin(ang);
+  const c: Curve = (t) => {
+    const u = t * L;
+    let y = 0;
+    if (u > lead0 && u < lead0 + W) {
+      const v = Math.sin((Math.PI * (u - lead0)) / h);
+      y = A * Math.sign(v) * Math.pow(Math.abs(v), sharp);
+    }
+    return { x: 360 + ca * (u - L / 2) - sa * y, y: 600 + sa * (u - L / 2) + ca * y };
+  };
+  return { c, len: L + halves * 2 * A };
+}
+function wiggle(r: Rng): Fixture {
+  const halves = 4 + Math.floor(r() * 6),
+    h = 25 + r() * 45;
+  const A = (h * (1.6 + r() * 1.9)) / 2; // tooth height / spacing 1.6–3.5
+  const { c, len } = waveCurve(r, halves, h, A, 0, 0);
+  return { name: 'wiggle', label: ['zigzag'], pts: hand(r, c, len) };
+}
+function leadWiggle(r: Rng): Fixture {
+  const halves = 4 + Math.floor(r() * 5),
+    h = 25 + r() * 40;
+  const A = (h * (1.6 + r() * 1.9)) / 2;
+  // leads clearly longer than one tooth's ink (shorter ones are honestly ambiguous)
+  const tooth = Math.hypot(h, 2 * A);
+  const lead = Math.max(60, tooth * (1 + r()));
+  const both = r() < 0.5;
+  const { c, len } = waveCurve(r, halves, h, A, lead, both ? Math.max(60, tooth * (1 + r())) : 0);
+  return { name: 'lead-wiggle', label: ['line', 'zigzag'], pts: hand(r, c, len) };
+}
+/** A deliberate hand wobble: many bends but low waves. Must stay a line. */
+function wobble(r: Rng): Fixture {
+  const halves = 4 + Math.floor(r() * 8),
+    h = 30 + r() * 50;
+  const A = (h * (0.15 + r() * 0.6)) / 2; // tooth height / spacing 0.15–0.75
+  const { c, len } = waveCurve(r, halves, h, A, r() * 40, r() * 40);
+  return { name: 'wobble', label: ['line'], pts: hand(r, c, len) };
+}
+/** A circle that runs past its start, the overshoot riding alongside the ring. */
+function overshoot(r: Rng): Fixture {
+  const R = 40 + r() * 110,
+    extra = 0.25 + r() * 0.75,
+    drift = (r() < 0.5 ? -1 : 1) * (4 + r() * 14);
+  const a0 = r() * 6.28,
+    sweep = Math.PI * 2 + extra;
+  const c: Curve = (t) => {
+    const rr = R + drift * t;
+    return { x: 360 + rr * Math.cos(a0 + sweep * t), y: 600 + rr * Math.sin(a0 + sweep * t) };
+  };
+  return { name: 'overshoot', label: ['loop'], pts: hand(r, c, R * sweep) };
+}
+
+const GENS = [line, arc, sCurve, corner, loop, box, lollipop, zigzag, scribble, fist, wiggle, leadWiggle, wobble, overshoot];
 
 export function generateFixtures(seed: number, perKind: number): Fixture[] {
   const r = mulberry32(seed);

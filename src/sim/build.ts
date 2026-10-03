@@ -83,6 +83,7 @@ export function buildBodies(w: World, strokes: readonly (readonly PenPt[])[]): B
     const ends: number[] = [];
     let prevEnd = -1;
     const firstPts = strokes[si] as PenPt[];
+    const hugs: number[][] = []; // overshoot pieces to weld flat onto their ring
     const t0 = firstPts[0]?.t ?? 0;
     cl.parts.forEach((part: Part, pi) => {
       const pts = part.pts as PenPt[];
@@ -133,6 +134,7 @@ export function buildBodies(w: World, strokes: readonly (readonly PenPt[])[]): B
           }
           out.loops.push({ ring: pid.slice(), links: segC.slice(), area: part.area });
         }
+        if (part.hug) hugs.push(pid);
         // skin: arclength of each particle along the drawn path
         bindChain(sk, pts, pid, segC, closed, P);
         for (const i of pid) if (!ids.includes(i)) ids.push(i);
@@ -220,6 +222,25 @@ export function buildBodies(w: World, strokes: readonly (readonly PenPt[])[]): B
         prevEnd = nearest(last.x, last.y);
       }
     });
+    // overshoots lie along their ring: weld each particle to the nearest ring particle so
+    // the piece rides on the loop instead of becoming a free limb
+    if (hugs.length) {
+      const ring = out.loops.flatMap((l) => l.ring).filter((i) => P.stroke[i] === si);
+      for (const pid of hugs)
+        for (const i of pid) {
+          let best = -1,
+            bd = Infinity;
+          for (const j of ring) {
+            if (j === i) continue;
+            const d = F.hypot(P.x[j] - P.x[i], P.y[j] - P.y[i]);
+            if (d < bd) {
+              bd = d;
+              best = j;
+            }
+          }
+          if (best >= 0) link(i, best, 1, CT.WELD);
+        }
+    }
     strokeIds.push(ids);
     strokeEnds.push(ends);
   });

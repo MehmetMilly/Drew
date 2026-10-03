@@ -4,7 +4,7 @@
 
 import * as F from './fmath';
 import { CLASSIFY, BODY } from '../tuning';
-import { Pt, centroidOf, dist, pathLength, polyArea, rdp, resample, segIntersect, turnAngle, convexHull } from './geom';
+import { Pt, centroidOf, closestOnSeg, dist, pathLength, polyArea, rdp, resample, segIntersect, turnAngle, convexHull } from './geom';
 
 export type MarkKind = 'line' | 'loop' | 'zigzag' | 'scribble';
 
@@ -16,6 +16,8 @@ export interface Part {
   area: number;
   /** Ink length of the drawn points that made this part (for mass). */
   ink: number;
+  /** A short overshoot that runs along its loop's ring: part of the loop, welded flat to it. */
+  hug?: boolean;
 }
 
 export interface Classified {
@@ -249,6 +251,109 @@ function findZigzag(p: Pt[]): { a: number; b: number } | null {
   return { a: idx[a], b: idx[b] };
 }
 
+/** Rounded springs: most people draw a spring as a wiggle, not sharp teeth. Track the
+ *  stroke's cumulative heading on a smoothed copy; every swing of the heading by at
+ *  least waveSwingDeg (with hysteresis) is one bend. Four or more alternating bends of
+ *  bounded size that make forward progress are a spring. */
+function findWave(p: Pt[]): { a: number; b: number } | null {
+  const SP = CLASSIFY.waveSpacing;
+  let q = resample(p, SP);
+  if (q.length < 12) return null;
+  for (let pass = 0; pass < 2; pass++)
+    q = q.map((v, k) => (k === 0 || k === q.length - 1 ? v : { x: (q[k - 1].x + 2 * v.x + q[k + 1].x) / 4, y: (q[k - 1].y + 2 * v.y + q[k + 1].y) / 4 }));
+  const n = q.length;
+  // cumulative heading θ at each segment
+  const th: number[] = [F.atan2(q[1].y - q[0].y, q[1].x - q[0].x)];
+  for (let k = 1; k < n - 1; k++) {
+    let d = F.atan2(q[k + 1].y - q[k].y, q[k + 1].x - q[k].x) - F.atan2(q[k].y - q[k - 1].y, q[k].x - q[k - 1].x);
+    while (d > Math.PI) d -= 2 * Math.PI;
+    while (d < -Math.PI) d += 2 * Math.PI;
+    th.push(th[k - 1] + d);
+  }
+  // heading extrema with hysteresis = inflection points between bends
+  const H = (CLASSIFY.waveHystDeg * Math.PI) / 180;
+  const ext: number[] = [0];
+  let dir = 0,
+    hi = 0,
+    lo = 0;
+  for (let k = 1; k < th.length; k++) {
+    if (th[k] > th[hi]) hi = k;
+    if (th[k] < th[lo]) lo = k;
+    if (dir >= 0 && th[hi] - th[k] > H) {
+      if (hi > 0) ext.push(hi);
+      dir = -1;
+      lo = k;
+    } else if (dir <= 0 && th[k] - th[lo] > H) {
+      if (lo > 0) ext.push(lo);
+      dir = 1;
+      hi = k;
+    }
+  }
+  ext.push(th.length - 1);
+  // longest run of good swings
+  const minSw = (CLASSIFY.waveMinSwingDeg * Math.PI) / 180,
+    maxSw = (CLASSIFY.waveMaxSwingDeg * Math.PI) / 180;
+  let best = { a: -1, b: -1, len: 0 },
+    runA = -1,
+    run = 0;
+  for (let i = 1; i < ext.length; i++) {
+    const sw = Math.abs(th[ext[i]] - th[ext[i - 1]]);
+    const arc = (ext[i] - ext[i - 1]) * SP;
+    // end pieces count only when they are a full bend themselves (a lead-in turns far less)
+    if (sw >= minSw && sw <= maxSw && arc <= CLASSIFY.waveMaxBend) {
+      if (run === 0) runA = i - 1;
+      run++;
+      if (run > best.len) best = { a: runA, b: i, len: run };
+    } else run = 0;
+  }
+  if (best.len < CLASSIFY.waveMinBends) return null;
+  // the spring runs to the stroke's ends, unless an end is a straight lead-in longer than a
+  // typical tooth: that's a line attached to the spring (a tooth's own flank is shorter)
+  const W = Math.max(2, Math.round(CLASSIFY.waveStraightLen / SP));
+  const flat = (CLASSIFY.waveStraightDeg * Math.PI) / 180;
+  const bends: number[] = [];
+  for (let i = best.a + 1; i <= best.b; i++) bends.push((ext[i] - ext[i - 1]) * SP);
+  bends.sort((x, y) => x - y);
+  const tooth = bends[bends.length >> 1];
+  let s0 = 0;
+  while (s0 + W < ext[best.a] && Math.abs(th[s0 + W] - th[s0]) < flat) s0++;
+  const isLead = (len: number) => len >= CLASSIFY.waveLeadMin && len > CLASSIFY.waveLeadMul * tooth;
+  const a = s0 > 0 && isLead((s0 + W) * SP) ? s0 + (W >> 1) : 0;
+  let s1 = th.length - 1;
+  while (s1 - W > ext[best.b] && Math.abs(th[s1] - th[s1 - W]) < flat) s1--;
+  const b = s1 < th.length - 1 && isLead((th.length - 1 - s1 + W) * SP) ? s1 - (W >> 1) : n - 1;
+  let arcLen = 0;
+  for (let k = a + 1; k <= b; k++) arcLen += dist(q[k - 1], q[k]);
+  const chord = dist(q[a], q[b]);
+  if (chord / arcLen < CLASSIFY.waveMinAdvance) return null; // shading, not a spring
+  // teeth must be tall for their spacing: a hand wobble has big turns but low waves
+  const ux = (q[b].x - q[a].x) / chord,
+    uy = (q[b].y - q[a].y) / chord;
+  let mn = Infinity,
+    mx = -Infinity;
+  for (let k = a; k <= b; k++) {
+    const off = (q[k].x - q[a].x) * -uy + (q[k].y - q[a].y) * ux;
+    mn = Math.min(mn, off);
+    mx = Math.max(mx, off);
+  }
+  const ia0 = ext[best.a],
+    ib0 = ext[best.b];
+  const spacing = Math.abs((q[ib0].x - q[ia0].x) * ux + (q[ib0].y - q[ia0].y) * uy) / best.len;
+  const aspect = (mx - mn) / Math.max(1, spacing);
+  if (aspect < CLASSIFY.waveMinAspect) return null;
+  // map back to indices on p by arclength
+  const cum: number[] = [0];
+  for (let k = 1; k < p.length; k++) cum.push(cum[k - 1] + dist(p[k - 1], p[k]));
+  const at = (s: number) => {
+    let k = 0;
+    while (k < p.length - 1 && cum[k] < s) k++;
+    return k;
+  };
+  const ia = a === 0 ? 0 : at(a * SP),
+    ib = b === n - 1 ? p.length - 1 : at(b * SP);
+  return ib - ia >= 4 ? { a: ia, b: ib } : null;
+}
+
 /** How far a zigzag progresses per tooth relative to its tooth length (springs ~0.3+, shading ~0.1). */
 function zigAdvance(p: Pt[]): number {
   const idx = rdp(p, CLASSIFY.rdpEps);
@@ -279,13 +384,36 @@ function splitLoops(p: Pt[], out: Part[]) {
   const ringPts = cut.join ? [cut.join, ...p.slice(cut.a, cut.b + 1)] : p.slice(cut.a, cut.b + 1);
   const head = cut.join ? [...p.slice(0, cut.a), cut.join] : p.slice(0, cut.a + 1);
   const tail = cut.join ? [cut.join, ...p.slice(cut.b + 1)] : p.slice(cut.b);
-  if (pathLength(head) > 4) splitZigzags(head, out);
+  const ringInk = pathLength(ringPts);
+  if (pathLength(head) > 4) {
+    if (hugs(head, ringPts, ringInk)) out.push({ ...mkPart('line', head), hug: true });
+    else splitZigzags(head, out);
+  }
   out.push(mkPart('loop', ringPts, cut.area));
-  if (pathLength(tail) > 4) splitLoops(tail, out);
+  if (pathLength(tail) > 4) {
+    if (hugs(tail, ringPts, ringInk)) out.push({ ...mkPart('line', tail), hug: true });
+    else splitLoops(tail, out);
+  }
+}
+
+/** Is this piece a sloppy overshoot of the ring: short, and never leaving the ring's side? */
+function hugs(piece: Pt[], ring: Pt[], ringInk: number): boolean {
+  if (pathLength(piece) > CLASSIFY.hugMaxFrac * ringInk) return false;
+  for (const q of resample(piece, 6)) {
+    let best = Infinity;
+    for (let k = 0; k < ring.length; k++) {
+      const a = ring[k],
+        b = ring[(k + 1) % ring.length];
+      const c = closestOnSeg(q.x, q.y, a.x, a.y, b.x, b.y);
+      best = Math.min(best, F.hypot(q.x - c.x, q.y - c.y));
+    }
+    if (best > CLASSIFY.hugDist) return false;
+  }
+  return true;
 }
 
 function splitZigzags(p: Pt[], out: Part[]) {
-  const z = findZigzag(p);
+  const z = findZigzag(p) ?? findWave(p);
   if (!z) {
     out.push(mkPart('line', p));
     return;
@@ -353,5 +481,5 @@ export function classifyStroke(raw: readonly Pt[]): Classified {
 
 /** Kinds of the significant parts (ignores slop tails under 20px), for fixtures and nameplates. */
 export function partSummary(c: Classified, minLine = 20): MarkKind[] {
-  return c.parts.filter((p) => p.kind !== 'line' || p.ink >= minLine).map((p) => p.kind);
+  return c.parts.filter((p) => !p.hug && (p.kind !== 'line' || p.ink >= minLine)).map((p) => p.kind);
 }

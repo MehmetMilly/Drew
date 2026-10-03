@@ -22,7 +22,7 @@ The result is creatures that look purposeful but succeed or fail because of the 
 1. Capture with pointer events, using `getCoalescedEvents()` for density and `getPredictedEvents()` for drawing latency only (never store predicted points). Read `pressure` where it is meaningful, as with a pencil.
 2. Smooth with a 1€ filter tuned so fast flicks stay sharp and slow wobbles are calmed. Render the live stroke straight from the input on an overlay canvas. Perceived latency must be under one frame.
 3. Keep the full-resolution points for rendering. Resample a copy at **10 px spacing** for physics.
-4. **Snapping (finger slop)**: a stroke end within 18 px of another stroke welds to it, and a stroke end within max(22 px, 15% of the stroke's length) of its own start closes a loop.
+4. **Snapping (finger slop)**: a stroke end within 28 px of another stroke welds to it, and a stroke end within max(22 px, 15% of the stroke's length) of its own start closes a loop.
 
 ### Classification
 
@@ -46,7 +46,7 @@ Unit-test the classifier against labelled fixtures, aiming for 95% agreement:
 - **Constraints**:
   - Chain links: stiffness 1.
   - Bending (i to i+2): stiffness about 0.25.
-  - Welds: wherever particles of different strokes come within 9 px (18 px at stroke ends).
+  - Welds: wherever particles of different strokes come within 9 px (28 px at stroke ends).
   - Loop closure: the same as chain links.
 - **Springs**: replace the zigzag span with one actuated distance constraint between its end particles (rest length = their distance), plus a few soft guide particles for drawing. The render keeps the drawn zigzag, stretched along the spring axis.
 - **Lumps**: a ring of particles around the hull plus a centre particle, with mass × 5 per unit of ink. Render the original scribble skinned to the lump frame.
