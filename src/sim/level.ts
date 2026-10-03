@@ -2,14 +2,16 @@
 // watches Little Guy's fate and the goal each step, and keeps an event log for
 // epitaphs and money moments. Pure and deterministic.
 import * as F from './fmath';
-import { BODY, GUY, LEVEL, WORLD } from '../tuning';
+import { ACT, BODY, GUY, LEVEL, WORLD } from '../tuning';
 import { spawnEntity, attacking, type Entity } from './hazards';
 import { PF } from './store';
-import { spawnGuy, thinkGuy, killGuy, guyCentre, type GuyHat } from './littleguy';
+import { spawnGuy, thinkGuy, killGuy, guyCentre, dismount, hopDown, type Guy, type GuyHat } from './littleguy';
 import type { Pt } from './geom';
 import type { World, Body } from './world';
+import type { Creature } from './creature';
 
-export type Goal = { type: 'hug' } | { type: 'save'; seconds: number };
+/** HOME: the flag's foot stands at (x, y) on the ground; the pole is LEVEL.flagH tall. */
+export type Goal = { type: 'hug' } | { type: 'save'; seconds: number } | { type: 'home'; x: number; y: number };
 
 export interface RefSolution {
   kind: string; // the hero kind it is meant to be (design §6)
@@ -48,6 +50,7 @@ export interface LevelRun {
   hugger: number;
   seen: number; // events processed
   squeezeT: number; // s he has been squeezed by ink a pusher is shoving
+  stallT?: number; // HOME: s his carrier has made no progress
   log: { t: number; type: string; cr?: number; v?: number; text?: string }[];
 }
 
@@ -97,10 +100,11 @@ export function levelStep(w: World) {
       const c = guyCentre(w, g);
       if (F.hypot(c.x - e.x!, c.y - e.y!) < GUY.blastKill) killGuy(w, g, 'blast');
     }
-    if (['born', 'piece', 'graft', 'tear', 'boom', 'grab', 'throw', 'punch', 'knock', 'guyDied', 'ninjaLeap', 'fell'].includes(e.type)) L.log.push({ t: e.t, type: e.type, cr: e.cr, text: e.text });
+    if (['born', 'piece', 'graft', 'tear', 'boom', 'grab', 'throw', 'punch', 'knock', 'guyDied', 'ninjaLeap', 'fell', 'board', 'jump'].includes(e.type)) L.log.push({ t: e.t, type: e.type, cr: e.cr, text: e.text });
   }
   if (L.startedAt < 0 && w.t >= LEVEL.autoStart) L.startedAt = w.t;
   const th = mainThreat(w);
+  if (L.def.goal.type === 'home' && g.alive && L.result === 'play') board(w, g);
   thinkGuy(w, g, th ? { x: th.x, y: th.y } : null);
   if (L.result !== 'play') return;
 
@@ -114,6 +118,20 @@ export function levelStep(w: World) {
   const goal = L.def.goal;
   if (goal.type === 'save') {
     if (L.startedAt >= 0 && w.t - L.startedAt >= goal.seconds) win(w);
+  } else if (goal.type === 'home') {
+    const c = guyCentre(w, g);
+    // carried too high over the flag (a giant's shoulder): he is let down and drops to it
+    if (Math.abs(c.x - goal.x) < GUY.homeDist && c.y <= goal.y - LEVEL.flagH - GUY.height && (g.ride >= 0 || g.heldBy >= 0)) {
+      dismount(g);
+      g.heldBy = -1;
+      g.heldTip = -1;
+    }
+    if (Math.abs(c.x - goal.x) < GUY.homeDist && c.y < goal.y + 10 && c.y > goal.y - LEVEL.flagH - GUY.height) {
+      dismount(g);
+      g.heldBy = -1;
+      g.heldTip = -1;
+      win(w);
+    }
   } else if (goal.type === 'hug') {
     const c = guyCentre(w, g);
     let who = -1;
@@ -133,6 +151,84 @@ export function levelStep(w: World) {
       win(w);
     }
   }
+}
+
+/** The highest point of a creature's body (not a limb tip): where he perches. */
+export function perchOf(w: World, cr: { ids: number[]; limbs: { chain: number[]; root: number }[] }): number {
+  const limb = new Set<number>();
+  for (const l of cr.limbs) for (const i of l.chain) if (i !== l.root) limb.add(i);
+  let best = -1;
+  for (const i of cr.ids) if (!limb.has(i) && (best < 0 || w.P.y[i] < w.P.y[best])) best = i;
+  return best;
+}
+
+/** Can one of this creature's (non-spring) hands reach him where he stands? */
+export function handCanReach(w: World, cr: (typeof w.creatures)[number], g: Guy): boolean {
+  const P = w.P;
+  return cr.limbs.some((l) => !l.foot && l.spring < 0 && F.hypot(P.x[g.chest] - P.x[l.root], P.y[g.chest] - P.y[l.root]) < l.len * ACT.reachEnvelope * 0.95);
+}
+
+/** HOME (design §8 Carry, §10): he walks slowly to a creature that waits for him, and climbs on
+ *  when it is low enough; a taller one has to lift him with a hand (the brain reaches). */
+/** HOME: can Little Guy get onto this creature (a hand lifts him, or the top is scrambleable)? */
+export function canCarry(w: World, cr: Creature, g: Guy) {
+  const P = w.P;
+  const feet = Math.max(P.y[g.footL], P.y[g.footR]);
+  return feet - P.y[perchOf(w, cr)] <= GUY.scrambleMax || handCanReach(w, cr, g);
+}
+
+function board(w: World, g: Guy) {
+  const P = w.P;
+  if (g.ride >= 0) {
+    const cr = w.creatures[g.ride];
+    g.upsideT = cr ? cr.face.upsideT : 99;
+    g.walkTo = null;
+    // a carrier stalled near the flag (a wall, the page edge) lets him hop down for the last steps
+    const goal = w.level!.def.goal as { x: number; y: number };
+    const c = guyCentre(w, g);
+    const ce = cr ? w.centroid(cr) : c;
+    const moving = cr ? Math.abs(cr.brain.wantVx) > 5 && F.hypot(ce.x - (cr.lastX ?? ce.x), 0) > 0.3 : false;
+    if (cr) cr.lastX = ce.x;
+    w.level!.stallT = moving ? 0 : (w.level!.stallT ?? 0) + WORLD.dt;
+    if (Math.abs(c.x - goal.x) < GUY.flagWalk && w.level!.stallT > GUY.stallDrop && w.t - g.rideAt > g.climbFor) hopDown(w, g, goal.x);
+    return;
+  }
+  if (g.heldBy >= 0) return void (g.walkTo = null);
+  const grounded = (P.flags[g.footL] | P.flags[g.footR]) & PF.GROUND;
+  const c = guyCentre(w, g);
+  const goal = w.level!.def.goal as { x: number; y: number };
+  // the last few steps home he walks himself (a carrier that can't get closer set him down)
+  if (Math.abs(c.x - goal.x) < GUY.flagWalk && Math.abs(c.y - (goal.y - GUY.height / 2)) < GUY.height) return void (g.walkTo = goal.x);
+  const feet = Math.max(P.y[g.footL], P.y[g.footR]);
+  let best: { cr: (typeof w.creatures)[number]; gap: number; x: number } | null = null;
+  for (const cr of w.creatures) {
+    if (!cr.alive || cr.brain.plan !== 'carry' || w.t < cr.brain.actAt) continue;
+    let x0 = Infinity,
+      x1 = -Infinity;
+    for (const i of cr.ids) (x0 = Math.min(x0, P.x[i])), (x1 = Math.max(x1, P.x[i]));
+    const gap = c.x < x0 ? x0 - c.x : c.x > x1 ? c.x - x1 : 0;
+    if (!best || gap < best.gap) best = { cr, gap, x: (x0 + x1) / 2 };
+  }
+  // nobody can carry him but someone is leading him: he walks home behind it
+  if (!best) return void (g.walkTo = w.creatures.some((cr) => cr.alive && cr.brain.plan === 'escort') ? goal.x : null);
+  if (best.gap > LEVEL.boardSee) return void (g.walkTo = null);
+  const p = perchOf(w, best.cr);
+  const tall = feet - P.y[p] > GUY.climbMax;
+  const lift = tall && handCanReach(w, best.cr, g);
+  // too tall to scramble up and no hand to lift him: he walks home with it beside him
+  if (!lift && feet - P.y[p] > GUY.scrambleMax) return void (g.walkTo = goal.x);
+  if (best.gap < GUY.boardDist && grounded && !lift) {
+    // climb on: a quick hop onto a low top, a scramble up a tall one (the soft attachment pulls)
+    g.ride = best.cr.id;
+    g.perch = p;
+    g.rideAt = w.t;
+    g.climbFor = tall ? (feet - P.y[p]) / GUY.scrambleSpeed + GUY.climbTime : GUY.climbTime;
+    g.walkTo = null;
+    w.emit({ type: 'board', cr: best.cr.id, x: c.x, y: c.y });
+    return;
+  }
+  // walk to it unless it is lifting him or already right here
+  g.walkTo = lift || best.gap < GUY.boardDist ? null : best.x;
 }
 
 function win(w: World) {

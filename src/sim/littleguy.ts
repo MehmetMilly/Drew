@@ -2,7 +2,7 @@
 // stands (a gentle upright servo while a foot touches ground), cowers, flails
 // when grabbed or flung, and dies in a comic poof. Pure and deterministic.
 import * as F from './fmath';
-import { GUY, WORLD } from '../tuning';
+import { BODY, GUY, WORLD } from '../tuning';
 import { CT, PF } from './store';
 import type { World } from './world';
 
@@ -33,6 +33,19 @@ export interface Guy {
   lookY: number;
   seenBorn: Set<number>; // creatures he has already looked at
   kick: number; // leg-kick phase while held
+  /** HOME: the creature he rides (-1) and the particle he perches on */
+  ride: number;
+  perch: number;
+  /** HOME: the hand tip holding him (heldBy is the creature) */
+  heldTip: number;
+  /** HOME: x he is walking to (a creature waiting for him), null when standing */
+  walkTo: number | null;
+  /** s the ridden creature has been upside down */
+  upsideT: number;
+  rideAt: number; // when he climbed on (the hop up is forgiven the slip test)
+  hopFrom: number; // the carrier he just hopped off (no collision with it until hopUntil)
+  hopUntil: number;
+  climbFor: number; // s the climb may take (a scramble up a giant takes longer)
 }
 
 /** Stand Little Guy with his feet on y = groundY at x. */
@@ -88,6 +101,15 @@ export function spawnGuy(w: World, x: number, groundY: number, hat: GuyHat = 'no
     lookY: groundY - 30,
     seenBorn: new Set(),
     kick: 0,
+    ride: -1,
+    perch: -1,
+    heldTip: -1,
+    walkTo: null,
+    upsideT: 0,
+    rideAt: -9,
+    climbFor: 0,
+    hopFrom: -1,
+    hopUntil: -9,
   };
 }
 
@@ -113,9 +135,20 @@ export function actuateGuy(w: World, g: Guy, h: number) {
   if (!g.alive) return;
   const P = w.P;
   const grounded = (P.flags[g.footL] | P.flags[g.footR]) & PF.GROUND;
+  if (g.ride >= 0 && ride(w, g, h)) return;
+  if (g.heldBy >= 0 && g.heldTip >= 0 && held(w, g, h)) {
+    g.kick += h * 14;
+    return;
+  }
   if (!grounded || g.heldBy >= 0) {
     g.kick += h * 14;
     return;
+  }
+  // his slow walk to a creature that waits for him
+  if (g.walkTo !== null) {
+    const dir = Math.sign(g.walkTo - P.x[g.hip]);
+    g.facing = dir || g.facing;
+    for (const i of g.ids) servoV(w, i, dir * GUY.walkSpeed, null, GUY.walkGain, h);
   }
   const hx = P.x[g.hip],
     hy = P.y[g.hip];
@@ -135,6 +168,77 @@ export function actuateGuy(w: World, g: Guy, h: number) {
     pull(g.chest, (P.x[g.footL] + P.x[g.footR]) / 2, hy - 10 + crouch * 0.5, GUY.standGain);
   }
   void hx;
+}
+
+/** Velocity servo on one of his particles (vy null: leave vertical alone). */
+function servoV(w: World, i: number, vx: number, vy: number | null, k: number, h: number) {
+  const P = w.P;
+  const cx = (P.x[i] - P.px[i]) / h,
+    cy = (P.y[i] - P.py[i]) / h;
+  P.px[i] = P.x[i] - (cx + (vx - cx) * k) * h;
+  if (vy !== null) P.py[i] = P.y[i] - (cy + (vy - cy) * k) * h;
+}
+
+/** Riding: feet servo softly onto the perch, body upright above it. False once he falls off. */
+function ride(w: World, g: Guy, h: number): boolean {
+  const P = w.P;
+  const cr = w.creatures[g.ride];
+  const p = g.perch;
+  if (!cr || !cr.alive || !(P.flags[p] & PF.ALIVE)) return (dismount(g), false);
+  const top = P.y[p] - BODY.radius - GUY.radius;
+  const fx = (P.x[g.footL] + P.x[g.footR]) / 2,
+    fy = (P.y[g.footL] + P.y[g.footR]) / 2;
+  const climbing = w.t - g.rideAt < g.climbFor;
+  if ((!climbing && F.hypot(fx - P.x[p], fy - top) > GUY.rideSlip) || g.upsideT > GUY.upsideFall) return (dismount(g), false);
+  const to = (i: number, tx: number, ty: number) => {
+    let vx = (tx - P.x[i]) * GUY.rideRate,
+      vy = (ty - P.y[i]) * GUY.rideRate;
+    // the hop up is quick but not a teleport; a tall one is a scramble
+    const cap = top < P.y[g.footL] - GUY.climbMax ? GUY.scrambleSpeed : GUY.climbSpeed;
+    const s = F.hypot(vx, vy);
+    if (s > cap) (vx *= cap / s), (vy *= cap / s);
+    servoV(w, i, vx + (P.x[p] - P.px[p]) / h, vy + (P.y[p] - P.py[p]) / h, GUY.rideGain, h);
+  };
+  to(g.footL, P.x[p] - 5, top);
+  to(g.footR, P.x[p] + 5, top);
+  to(g.hip, P.x[p], top - 12);
+  to(g.chest, P.x[p], top - 22);
+  to(g.head, P.x[p], top - 32);
+  return true;
+}
+
+/** Carried in a hand: his chest hangs from the tip; he kicks. False once the hold breaks. */
+function held(w: World, g: Guy, h: number): boolean {
+  const P = w.P;
+  const t = g.heldTip;
+  const cr = w.creatures[g.heldBy];
+  if (!cr || !cr.alive || !(P.flags[t] & PF.ALIVE) || F.hypot(P.x[g.chest] - P.x[t], P.y[g.chest] - P.y[t]) > GUY.holdSlip) {
+    g.heldBy = -1;
+    g.heldTip = -1;
+    return false;
+  }
+  const vx = (P.x[t] - P.px[t]) / h,
+    vy = (P.y[t] - P.py[t]) / h;
+  servoV(w, g.chest, vx + (P.x[t] - P.x[g.chest]) * GUY.rideRate, vy + (P.y[t] + 6 - P.y[g.chest]) * GUY.rideRate, GUY.rideGain, h);
+  servoV(w, g.hand, vx + (P.x[t] - P.x[g.hand]) * GUY.rideRate, vy + (P.y[t] - P.y[g.hand]) * GUY.rideRate, GUY.rideGain, h);
+  return true;
+}
+
+/** Hop off the carrier toward x (the flag): a little leap that passes through the carrier. */
+export function hopDown(w: World, g: Guy, x: number) {
+  const dir = Math.sign(x - guyCentre(w, g).x) || 1;
+  g.hopFrom = g.ride >= 0 ? g.ride : g.heldBy;
+  g.hopUntil = w.t + GUY.hopClear;
+  dismount(g);
+  g.heldBy = -1;
+  const h = WORLD.dt / WORLD.substeps;
+  for (const i of g.ids) servoV(w, i, dir * GUY.hopVx, -GUY.hopVy, 1, h);
+}
+
+export function dismount(g: Guy) {
+  g.ride = -1;
+  g.perch = -1;
+  g.upsideT = 0;
 }
 
 /** Per frame: where he looks, startle at big newborns, cower at threats, hold the hug. */

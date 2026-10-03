@@ -105,3 +105,13 @@ Gate 3 verdict: "the stupid solution is the one that usually wins". In 1-5 the t
 - **Response**: the lazy set now includes a scrawl (a line gone over 8 times, lying and standing), a pillar and a cage, each run as drawn plus 4 jittered placements. 1-2..1-5 are `anatomyMatters`. Hazards beat passive ink: the ninja cuts through and vaults over still ink and is stopped only by a catch, a throw or a hard hit; boulders grind through ink that isn't bracing them; the wall cuts through what stalls it. Details are in the level-author entry. The win flow is now replay first, then the stamp slams with the end card.
 - **Known weak**: 1-4 is still beaten by a big dome (bombs roll off it beyond the blast radius). It needs a new threat idea, revisited in Phase 4.
 - Tagged `gate-3`.
+
+## 2026-10-03 — Phase 4: HOME goal and carrying (design §8, §10)
+
+- **HOME**: a flag (felt pole, yellow pennant, `LEVEL.flagH` 110). He wins when his centre is within `GUY.homeDist` of the flag and inside the pole's height. Carried too high above it, he is set down.
+- **Boarding**: a creature on plan `carry` waits beside him on the flag side. He walks to it and hops on (top ≤ `climbMax`) or scrambles up (≤ `scrambleMax` 500). A tall creature whose hand can reach him lifts him instead. He rides on the highest body particle with a soft velocity servo, and rider and carrier don't collide.
+- **Carrying**: the carrier aims to put *him* over the flag (`tx = flag + carrier − him`), with a tight arrival whatever its width. Spring legs jump at walls, ledges, gaps or a flag above.
+- **Stalls**: a carrier stalled within `flagWalk` of the flag (a wall, the page edge) lets him hop down toward it, passing through the carrier for 0.5 s, and he walks the last steps.
+- **Escort**: a creature too tall to ride with no hand that reaches him leads him home a step ahead. He walks between its legs, so escorts don't collide with him. Before this, the giant had him scrambling up 800 px.
+- **Brain bug fixed**: the plan-change check compared `reach?.body ?? -2` with a stored `-1`, so a creature on guard re-decided every frame and `actAt` never arrived. With the fix, guard and carry act on time. 1-2's giant ref moved from x 300 to 400 because 300 now lands under the boulder's path (the other placements win 5/5).
+- `LEVEL.cardDelay` is unused now that the end card follows the stamp.

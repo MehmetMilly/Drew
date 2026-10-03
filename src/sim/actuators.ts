@@ -130,10 +130,18 @@ export function actuate(w: World, cr: Creature, h: number) {
   }
   // ---------------- held things: carry, then throw up and away from Little Guy
   for (const l of hands) if (l.grabBody >= 0) holdAndThrow(w, cr, l, h);
+  // carrying Little Guy in a hand: hold him up by the shoulder, out of the way of the feet
+  const guy = w.guy;
+  const holding = guy && guy.alive && guy.heldBy === cr.id ? hands.find((l) => l.tip === guy.heldTip) : undefined;
+  if (holding) {
+    const dir = b.dir || 1;
+    reachTo(w, cr, holding, P.x[holding.root] + dir * holding.len * 0.4, P.y[holding.root] - holding.len * 0.6, h);
+    react(w, cr, new Set(holding.chain), h);
+  }
   if (acting && b.hasReach) {
     const range = senseRange(cr);
     for (const l of hands) {
-      if (l.grabBody >= 0) continue;
+      if (l.grabBody >= 0 || l === holding) continue;
       const tip = l.tip;
       const d = F.hypot(b.reachX - P.x[tip], b.reachY - P.y[tip]);
       if (d > range) continue;
@@ -163,11 +171,22 @@ export function actuate(w: World, cr: Creature, h: number) {
         if (F.hypot(qx - fx, qy - fy) < rr + ACT.punchAim) trigger(sp, 'punch');
         continue;
       }
+      // carry: the tip closes on Little Guy (design §8: a free hand grabs)
+      // (any of his particles: the tip touching him shoves him, so it rarely reaches his chest)
+      if (b.reachGuy && guy && guy.alive && guy.heldBy < 0 && guy.ride < 0 && !holding && guy.ids.some((i) => F.hypot(P.x[i] - P.x[tip], P.y[i] - P.y[tip]) < ACT.grabGuy)) {
+        guy.heldBy = cr.id;
+        guy.heldTip = tip;
+        guy.walkTo = null;
+        w.emit({ type: 'grab', cr: cr.id, x: P.x[tip], y: P.y[tip] });
+        continue;
+      }
       // grab: the tip closes on a grabbable it wants
       const tb = b.targetBody >= 0 ? w.bodies[b.targetBody] : null;
       if (tb && tb.alive && tb.grabbable && tb.held < 0 && w.t - (tb.data.thrownAt ?? -9) > ACT.regrab && F.hypot(tb.x - P.x[tip], tb.y - P.y[tip]) < tb.r + ACT.grabSlop) grab(w, cr, l, tb);
     }
   }
+  // carry: spring legs jump at a wall, ledge or gap ahead (the brain looks)
+  if (acting && b.jump && grounded) for (const s of cr.springs) if (s.leg) trigger(s, 'jump');
   // toy jump: spring legs fire when the target is above the creature
   if (acting && b.hasReach && grounded) {
     let top = Infinity;

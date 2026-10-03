@@ -100,7 +100,8 @@ export const ACT = {
   sectorClear: 0.4, // rad: a swinging limb stops this far short of the body beside it
   shoulderSlack: 0.05, // bend stiffness left at a posed limb's root
   relaxRate: 0.5, // arms ease back to their drawn pose at this fraction of reach speed
-  grabSlop: 12, // physics.md §6: tip within target radius + this grabs
+  grabSlop: 12,
+  grabGuy: 18, // px: a hand tip this close to Little Guy's chest picks him up // physics.md §6: tip within target radius + this grabs
   regrab: 0.5, // s after a throw before a hand may grab the same thing again (it has to fly)
   throwWindup: 0.1,
   throwSwing: 0.3,
@@ -167,6 +168,12 @@ export const LOCO = {
 };
 
 export const BRAIN = {
+  // carry (HOME): how far ahead it looks for walls, ledges and gaps, and where it waits for him
+  lookAhead: 28,
+  wallProbe: 18,
+  gapProbe: 30,
+  goalAbove: 50,
+  fetchGap: 12,
   senseBase: 150,
   eyeLead: 0.25, // pupils lock on, then the body follows (0.1 s didn't read in play)
   notice: 0.55, // eye-widening when a new target is noticed
@@ -261,6 +268,26 @@ export const GUY = {
   squeezeContact: 3, // px: ink this close to a pusher is being shoved by it
   squeezeDepth: 4, // px: shoved ink (or the pusher) this deep inside him...
   squeezeTime: 0.15, // ...for this long: he has nowhere to go, crushed
+  // HOME (design §8 Carry, §10): he walks slowly to board, rides on top, or is carried in a hand
+  walkSpeed: 45, // px/s: his slow walk to a creature waiting for him
+  walkGain: 0.4,
+  boardDist: 70, // px: a waiting creature this close (edge to edge), he climbs on
+  climbMax: 130, // px: the highest top he can hop up onto; taller creatures must lift him
+  rideGain: 0.35, // soft attachment servo to the creature's top
+  rideRate: 14,
+  rideSlip: 34, // px: pulled this far off his perch, he falls off
+  upsideFall: 1, // s upside down before he lets go
+  holdSlip: 30, // px: a hand's hold on him breaks at this stretch
+  homeDist: 46, // px: his centre this close to the flag pole (x) and below its top: home
+  climbTime: 0.5, // s: the hop onto a perch
+  climbSpeed: 420, // px/s cap on the hop
+  scrambleSpeed: 160, // px/s up a creature taller than he can hop (hands can't reach him)
+  hopVx: 150, // px/s: hopping down off a stalled carrier toward the flag
+  hopVy: 240,
+  hopClear: 0.5, // s he passes through the carrier he hopped off
+  scrambleMax: 500, // px: a top higher than this he won't scramble up (he walks home beside it)
+  flagWalk: 200, // px: this close to the flag he walks the rest himself
+  stallDrop: 0.6, // s a carrier may stall near the flag before he hops down
 };
 
 // Hazards (physics.md §10); difficulty lives in each level's entity parameters
@@ -307,6 +334,8 @@ export const HAZ = {
 };
 
 export const LEVEL = {
+  flagH: 110, // px: the HOME flag pole
+  boardSee: 260, // px: a carrier this close (edge to edge), he walks over to it
   autoStart: 2.5, // s: the countdown starts at the first birth, or now
   hugHold: 0.4, // s of contact that counts as a hug
   foresee: 0.5, // s: a sleeping threat this close to waking already counts

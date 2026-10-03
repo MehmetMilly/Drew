@@ -2,7 +2,7 @@
 // countdown in the sky, blasts, the poof, the hug heart. Greybox-first, but in the
 // game's materials: felt-tip black, danger red, highlighter yellow.
 import { NINJA } from '../sim/hazards';
-import { COLORS, LOOK } from '../tuning';
+import { COLORS, LEVEL, LOOK } from '../tuning';
 import { boil1 } from './boil';
 import type { World, Body } from '../sim/world';
 import { countdown } from '../sim/level';
@@ -407,5 +407,34 @@ export function drawCountdown(g: Ctx, w: World) {
   g.textAlign = 'center';
   g.textBaseline = 'middle';
   g.fillText(String(n), 0, 0);
+  g.restore();
+}
+
+/** HOME's flag (look-and-feel: goals are highlighter yellow): a felt pole and a waving pennant. */
+export function drawGoal(g: Ctx, w: World) {
+  const goal = w.level?.def.goal;
+  if (!goal || goal.type !== 'home') return;
+  const { x, y } = goal;
+  const top = y - LEVEL.flagH;
+  g.save();
+  g.lineCap = 'round';
+  g.strokeStyle = COLORS.felt;
+  g.lineWidth = 4;
+  g.beginPath();
+  g.moveTo(x, y);
+  g.lineTo(x + 1, top);
+  g.stroke();
+  const wave = Math.sin(w.t * 5) * 4;
+  g.fillStyle = COLORS.yellow;
+  g.globalAlpha = 0.9;
+  g.beginPath();
+  g.moveTo(x + 1, top);
+  g.quadraticCurveTo(x + 24, top + 6 + wave, x + 48, top + 14 + wave * 1.4);
+  g.quadraticCurveTo(x + 24, top + 22 + wave, x + 1, top + 34);
+  g.closePath();
+  g.fill();
+  g.globalAlpha = 1;
+  g.lineWidth = 2;
+  g.stroke();
   g.restore();
 }

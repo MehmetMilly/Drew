@@ -47,7 +47,7 @@ export const L1_2: LevelDef = {
   baseline: { x: 590, y: 1158 },
   refs: [
     { kind: 'Many-Legged', strokes: CANON.spider(470) },
-    { kind: 'Giant', strokes: CANON.giant(300) },
+    { kind: 'Giant', strokes: CANON.giant(400) },
     { kind: 'Heavy', strokes: CANON.bruiser(470) },
   ],
   window: [3, 12],

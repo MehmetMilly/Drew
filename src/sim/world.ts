@@ -12,7 +12,7 @@ import { Pt } from './geom';
 import { think } from './brain';
 import { actuate } from './actuators';
 import { preHazards, postHazards, asleep, attacking } from './hazards';
-import { actuateGuy, type Guy } from './littleguy';
+import { actuateGuy, GUY_OWNER, type Guy } from './littleguy';
 import { levelStep, type LevelRun } from './level';
 
 export interface Terrain {
@@ -856,6 +856,9 @@ export class World {
     const gw = this.gw,
       gh = this.gh;
     let n = 0;
+    // a rider is a soft attachment to his carrier: they don't collide (design §10)
+    const g = this.guy;
+    const rider = g && g.alive ? (g.ride >= 0 ? g.ride : g.heldBy >= 0 ? g.heldBy : this.t < g.hopUntil ? g.hopFrom : -9) : -9;
     for (let cy = 0; cy < gh; cy++)
       for (let cx = 0; cx < gw; cx++) {
         for (let i = this.head[cy * gw + cx]; i !== NO_HIT; i = this.next[i]) {
@@ -866,6 +869,11 @@ export class World {
             if (nx < 0 || nx >= gw || ny >= gh) continue;
             for (let j = k === 0 ? this.next[i] : this.head[ny * gw + nx]; j !== NO_HIT; j = this.next[j]) {
               if (P.owner[j] === oi && oi !== -1) continue;
+              if (oi === GUY_OWNER || P.owner[j] === GUY_OWNER) {
+                // ...and he walks between the legs of a creature leading him home
+                const o = oi === GUY_OWNER ? P.owner[j] : oi;
+                if (o === rider || (o >= 0 && this.creatures[o]?.brain.plan === 'escort')) continue;
+              }
               const dx = P.x[j] - P.x[i],
                 dy = P.y[j] - P.y[i];
               if (dx * dx + dy * dy >= R2) continue;

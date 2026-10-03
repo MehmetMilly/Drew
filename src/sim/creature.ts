@@ -80,7 +80,11 @@ export interface Face {
 export interface Brain {
   mode: 'idle' | 'walk' | 'reach' | 'guard' | 'intercept' | 'brace' | 'carry' | 'sleep';
   /** level plan (design §8) driving the walk/reach targets; 'toy' on the blank page */
-  plan: 'toy' | 'guard' | 'intercept' | 'brace' | 'hug';
+  plan: 'toy' | 'guard' | 'intercept' | 'brace' | 'hug' | 'carry' | 'escort';
+  /** carry: the hands go for Little Guy himself */
+  reachGuy: boolean;
+  /** carry: spring legs jump now (a wall, ledge or gap ahead, or the goal above) */
+  jump: boolean;
   /** body id the hands are after, -1 */
   targetBody: number;
   targetX: number | null;
@@ -138,7 +142,8 @@ export interface Creature {
   /** Mirror scale of the rest shape: 1 = as drawn, -1 = turned around. Eases toward flipTo. */
   flip: number;
   flipTo: number;
-  turnedAt: number; // sim time a turnaround last ran (turning is intent: it never tears)
+  turnedAt: number;
+  lastX?: number; // HOME: centroid x last step (stall check) // sim time a turnaround last ran (turning is intent: it never tears)
   /** While rolling, the upright cheat is off so the body can turn over. */
   rolling: boolean;
   name: string;
@@ -182,6 +187,8 @@ export function newBrain(): Brain {
   return {
     mode: 'idle',
     plan: 'toy',
+    reachGuy: false,
+    jump: false,
     targetBody: -1,
     targetX: null,
     reachX: 0,

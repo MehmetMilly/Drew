@@ -21,6 +21,7 @@ export function epitaph(w: World): string {
   if (!lines.length) {
     const kinds = new Set(L.def.entities.map((e) => e.type));
     if (g.type === 'hug') lines.push('Made a friend.');
+    else if (g.type === 'home') lines.push(L.log.some((e) => e.type === 'board') ? 'Gave him a ride home.' : 'Carried him home.');
     else if (kinds.has('crusher')) lines.push(`Held the walls for ${g.seconds.toFixed(1)} s.`);
     else if (kinds.has('boulder')) lines.push('Stopped a boulder.');
     else if (kinds.has('ninja')) lines.push('Saw the ninja coming.');

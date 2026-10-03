@@ -3,11 +3,11 @@
 // The eyes always lead: a new decision moves the pupils first and the body
 // starts BRAIN.eyeLead + ACT.anticipation later.
 import * as F from './fmath';
-import { ACT, BRAIN, LOCO, LOOK, WORLD } from '../tuning';
+import { ACT, BRAIN, GUY, LOCO, LOOK, WORLD } from '../tuning';
 import type { Creature } from './creature';
 import { hashNoise } from './rng';
 import { guyCentre } from './littleguy';
-import { mainThreat } from './level';
+import { mainThreat, perchOf, handCanReach, canCarry } from './level';
 import type { World } from './world';
 
 export function senseRange(cr: Creature) {
@@ -40,7 +40,8 @@ export function think(w: World, cr: Creature) {
   if (b.targetX !== null) {
     const dx = b.targetX - c.x;
     const reachable = F.hypot(b.reachX - head.x, b.reachY - head.y) < senseRange(cr);
-    if (Math.abs(dx) > LOCO.arriveDist + cr.stats.w * 0.15) {
+    // carrying him home it has to actually deliver: a tight arrival, whatever its width
+    if (Math.abs(dx) > LOCO.arriveDist + (b.plan === 'carry' ? 0 : cr.stats.w * 0.15)) {
       b.mode = 'walk';
       b.dir = Math.sign(dx) || 1;
     } else b.mode = reachable ? 'reach' : 'idle';
@@ -133,9 +134,49 @@ function planLevel(w: World, cr: Creature, c: { x: number; y: number }) {
       reach = { x: th.x + (th.x - th.sx) / WORLD.dt * BRAIN.lead, y: th.y + (th.y - th.sy) / WORLD.dt * BRAIN.lead, body: th.id };
     } else tx = gc.x + side * (half + BRAIN.guardGap);
   }
+  // carry (design §8): HOME levels, when nothing urgent is happening
+  b.reachGuy = false;
+  b.jump = false;
+  const goal = w.level!.def.goal;
+  if (goal.type === 'home' && plan === 'guard' && g.alive) {
+    const P = w.P;
+    const fdir = Math.sign(goal.x - gc.x) || 1;
+    const mine = g.ride === cr.id || g.heldBy === cr.id;
+    let feetY = -Infinity;
+    for (const i of cr.ids) feetY = Math.max(feetY, P.y[i]);
+    if (mine) {
+      plan = 'carry';
+      tx = goal.x + (c.x - gc.x); // bring *him* over the flag, wherever he sits on it
+      reach = null;
+      // look one body length ahead: a wall or ledge to hop, a gap to clear, the goal above
+      const dir = Math.sign(goal.x - c.x) || 1;
+      const ax = c.x + dir * (half + BRAIN.lookAhead);
+      const wall = w.terrainDepth(ax, feetY - BRAIN.wallProbe, 6) > 0;
+      const gap = w.terrainDepth(ax, feetY + BRAIN.gapProbe, BRAIN.gapProbe) <= 0;
+      const above = goal.y < feetY - BRAIN.goalAbove && Math.abs(goal.x - c.x) < half + BRAIN.lookAhead * 4;
+      b.jump = Math.abs(goal.x - c.x) > GUY.homeDist * 0.5 && (wall || gap || above);
+    } else if (g.ride >= 0 || g.heldBy >= 0) {
+      // someone else has him: walk along behind
+      tx = gc.x - fdir * (half + BRAIN.guardGap);
+    } else if (!canCarry(w, cr, g)) {
+      // too tall to ride and no hand to lift him: lead him home, a step ahead
+      plan = 'escort';
+      tx = gc.x + fdir * (half + BRAIN.guardGap);
+    } else {
+      // fetch him: wait beside him on the flag side; a tall one bends to lift him in a hand
+      plan = 'carry';
+      const tall = feetY - P.y[perchOf(w, cr)] > GUY.climbMax;
+      tx = gc.x + fdir * (half + BRAIN.fetchGap);
+      if (tall && handCanReach(w, cr, g)) {
+        reach = { x: gc.x, y: gc.y - 6, body: -1 };
+        b.reachGuy = true;
+        tx = gc.x + fdir * half * 0.5;
+      }
+    }
+  }
   // other creatures already guard that side: stand a little further out
   tx = Math.max(10, Math.min(WORLD.W - 10, tx));
-  const changed = plan !== b.plan || (reach?.body ?? -2) !== b.targetBody;
+  const changed = plan !== b.plan || (reach?.body ?? -1) !== b.targetBody || (plan === 'carry' && Math.abs(tx - (b.targetX ?? tx)) > 120);
   b.plan = plan;
   b.targetX = tx;
   b.hasReach = reach !== null;
