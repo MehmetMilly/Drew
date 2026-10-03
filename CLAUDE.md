@@ -46,6 +46,8 @@ Each fact lives in exactly one doc. When play reveals a doc is wrong, fix the do
 - `npm run verify`: headless level validation, determinism, monkey and performance checks; prints a table
 - `npm run metrics`: regenerates `LEVEL_METRICS.md` from the simulation
 - `npm run shots`: Playwright screenshots and frame strips into `review/`, for visual review
+- `npm run shots:live`: drives the real toy page with a mouse pen and writes `review/live-pen.png`
+- `/capture.html` (dev server only): records labelled human strokes into `tests/fixtures/human/`
 
 ## Conventions
 
