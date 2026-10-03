@@ -2,6 +2,7 @@
 // write wrapped; the game runs fine with storage empty or unavailable.
 const KEY = 'drew-save';
 const VERSION = 1;
+const HALL_CAP = 300;
 
 export interface Hero {
   name: string;
@@ -9,6 +10,7 @@ export interface Hero {
   level: string;
   strokes: { x: number; y: number }[][];
   at: number; // Date.now()
+  epitaph?: string;
 }
 
 export interface SaveData {
@@ -65,7 +67,7 @@ export function recordWin(levelId: string, kinds: string[], hero: Hero | null): 
   for (const k of kinds) if (have.length < 3 && !have.includes(k)) (have.push(k), fresh.push(k));
   if (hero) {
     d.hall.unshift(hero);
-    d.hall.length = Math.min(d.hall.length, 60);
+    d.hall.length = Math.min(d.hall.length, HALL_CAP);
   }
   save();
   return fresh;

@@ -1,0 +1,47 @@
+// Contact sheet of the DOM shell screens: title, chapter, sketchbook (seeded heroes),
+// a hero page, pause, settings. Writes review/ui.png.
+import { createServer } from 'vite';
+import { chromium } from '@playwright/test';
+import { writeFileSync } from 'node:fs';
+import { CANON } from '../src/sim/canon';
+const server = await createServer({ server: { port: 5197, host: '127.0.0.1' }, logLevel: 'error' });
+await server.listen();
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: 390, height: 700 }, deviceScaleFactor: 1 });
+const errs: string[] = [];
+page.on('pageerror', (e) => errs.push(String(e)));
+const names = ['Kevin the Biped', 'June the Many-Legged', 'Otto the Giant', 'Pip the Worm', 'Bruno the Heavy', 'Ada the Long-Armed', 'Moss the Blob'];
+const bodies = [CANON.stick700(300), CANON.spider(300), CANON.giant(300), CANON.worm(300), CANON.bruiser(300), CANON.reacher(300), CANON.box(300)];
+const hall = bodies.map((b, i) => ({ name: names[i], kind: 'x', level: '1-' + ((i % 5) + 1), strokes: b, at: Date.now(), epitaph: 'Caught a bomb.' }));
+await page.addInitScript((h) => {
+  if (!sessionStorage.getItem('seeded')) {
+    localStorage.setItem('drew-save', JSON.stringify({ v: 1, cleared: { '1-1': true, '1-2': true }, badges: { '1-1': ['Worm'] }, fails: {}, hall: h, settings: {} }));
+    sessionStorage.setItem('seeded', '1');
+  }
+}, hall);
+await page.goto('http://127.0.0.1:5197/');
+await page.waitForFunction(() => (window as any).drew);
+const shots: string[] = [];
+const snap = async () => shots.push((await page.screenshot()).toString('base64'));
+await page.waitForTimeout(1600);
+await snap();
+await page.click('text=Story');
+await page.waitForTimeout(500);
+await snap();
+await page.evaluate(`window.drew.shell.show('sketchbook')`);
+await page.waitForTimeout(500);
+await snap();
+await page.click('canvas.hall', { position: { x: 60, y: 60 } });
+await page.waitForTimeout(2000);
+await snap();
+await page.click('.icon.back');
+await page.waitForTimeout(300);
+await snap();
+await page.evaluate(`window.drew.shell.show('settings')`);
+await page.waitForTimeout(400);
+await snap();
+const sheet = (await page.evaluate(`(async (imgs) => { const ims = await Promise.all(imgs.map(b => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = 'data:image/png;base64,' + b; }))); const w = ims[0].width, h = ims[0].height; const cols = 3; const c = document.createElement('canvas'); c.width = w * cols; c.height = h * Math.ceil(ims.length / cols); const g = c.getContext('2d'); ims.forEach((im, k) => g.drawImage(im, (k % cols) * w, Math.floor(k / cols) * h)); return c.toDataURL('image/png'); })(${JSON.stringify(shots)})`)) as string;
+writeFileSync('review/ui.png', Buffer.from(sheet.split(',')[1], 'base64'));
+console.log('errors', errs);
+await browser.close();
+await server.close();

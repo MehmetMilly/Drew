@@ -4,10 +4,11 @@
 import { Toy } from '../game/toy';
 import type { LevelDef } from '../sim/level';
 import { CHAPTERS, ALL_LEVELS } from '../levels';
-import { load as loadSave, save } from '../game/save';
+import { load as loadSave, save, type Hero } from '../game/save';
+import { hallCanvas, PER_PAGE } from './hall';
 import { pencilTick } from '../audio/pencil';
 
-type Screen = 'title' | 'chapter' | 'play' | 'toy' | 'settings';
+type Screen = 'title' | 'chapter' | 'play' | 'toy' | 'settings' | 'sketchbook' | 'hero';
 
 const el = (tag: string, cls = '', html = '') => {
   const e = document.createElement(tag);
@@ -20,6 +21,8 @@ export class Shell {
   private root = el('div', 'ui');
   private screen: Screen = 'title';
   private card: HTMLElement | null = null;
+  private stopHall: (() => void) | null = null;
+  private hallPage = 0;
 
   constructor(private toy: Toy) {
     document.body.appendChild(this.root);
@@ -33,7 +36,7 @@ export class Shell {
       else if (this.toy.level) this.failWatch();
     };
     addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && (this.screen === 'play' || this.screen === 'toy')) this.show(this.screen === 'play' ? 'chapter' : 'title');
+      if (e.key === 'Escape' && (this.screen === 'play' || this.screen === 'toy' || this.screen === 'hero')) this.show(this.screen === 'play' ? 'chapter' : 'sketchbook');
     });
     this.show('title');
   }
@@ -56,7 +59,9 @@ export class Shell {
     return b;
   }
 
-  show(s: Screen, level?: LevelDef) {
+  show(s: Screen, level?: LevelDef, hero?: Hero) {
+    this.stopHall?.();
+    this.stopHall = null;
     this.screen = s;
     this.root.innerHTML = '';
     this.card = null;
@@ -65,6 +70,14 @@ export class Shell {
     if (s === 'title') this.title();
     else if (s === 'chapter') this.chapter();
     else if (s === 'settings') this.settings();
+    else if (s === 'sketchbook') this.sketchbook();
+    else if (s === 'hero' && hero) {
+      this.toy.load(null);
+      this.toy.adopt(hero.strokes);
+      this.hud(null, 'sketchbook');
+      const tag = el('div', 'hero-tag', `<b>${hero.name}</b>${hero.epitaph ? `<small>${hero.epitaph}</small>` : ''}<small>${hero.level} · ${new Date(hero.at).toLocaleDateString()}</small>`);
+      this.root.append(tag);
+    }
     else if (s === 'toy') {
       this.toy.load(null);
       this.hud(null);
@@ -78,15 +91,65 @@ export class Shell {
   private title() {
     // the page behind is the live blank toy: the title sits on it
     this.toy.load(null);
-    const t = el('div', 'logo', 'Drew');
-    this.root.append(t);
+    const d = loadSave();
+    const ch1 = CHAPTERS[0].levels.every((l) => d.cleared[l.id]);
+    this.root.append(this.logo());
     const notes = el('div', 'notes');
     const story = this.press(el('button', 'note n1', '<b>Story</b><small>Little Guy needs a friend</small>'), () => this.show('chapter'));
-    const pad = this.press(el('button', 'note n2', '<b>Doodle Pad</b><small>draw anything</small>'), () => this.show('toy'));
-    const sumo = el('button', 'note n3 locked', '<b>Sumo</b><small>after Chapter 1</small>');
+    const sumo = el('button', 'note n2 locked', `<b>Sumo</b><small>${ch1 ? 'coming soon' : 'after Chapter 1'}</small>`);
+    const daily = el('button', 'note n3 locked', `<b>Daily</b><small>${ch1 ? 'coming soon' : 'after Chapter 1'}</small>`);
+    notes.append(story, sumo, daily);
+    const book = this.press(el('button', 'tab sketch', 'Sketchbook'), () => this.show('sketchbook'));
     const set = this.press(el('button', 'tab', 'settings'), () => this.show('settings'));
-    notes.append(story, pad, sumo);
-    this.root.append(notes, set);
+    this.root.append(notes, book, set);
+  }
+
+  /** The logo writes itself, then the D wakes up: its eyes open and follow you. */
+  private logo() {
+    const t = el('div', 'logo', '<span class="ink">Drew<i class="eyes"><i class="eye"><i></i></i><i class="eye"><i></i></i></i></span>');
+    const eyes = t.querySelector('.eyes') as HTMLElement;
+    const look = (e: PointerEvent) => {
+      const r = eyes.getBoundingClientRect();
+      const dx = e.clientX - (r.left + r.width / 2),
+        dy = e.clientY - (r.top + r.height / 2);
+      const k = Math.min(1, Math.hypot(dx, dy) / 200) / (Math.hypot(dx, dy) || 1);
+      eyes.style.setProperty('--lx', `${dx * k * 5}px`);
+      eyes.style.setProperty('--ly', `${dy * k * 5}px`);
+    };
+    addEventListener('pointermove', look);
+    addEventListener('pointerdown', look);
+    return t;
+  }
+
+  private sketchbook() {
+    this.toy.load(null);
+    const hall = loadSave().hall;
+    this.root.append(el('div', 'chapter-title', `Sketchbook<br><span>Hall of Heroes</span>`));
+    if (!hall.length) this.root.append(el('div', 'empty', 'Win a level and its hero lives here.'));
+    else {
+      const pages = Math.ceil(hall.length / PER_PAGE);
+      this.hallPage = Math.min(this.hallPage, pages - 1);
+      const { el: c, stop } = hallCanvas(hall.slice(this.hallPage * PER_PAGE, (this.hallPage + 1) * PER_PAGE), (h) => this.show('hero', undefined, h));
+      this.stopHall = stop;
+      this.root.append(c);
+      if (pages > 1) {
+        const nav = el('div', 'pager');
+        nav.append(
+          this.press(el('button', 'tab', '‹'), () => {
+            this.hallPage = (this.hallPage + pages - 1) % pages;
+            this.show('sketchbook');
+          }),
+          el('span', '', `${this.hallPage + 1} / ${pages}`),
+          this.press(el('button', 'tab', '›'), () => {
+            this.hallPage = (this.hallPage + 1) % pages;
+            this.show('sketchbook');
+          }),
+        );
+        this.root.append(nav);
+      }
+    }
+    this.root.append(this.press(el('button', 'note blank', '<b>Blank page</b><small>draw anything</small>'), () => this.show('toy')));
+    this.root.append(this.press(el('button', 'tab back', '← back'), () => this.show('title')));
   }
 
   private chapter() {
@@ -109,17 +172,17 @@ export class Shell {
     this.root.append(this.press(el('button', 'tab back', '← back'), () => this.show('title')));
   }
 
-  private hud(level: LevelDef | null) {
+  private hud(level: LevelDef | null, back: Screen = 'title') {
     const bar = el('div', 'hud');
     if (level) {
       bar.append(this.press(el('button', 'icon retry', '<svg viewBox="0 0 40 40"><path d="M30 14a12 12 0 1 0 2 10" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/><path d="M31 6v9h-9" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'), () => this.retry()));
     }
-    bar.append(this.press(el('button', 'icon back', '<svg viewBox="0 0 40 40"><path d="M10 12h20M10 20h20M10 28h20" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/></svg>'), () => this.pause(level)));
+    bar.append(this.press(el('button', 'icon back', '<svg viewBox="0 0 40 40"><path d="M10 12h20M10 20h20M10 28h20" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/></svg>'), () => this.pause(level, back)));
     this.root.append(bar);
   }
 
   /** Pause (look-and-feel §8): a sticky note over a soft scrim, opens in 150 ms. */
-  private pause(level: LevelDef | null) {
+  private pause(level: LevelDef | null, back: Screen) {
     if (this.root.querySelector('.scrim')) return;
     this.toy.paused = true;
     const scrim = el('div', 'scrim');
@@ -138,9 +201,9 @@ export class Shell {
         }),
       );
     note.append(
-      this.press(el('button', 'line', level ? 'Levels' : 'Title'), () => {
+      this.press(el('button', 'line', level ? 'Levels' : back === 'title' ? 'Title' : 'Sketchbook'), () => {
         this.toy.paused = false;
-        this.show(level ? 'chapter' : 'title');
+        this.show(level ? 'chapter' : back);
       }),
     );
     scrim.append(note);

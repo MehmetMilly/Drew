@@ -58,12 +58,14 @@ body.slow #backdrop {
 }
 .ui button {
   pointer-events: auto;
-  font: inherit;
   color: inherit;
   border: 0;
   cursor: pointer;
   touch-action: manipulation;
   transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), box-shadow 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+:where(.ui button) {
+  font: inherit;
 }
 .ui button:active {
   transform: rotate(var(--tilt, 0deg)) scale(0.96);
@@ -369,4 +371,115 @@ body.slow #backdrop {
   font-size: 38px;
   padding: 12px 0;
   border-top: 2px dashed rgba(27, 27, 31, 0.15) !important;
+}
+/* the logo writes itself left to right, then the D's eyes open */
+.logo .ink {
+  position: relative;
+  display: inline-block;
+  animation: write 700ms cubic-bezier(0.77, 0, 0.175, 1) 100ms both;
+}
+@keyframes write {
+  from { clip-path: inset(-20% 100% -20% 0); }
+  to { clip-path: inset(-20% -5% -20% 0); }
+}
+.logo .eyes {
+  position: absolute;
+  left: 52px;
+  top: 90px;
+  display: flex;
+  gap: 6px;
+  --lx: 0px;
+  --ly: 0px;
+}
+.logo .eye {
+  width: 30px;
+  height: 34px;
+  border-radius: 50%;
+  background: #fffdf6;
+  position: relative;
+  transform-origin: 50% 50%;
+  animation: open 360ms cubic-bezier(0.23, 1, 0.32, 1) 900ms both, blink 4.2s linear 2s infinite;
+}
+.logo .eye i {
+  position: absolute;
+  left: 9px;
+  top: 10px;
+  width: 13px;
+  height: 14px;
+  border-radius: 50%;
+  background: #1b1b1f;
+  transform: translate(var(--lx), var(--ly));
+  transition: transform 120ms ease-out;
+}
+@keyframes open {
+  from { transform: scaleY(0.08); }
+  70% { transform: scaleY(1.15); }
+}
+@keyframes blink {
+  0%, 96%, 100% { transform: scaleY(1); }
+  98% { transform: scaleY(0.1); }
+}
+.tab.sketch {
+  right: auto;
+  left: 30px;
+  top: auto;
+  bottom: 170px;
+  font-family: 'Gochi Hand', sans-serif;
+  font-size: 44px;
+  opacity: 0.85;
+}
+.hall {
+  position: absolute;
+  left: 60px;
+  top: 300px;
+  pointer-events: auto;
+  cursor: pointer;
+}
+.pager {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 950px;
+  text-align: center;
+  font-size: 30px;
+}
+.pager .tab {
+  position: static;
+  font-size: 44px;
+}
+.empty {
+  position: absolute;
+  left: 60px;
+  right: 60px;
+  top: 420px;
+  font-size: 34px;
+  color: #3a3a40;
+  opacity: 0.7;
+}
+.note.blank {
+  position: absolute;
+  right: 60px;
+  top: 990px;
+  --tilt: 2deg;
+  background: #d9ecff;
+}
+.note.blank b {
+  font-size: 34px;
+}
+.hero-tag {
+  position: absolute;
+  left: 40px;
+  top: 40px;
+  max-width: 460px;
+}
+.hero-tag b {
+  display: block;
+  font-family: 'Gochi Hand', sans-serif;
+  font-weight: normal;
+  font-size: 48px;
+}
+.hero-tag small {
+  display: block;
+  font-size: 26px;
+  opacity: 0.7;
 }
