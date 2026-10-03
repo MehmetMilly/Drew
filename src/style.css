@@ -233,7 +233,7 @@ body.slow #backdrop {
   position: absolute;
   left: 90px;
   right: 90px;
-  top: 640px;
+  top: 690px;
   text-align: center;
   pointer-events: none;
 }
@@ -268,9 +268,10 @@ body.slow #backdrop {
 .buttons {
   display: flex;
   justify-content: center;
-  gap: 30px;
+  gap: 22px;
 }
 .note.small {
+  white-space: nowrap;
   font-family: 'Gochi Hand', sans-serif;
   font-size: 40px;
   padding: 14px 30px;
@@ -324,4 +325,16 @@ body.slow #backdrop {
   left: 30px;
   top: auto;
   bottom: 170px;
+}
+.tab.watch-fail {
+  right: auto;
+  top: 740px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #7fb2e5;
+  opacity: 1;
+}
+.note.small.watch {
+  --tilt: 1.5deg;
+  background: #d9ecff;
 }

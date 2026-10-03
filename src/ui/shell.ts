@@ -27,6 +27,11 @@ export class Shell {
     addEventListener('resize', () => requestAnimationFrame(() => this.fit()));
     toy.onWin = (info) => this.endCard(info);
     toy.onRetry = () => this.retry();
+    toy.onFail = () => this.failWatch();
+    toy.onWatchEnd = () => {
+      if (this.card) this.card.style.display = '';
+      else if (this.toy.level) this.failWatch();
+    };
     addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && (this.screen === 'play' || this.screen === 'toy')) this.show(this.screen === 'play' ? 'chapter' : 'title');
     });
@@ -113,7 +118,19 @@ export class Shell {
     this.root.append(bar);
   }
 
+  /** Fail: tap anywhere retries; a small Watch button sits beside the prompt. */
+  private failWatch() {
+    if (this.screen !== 'play' || this.card) return;
+    this.root.querySelector('.watch-fail')?.remove();
+    const b = this.press(el('button', 'tab watch-fail', '▶ watch'), () => {
+      b.remove();
+      this.toy.watch();
+    });
+    this.root.append(b);
+  }
+
   private retry() {
+    this.root.querySelector('.watch-fail')?.remove();
     if (this.card) {
       this.card.remove();
       this.card = null;
@@ -135,6 +152,12 @@ export class Shell {
     if (next) row.append(this.press(el('button', 'note small go', 'Next →'), () => this.show('play', next)));
     else row.append(this.press(el('button', 'note small go', 'Chapter done!'), () => this.show('chapter')));
     row.append(this.press(el('button', 'note small', 'Retry'), () => this.retry()));
+    row.append(
+      this.press(el('button', 'note small watch', '▶ Watch'), () => {
+        c.style.display = 'none';
+        this.toy.watch();
+      }),
+    );
     c.append(row);
     this.root.append(c);
     this.card = c;

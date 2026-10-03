@@ -6,6 +6,8 @@ import { startLevel, type LevelDef } from '../sim/level';
 import type { Pt } from '../sim/geom';
 import { load as loadSave, recordWin, recordFail } from './save';
 import { epitaph } from './epitaph';
+import { pickMoment, type Birth } from './replay';
+import { Show } from './show';
 import { WorldRenderer } from '../render/renderer';
 import { PAPERS, renderDesk, renderPaper } from '../render/materials';
 import { attachPen, LivePt } from '../input/pen';
@@ -58,11 +60,17 @@ export class Toy {
   private hitStopUntil = 0;
   private blockMark: { x: number; y: number; t: number } | null = null;
   private blocked = false;
+  private births: Birth[] = [];
+  private show: Show | null = null;
+  private winInfo: Parameters<NonNullable<Toy['onWin']>>[0] | null = null;
+  private endStep = 0;
   private hintGhost: Pt[][] | null = null;
   private hintGhostAt = 0;
   /** shell hooks */
   onWin: ((info: { level: LevelDef; heroes: { name: string; kind: string }[]; newBadges: string[]; epitaph: string; strokes: Pt[][] }) => void) | null = null;
   onRetry: (() => void) | null = null;
+  onWatchEnd: (() => void) | null = null;
+  onFail: (() => void) | null = null;
 
   /** Start a level (or the blank page with null). Retrying the same level keeps a ghost. */
   load(def: LevelDef | null) {
@@ -76,6 +84,9 @@ export class Toy {
     this.wet = [];
     this.live = null;
     this.drawn = [];
+    this.births = [];
+    this.show = null;
+    this.winInfo = null;
     this.inkUsed = 0;
     this.result = 'play';
     this.acc = 0;
@@ -268,6 +279,11 @@ export class Toy {
     pencil(0, 0.5, false);
     if (!s) return;
     const dur = p.t - this.liveStart.t;
+    if (this.show) {
+      // a tap skips a replay
+      if (this.show.visible) this.show.skip();
+      return;
+    }
     if (this.level && this.result !== 'play') {
       // after the result any touch is a tap: instant retry (design §2)
       if (this.result === 'fail' && this.now - this.resultAt > LEVEL.failBeat) this.onRetry ? this.onRetry() : this.retry();
@@ -332,8 +348,9 @@ export class Toy {
     if (this.wet.length && !this.live && this.wet.every((s) => t - s.upAt >= this.wetTime)) this.birth();
 
     // the title holds the first frame; a win lands with a short hit-stop
-    if (t >= this.readUntil && t >= this.hitStopUntil) this.acc += dt * this.scale;
+    if (t >= this.readUntil && t >= this.hitStopUntil && !this.show?.visible) this.acc += dt * this.scale;
     this.watchResult();
+    this.updateShow(dt);
     let n = 0;
     while (this.acc >= WORLD.dt && n < 4) {
       const t0 = performance.now();
@@ -359,6 +376,7 @@ export class Toy {
     });
     for (const s of strokes) this.drawn.push(s.map((p) => ({ x: p.x, y: p.y })));
     this.wet = [];
+    if (this.level) this.births.push({ step: this.world.steps, strokes });
     const ev0 = this.world.events.length;
     const born = this.world.addStrokes(strokes);
     const grafted = this.world.events.slice(ev0).some((e) => e.type === 'graft');
@@ -386,9 +404,31 @@ export class Toy {
       const kinds = [...new Set(heroes.map((h) => h.kind))];
       const best = this.world.creatures[L.hugger >= 0 ? L.hugger : this.world.guy?.hugging ?? -1] ?? this.world.creatures.find((c) => c.alive);
       const fresh = recordWin(this.level.id, kinds, best ? { name: best.name, kind: best.kind, level: this.level.id, strokes: best.strokes, at: Date.now() } : null);
-      const info = { level: this.level, heroes, newBadges: fresh, epitaph: epitaph(this.world), strokes: this.drawn };
-      setTimeout(() => this.onWin?.(info), LEVEL.cardDelay * 1000);
-    } else recordFail(this.level.id);
+      this.winInfo = { level: this.level, heroes, newBadges: fresh, epitaph: epitaph(this.world), strokes: this.drawn };
+      this.endStep = this.world.steps;
+      this.show = new Show(this.level, this.births, pickMoment(this.world), this.endStep, 'highlight', this.now + LEVEL.cardDelay, loadSave().settings.reducedMotion);
+    } else {
+      this.endStep = this.world.steps;
+      recordFail(this.level.id);
+      setTimeout(() => this.result === 'fail' && this.onFail?.(), LEVEL.failBeat * 1000);
+    }
+  }
+
+  /** The full replay (design §11): timelapse, action at 1×, the moment at 0.3×. */
+  watch() {
+    if (!this.level || this.result === 'play' || !this.births.length) return;
+    const w = this.world;
+    this.show = new Show(this.level, this.births, pickMoment(w), this.endStep, 'watch', this.now, loadSave().settings.reducedMotion);
+  }
+
+  private updateShow(dt: number) {
+    const s = this.show;
+    if (!s) return;
+    s.update(dt, this.now);
+    if (s.phase !== 'done') return;
+    this.show = null;
+    if (s.kind === 'highlight' && this.winInfo) this.onWin?.(this.winInfo);
+    else if (s.kind === 'watch') this.onWatchEnd?.();
   }
 
   private render(alpha: number) {
@@ -412,9 +452,12 @@ export class Toy {
       g.fillText('draw anything', WORLD.W / 2, 520);
       g.globalAlpha = 1;
     }
-    if (this.level) this.drawLevelUnder(g);
-    this.renderer.draw(g, { alpha, realT: this.now, debug: this.debug, stepMs: this.stepMs, intentLines: loadSave().settings.intentLines });
-    if (this.level) this.drawLevelOver(g);
+    if (this.show?.visible) this.show.draw(g, this.now, loadSave().settings.intentLines);
+    else {
+      if (this.level) this.drawLevelUnder(g);
+      this.renderer.draw(g, { alpha, realT: this.now, debug: this.debug, stepMs: this.stepMs, intentLines: loadSave().settings.intentLines });
+      if (this.level) this.drawLevelOver(g);
+    }
     if (this.tapMark && this.now - this.tapMark.t < 0.6) {
       const k = (this.now - this.tapMark.t) / 0.6;
       g.strokeStyle = COLORS.blue;
@@ -596,18 +639,31 @@ export class Toy {
     g.globalAlpha = 0.25 + 0.65 * k;
     g.strokeStyle = COLORS.green;
     g.fillStyle = COLORS.green;
+    g.font = '72px "Gochi Hand", cursive';
+    const word = this.level!.goal.type === 'hug' ? 'FRIENDS' : 'SAVED';
+    const tw = g.measureText(word).width;
+    const hw = (tw + 70 + 56) / 2; // text + the check + margins
     g.lineWidth = 7;
     g.beginPath();
-    g.roundRect(-150, -62, 300, 124, 14);
+    g.roundRect(-hw, -62, hw * 2, 124, 14);
     g.stroke();
     g.lineWidth = 3;
     g.beginPath();
-    g.roundRect(-138, -50, 276, 100, 10);
+    g.roundRect(-hw + 12, -50, hw * 2 - 24, 100, 10);
     g.stroke();
-    g.font = '72px "Gochi Hand", cursive';
-    g.textAlign = 'center';
+    // a drawn check (the font has no ✓): shape says success as well as colour
+    const cx = -hw + 34;
+    g.lineWidth = 10;
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+    g.beginPath();
+    g.moveTo(cx, 2);
+    g.lineTo(cx + 14, 18);
+    g.lineTo(cx + 42, -20);
+    g.stroke();
+    g.textAlign = 'left';
     g.textBaseline = 'middle';
-    g.fillText(this.level!.goal.type === 'hug' ? '✓ FRIENDS' : '✓ SAVED', 0, 4);
+    g.fillText(word, cx + 56, 4);
     g.restore();
   }
 
