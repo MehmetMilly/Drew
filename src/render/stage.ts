@@ -1,6 +1,7 @@
 // Level things on the page: Little Guy (felt-tip, yellow scarf), red hazards, the
 // countdown in the sky, blasts, the poof, the hug heart. Greybox-first, but in the
 // game's materials: felt-tip black, danger red, highlighter yellow.
+import { NINJA } from '../sim/hazards';
 import { COLORS, LOOK } from '../tuning';
 import { boil1 } from './boil';
 import type { World, Body } from '../sim/world';
@@ -39,7 +40,10 @@ export function drawBodies(g: Ctx, w: World, alpha: number, frame: number) {
     const x = lerp(b.sx, b.x, alpha),
       y = lerp(b.sy, b.y, alpha);
     if (b.kind === 'crusher') drawCrusher(g, b, x, frame);
-    else if (b.kind === 'boulder') drawBoulder(g, b, x, y, frame);
+    else if (b.kind === 'boulder') {
+      drawBoulder(g, b, x, y, frame);
+      if (b.data.grinding) drawCrumbs(g, w, x, y + b.r * 0.8, b.id);
+    }
     else if (b.kind === 'bomb') drawBomb(g, w, b, x, y, frame);
     else if (b.kind === 'ninja') drawNinja(g, w, b, x, y, frame);
   }
@@ -133,11 +137,64 @@ function drawNinja(g: Ctx, w: World, b: Body, x: number, y: number, frame: numbe
   g.lineTo(-r - 12, -r * 0.6 + tail);
   g.lineTo(-r - 10, -r * 0.2 + tail);
   g.fill();
+  const dizzy = b.data.state === NINJA.DIZZY;
   g.fillStyle = COLORS.cream;
-  g.fillRect(-r * 0.6, -r * 0.08, r * 1.2, r * 0.22);
+  if (!dizzy) g.fillRect(-r * 0.6, -r * 0.08, r * 1.2, r * 0.22);
+  else {
+    // knocked silly: spiral eyes
+    g.strokeStyle = COLORS.cream;
+    g.lineWidth = 1.6;
+    for (const ex of [-r * 0.35, r * 0.35]) {
+      g.beginPath();
+      for (let a = 0; a < 10; a += 0.4) g.lineTo(ex + Math.cos(a + w.t * 9) * a * 0.55, Math.sin(a + w.t * 9) * a * 0.55);
+      g.stroke();
+    }
+  }
   g.restore();
+  if (dizzy) {
+    // three graphite stars circling his head
+    g.save();
+    g.fillStyle = COLORS.graphite;
+    g.font = '16px "Gochi Hand", cursive';
+    g.textAlign = 'center';
+    for (let k = 0; k < 3; k++) {
+      const a = w.t * 5 + (k * Math.PI * 2) / 3;
+      g.fillText('*', x + Math.cos(a) * r * 1.2, y - r * 1.3 + Math.sin(a) * r * 0.35);
+    }
+    g.restore();
+  } else if (b.data.state === NINJA.DASH) {
+    // speed lines behind the dash
+    const dir = Math.sign(b.x - b.px) || 1;
+    g.save();
+    g.strokeStyle = COLORS.graphite;
+    g.globalAlpha = 0.5;
+    g.lineWidth = 2;
+    g.lineCap = 'round';
+    for (let k = -1; k <= 1; k++) {
+      g.beginPath();
+      g.moveTo(x - dir * (r + 6), y + k * r * 0.45);
+      g.lineTo(x - dir * (r + 26 + (k & 1) * 10), y + k * r * 0.45);
+      g.stroke();
+    }
+    g.restore();
+  }
   // "!" when it first activates
   if (w.t >= b.data.at && w.t < b.data.at + 0.6) drawBang(g, x, y - r - 26, w.t - b.data.at);
+}
+
+/** Graphite crumbs spitting from where a stalled boulder grinds ink. */
+function drawCrumbs(g: Ctx, w: World, x: number, y: number, seed: number) {
+  g.save();
+  g.fillStyle = COLORS.graphite;
+  for (let k = 0; k < 6; k++) {
+    const ph = (w.t * 3 + k / 6 + seed * 0.13) % 1;
+    const side = k % 2 ? 1 : -1;
+    g.globalAlpha = 1 - ph;
+    g.beginPath();
+    g.arc(x + side * (10 + ph * 30 + k * 3), y - ph * 24 + ph * ph * 30, 1.8, 0, Math.PI * 2);
+    g.fill();
+  }
+  g.restore();
 }
 
 export function drawBang(g: Ctx, x: number, y: number, age: number, color: string = COLORS.red) {

@@ -21,7 +21,7 @@ export interface Moment {
 }
 
 // what a moment is worth (design §11): a piece growing eyes scores highest
-const SCORE: Record<string, number> = { piece: 10, throw: 8, graft: 7, grab: 6, boom: 5, tear: 4, ninjaLeap: 3, hug: 2, win: 2, save: 2 };
+const SCORE: Record<string, number> = { knock: 9, punch: 3, piece: 10, throw: 8, graft: 7, grab: 6, boom: 5, tear: 4, ninjaLeap: 3, hug: 2, win: 2, save: 2 };
 
 /** Pick the attempt's money moment from the world's events (ties go to the later one). */
 export function pickMoment(w: World): Moment | null {

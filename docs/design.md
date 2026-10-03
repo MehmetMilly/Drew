@@ -6,7 +6,7 @@ A blank cream page. A pencil sketches the word **Drew**; the D gets two eyes, bl
 
 **1-1 "Hello, Friend."** Little Guy sits alone on an empty page with a tiny yellow scarf, kicking his feet. One handwritten line: *Draw him a friend.* The player scribbles a lopsided dog-ish thing. Lifting the pencil, the ink glistens for a second, dries, and two eyes pop open. A sticky label slaps on: **"Kevin the Many-Legged."** Kevin blinks at the player, looks around, spots Little Guy, scuttles over and hugs him. A heart doodle pops. Green stamp. Ten seconds in, the player has learned the whole premise without reading a rule.
 
-**1-2 "Boulder."** A boulder starts rolling down a long slope at Little Guy, who is backed against a wall. The player touches the screen and the world sinks into slow motion; the paper darkens at the edges and the music drops to a muffled hum under the pencil scratch. They draw a quick stick man. It wakes, sees the boulder, eyebrows go determined, it plants its feet and braces. It holds, or gets pancaked into a comic smear. Either way the player laughs and redraws within a second, with their last drawing shown as a faint blue ghost to trace or ignore.
+**1-2 "Boulder."** A boulder starts rolling down a gentle slope at Little Guy, who is backed against a wall. The player touches the screen and the world sinks into slow motion; the paper darkens at the edges and the music drops to a muffled hum under the pencil scratch. They draw a quick stick man. It wakes, sees the boulder, eyebrows go determined, it plants its feet and braces. It holds, or gets pancaked into a comic smear. Either way the player laughs and redraws within a second, with their last drawing shown as a faint blue ghost to trace or ignore.
 
 **1-4 "Bombs in the Bowl."** The player draws a roof over Little Guy, the obvious answer. The roof wakes up. It is a headless arch with two feet, and it bravely stands over him. The bombs bounce off, roll down into the dip next to him, and explode. The player draws a creature with arms instead. It reaches up, catches a bomb, winds up, and lobs it off the page. That is the moment the player understands the game: **the drawing is a body, and the level is asking for a verb.**
 
@@ -95,7 +95,7 @@ Every creature gets exactly one **kind**, the first match in this order. The kin
 
 Every creature loves Little Guy and wants to help. The brain is small, consistent and readable, so outcomes trace back to the drawing. Each tick it picks the highest-priority mode that applies:
 
-1. **Brace**: a pusher (crusher wall, sumo, tentacle pull, Big Eraser shove) is touching the creature, or within 60 px of Little Guy. Hands push against the pushing surface, feet plant with high friction, and the body holds position. Strain shows on the face.
+1. **Brace**: a pusher (crusher wall, rolling boulder, sumo, tentacle pull, Big Eraser shove) is touching the creature, or within 60 px of Little Guy. Hands push against the pushing surface, feet plant with high friction, and the body holds position. Strain shows on the face.
 2. **Intercept**: a threat is inside sense range (twice the creature's size plus 150 px), or is predicted to reach Little Guy within 1.5 s. The creature moves to stand between the threat and Little Guy. Each hand reaches for the nearest threat inside its reach envelope; it grabs grabbable threats (bombs, balls, small enemies) and throws them up and away from Little Guy. Spring arms punch when a threat is in arm's reach. Bodies block everything else.
 3. **Carry** (HOME and SCORE goals): fetch Little Guy or the cargo. A free hand grabs; with no free hand, Little Guy climbs onto the creature's highest point and rides. Then walk to the goal. Spring legs jump when a ledge, gap or obstacle is within one body length ahead, or the goal is above. On arrival, set Little Guy down, or release the cargo over the goal (a dunk).
 4. **Guard / Idle**: stay beside Little Guy on the side threats come from. Look around, sometimes wave at the player.
@@ -127,7 +127,7 @@ Eyes turn a line into a character, so they get the most care of any visual in th
   - On a win he hugs the nearest creature and a heart doodle pops.
   - In some levels he wears a crown (the King) or a party hat.
   - He has a tiny gibberish voice.
-- **Death** is a comic poof, never gory: he bursts into a graphite scribble cloud with ✗ eyes and a tiny "aaa". Causes: explosion radius, crushed (gap narrower than his width), struck by an enemy, fast boulder contact, deep water for more than 1 s, falling off the page, fire, scissors, eraser.
+- **Death** is a comic poof, never gory: he bursts into a graphite scribble cloud with ✗ eyes and a tiny "aaa". Causes: explosion radius, crushed (gap narrower than his width), struck by an enemy, fast boulder contact or a boulder resting on him for 0.5 s, being squeezed by shoved ink, deep water for more than 1 s, falling off the page, fire, scissors, eraser.
 
 ## 11. Results and replay
 
