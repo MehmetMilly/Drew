@@ -4,9 +4,15 @@
 <title>Drew · stroke capture</title>
 <link rel="stylesheet" href="/src/style.css" />
 <style>
-#bar{position:fixed;left:0;right:0;top:0;z-index:5;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;background:#FFF8C4;font:20px 'Patrick Hand',sans-serif;color:#1B1B1F;box-shadow:0 2px 8px rgba(0,0,0,.2)}
-#bar .n{font-family:'Gochi Hand';color:#7FB2E5;margin-right:6px}
-#bar small{font-size:16px;opacity:.8}
-#bar button{font:18px 'Patrick Hand';min-height:44px;min-width:64px;margin:4px 4px 0 0;border:2px solid #1B1B1F;border-radius:8px;background:#fff}
+#bar{position:fixed;left:0;right:0;top:0;z-index:5;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;background:#FFF8C4;font:19px/1.25 'Patrick Hand',sans-serif;color:#1B1B1F;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+#bar .top{font-size:24px}
+#bar .n{font-family:'Gochi Hand';color:#7FB2E5;margin-right:8px}
+#bar .hint{margin-top:2px}
+#bar .count{color:#5a5a62}
+#bar .tip{font-size:15px;color:#5a5a62;margin-top:4px}
+#bar .row{display:flex;gap:8px;margin-top:8px}
+#bar button{flex:1;font:18px 'Patrick Hand';min-height:46px;border:2px solid #1B1B1F;border-radius:10px;background:#fff;color:#1B1B1F;touch-action:manipulation}
+#bar button.primary{background:#1B1B1F;color:#FFF8C4}
+#bar button:disabled{opacity:.3}
 </style></head>
 <body><div id="bar"></div><canvas id="c"></canvas><script type="module" src="/src/dev/capture.ts"></script></body></html>
