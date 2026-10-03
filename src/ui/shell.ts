@@ -6,6 +6,7 @@ import type { LevelDef } from '../sim/level';
 import { CHAPTERS, ALL_LEVELS } from '../levels';
 import { load as loadSave, save, type Hero } from '../game/save';
 import { hallCanvas, PER_PAGE } from './hall';
+import { levelThumb } from './thumb';
 import { pencilTick } from '../audio/pencil';
 import { sfxUi } from '../audio/sfx';
 
@@ -103,7 +104,19 @@ export class Shell {
     notes.append(story, sumo, daily);
     const book = this.press(el('button', 'tab sketch', 'Sketchbook'), () => this.show('sketchbook'));
     const set = this.press(el('button', 'tab', 'settings'), () => this.show('settings'));
-    this.root.append(notes, book, set);
+    this.root.append(notes, book, set, this.littleGuy());
+  }
+
+  /** Little Guy on the title, by the floor, waving, scarf in highlighter. */
+  private littleGuy() {
+    return el(
+      'div',
+      'title-guy',
+      `<svg viewBox="0 0 60 90"><g fill="none" stroke="#1B1B1F" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 86l8-24 8 24M30 62V38M30 44l-10 12"/><path class="wave" d="M30 44l11-12"/></g>
+        <circle cx="30" cy="27" r="10" fill="#1B1B1F"/><circle cx="26.5" cy="26" r="1.8" fill="#FFFDF6"/><circle cx="33" cy="26" r="1.8" fill="#FFFDF6"/>
+        <path d="M23 39c5 1 10 1 15-1l9 4" stroke="#F2C230" stroke-width="5" stroke-linecap="round" fill="none"/></svg>`,
+    );
   }
 
   /** The logo writes itself, then the D wakes up: its eyes open and follow you. */
@@ -165,6 +178,7 @@ export class Shell {
       const badges = d.badges[lv.id] ?? [];
       const slots = [0, 1, 2].map((k) => `<i class="slot ${badges[k] ? 'on' : ''}" title="${badges[k] ? 'the ' + badges[k] : ''}"></i>`).join('');
       const b = el('button', `note lvl ${open ? '' : 'locked'} ${d.cleared[lv.id] ? 'done' : ''}`, `<em>${lv.id}</em><b>${lv.title}</b><span class="slots">${slots}</span>`);
+      b.insertBefore(levelThumb(lv), b.querySelector('.slots'));
       b.style.setProperty('--tilt', `${((i * 37) % 7) - 3}deg`);
       b.style.animationDelay = `${i * 40}ms`;
       if (open) this.press(b, () => this.show('play', lv));
@@ -177,9 +191,9 @@ export class Shell {
   private hud(level: LevelDef | null, back: Screen = 'title') {
     const bar = el('div', 'hud');
     if (level) {
-      bar.append(this.press(el('button', 'icon retry', '<svg viewBox="0 0 40 40"><path d="M30 14a12 12 0 1 0 2 10" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/><path d="M31 6v9h-9" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'), () => this.retry()));
+      bar.append(this.press(el('button', 'icon retry', '<svg viewBox="0 0 40 40"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M29.5 13.5c-3-4.6-9.6-6-14.4-3.1-5 3-6.6 9.7-3.5 14.6 3 4.8 9.6 6.3 14.5 3.3 2.4-1.5 4-3.7 4.6-6.3" stroke-width="3.4"/><path d="M30.2 14.2c-3.2-4.2-9.3-5.4-13.9-2.8" stroke-width="1.4" opacity=".55"/><path d="M31.4 6.6l-.6 8.2-8.1-.9" stroke-width="3.4"/></g></svg>'), () => this.retry()));
     }
-    bar.append(this.press(el('button', 'icon back', '<svg viewBox="0 0 40 40"><path d="M10 12h20M10 20h20M10 28h20" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/></svg>'), () => this.pause(level, back)));
+    bar.append(this.press(el('button', 'icon back', '<svg viewBox="0 0 40 40"><g fill="none" stroke="currentColor" stroke-linecap="round"><path d="M14.5 10.5c.3 6.4-.2 12.7.4 19" stroke-width="4"/><path d="M25.8 10.2c-.4 6.5.3 12.9-.2 19.3" stroke-width="4"/><path d="M15.4 11.5c.1 5.6 0 11.3.5 16.8" stroke-width="1.3" opacity=".5"/></g></svg>'), () => this.pause(level, back)));
     this.root.append(bar);
   }
 

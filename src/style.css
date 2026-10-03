@@ -151,7 +151,7 @@ body.slow #backdrop {
 .levels {
   position: absolute;
   left: 60px;
-  top: 330px;
+  top: 270px;
   width: 600px;
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -160,6 +160,7 @@ body.slow #backdrop {
 .lvl {
   min-height: 190px;
   padding-bottom: 54px;
+  padding-top: 14px;
   position: relative;
 }
 .lvl em {
@@ -434,7 +435,7 @@ body.slow #backdrop {
   font-size: 44px;
   opacity: 0.85;
 }
-.hall {
+.ui canvas.hall {
   position: absolute;
   left: 60px;
   top: 300px;
@@ -536,4 +537,44 @@ body.slow #backdrop {
   border-bottom: 0;
   border-radius: 9px 9px 0 0;
   box-shadow: none !important;
+}
+
+.lvl .thumb {
+  position: static; /* the page canvases are fixed; these live in the note */
+  display: block;
+  margin: 10px 0 4px;
+  border-radius: 3px;
+  background: rgba(255, 253, 246, 0.6);
+}
+.ui.chapter .tab.back,
+.ui.sketchbook .tab.back {
+  top: 40px;
+  right: 30px;
+  left: auto;
+  bottom: auto;
+}
+.title-guy {
+  position: absolute;
+  right: 120px;
+  top: 1100px;
+  width: 60px;
+  height: 90px;
+  animation: slap 300ms cubic-bezier(0.23, 1, 0.32, 1) 600ms both;
+}
+.title-guy svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.title-guy .wave {
+  transform-origin: 30px 44px;
+  animation: wave 1.6s ease-in-out 1s infinite;
+}
+@keyframes wave {
+  0%, 60%, 100% { transform: rotate(0deg); }
+  15%, 45% { transform: rotate(-28deg); }
+  30% { transform: rotate(8deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .title-guy .wave { animation: none; }
 }
