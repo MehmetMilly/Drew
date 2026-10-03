@@ -208,9 +208,23 @@ function findLoop(p: Pt[]): LoopCut | null {
 
 function findZigzag(p: Pt[]): { a: number; b: number } | null {
   if (p.length < 5) return null;
-  const idx = rdp(p, CLASSIFY.rdpEps);
+  const raw = rdp(p, CLASSIFY.rdpEps);
+  // a rounded tooth tip often simplifies to two close vertices (72° + 35°): merge any pair
+  // joined by a very short segment into one corner at their midpoint, so the turn adds up
+  const idx: number[] = [];
+  const v: Pt[] = [];
+  for (let k = 0; k < raw.length; k++) {
+    const q = p[raw[k]];
+    const inner = k > 0 && k < raw.length - 1 && idx.length > 1;
+    const prev = v[v.length - 1];
+    if (inner && k < raw.length - 1 && dist(prev, q) < CLASSIFY.zigCornerSpan && idx[idx.length - 1] !== raw[0]) {
+      v[v.length - 1] = { x: (prev.x + q.x) / 2, y: (prev.y + q.y) / 2 };
+      continue;
+    }
+    idx.push(raw[k]);
+    v.push(q);
+  }
   if (idx.length < CLASSIFY.zigMinVerts + 2) return null;
-  const v = idx.map((i) => p[i]);
   const thr = (CLASSIFY.zigTurnDeg * Math.PI) / 180;
   let runStart = -1,
     runLen = 0,
@@ -221,8 +235,9 @@ function findZigzag(p: Pt[]): { a: number; b: number } | null {
   for (let k = 1; k < v.length - 1; k++) {
     const ang = turnAngle(v[k - 1], v[k], v[k + 1]);
     const s = Math.sign(ang);
-    const okSeg = dist(v[k - 1], v[k]) < CLASSIFY.zigMaxSeg && dist(v[k], v[k + 1]) < CLASSIFY.zigMaxSeg;
-    const sharp = Math.abs(ang) > thr;
+    const short = dist(v[k - 1], v[k]) < CLASSIFY.zigMaxSeg && dist(v[k], v[k + 1]) < CLASSIFY.zigMaxSeg;
+    const okSeg = short || (dist(v[k - 1], v[k]) < CLASSIFY.zigMaxLongSeg && dist(v[k], v[k + 1]) < CLASSIFY.zigMaxLongSeg);
+    const sharp = Math.abs(ang) > (short ? thr : (CLASSIFY.zigLongTurnDeg * Math.PI) / 180);
     if (sharp && okSeg && (runLen === 0 || s === -lastSign)) {
       if (runLen === 0) runStart = k;
       runLen++;
@@ -300,7 +315,7 @@ function findWave(p: Pt[]): { a: number; b: number } | null {
     const sw = Math.abs(th[ext[i]] - th[ext[i - 1]]);
     const arc = (ext[i] - ext[i - 1]) * SP;
     // end pieces count only when they are a full bend themselves (a lead-in turns far less)
-    if (sw >= minSw && sw <= maxSw && arc <= CLASSIFY.waveMaxBend) {
+    if (sw >= minSw && sw <= maxSw && arc <= CLASSIFY.waveMaxBendFrac * (n - 1) * SP) {
       if (run === 0) runA = i - 1;
       run++;
       if (run > best.len) best = { a: runA, b: i, len: run };
@@ -373,6 +388,19 @@ function mkPart(kind: MarkKind, pts: Pt[], area = 0): Part {
   return { kind, pts, area, ink };
 }
 
+/** A spring that dominates a run wins over loops: sloppy teeth often cross each other,
+ *  which would otherwise read as small closed loops. */
+function splitRun(p: Pt[], out: Part[]) {
+  const z = p.length >= 5 ? (findZigzag(p) ?? findWave(p)) : null;
+  if (!z || pathLength(p.slice(z.a, z.b + 1)) < CLASSIFY.springDominates * pathLength(p)) {
+    splitLoops(p, out);
+    return;
+  }
+  if (z.a > 0) splitLoops(p.slice(0, z.a + 1), out);
+  out.push(mkPart('zigzag', p.slice(z.a, z.b + 1)));
+  if (z.b < p.length - 1) splitLoops(p.slice(z.b), out);
+}
+
 /** Split a non-scribble run into loops and lines (recursive on the remaining tail). */
 function splitLoops(p: Pt[], out: Part[]) {
   if (p.length < 2) return;
@@ -439,13 +467,13 @@ export function classifyStroke(raw: readonly Pt[]): Classified {
   for (const r of ranges) {
     const a = indexAtArc(pts, cum, arc[r.a]);
     const b = Math.max(a + 1, indexAtArc(pts, cum, arc[r.b]));
-    if (a > cursor) splitLoops(pts.slice(cursor, a + 1), parts);
+    if (a > cursor) splitRun(pts.slice(cursor, a + 1), parts);
     const sp = pts.slice(a, Math.min(pts.length, b + 1));
     const hull = convexHull(sp);
     parts.push(mkPart('scribble', sp, polyArea(hull)));
     cursor = b;
   }
-  if (cursor < pts.length - 1) splitLoops(pts.slice(cursor), parts);
+  if (cursor < pts.length - 1) splitRun(pts.slice(cursor), parts);
   // short slop tails that start or end inside a lump belong to it
   for (let k = 0; k < parts.length; k++) {
     const q = parts[k];

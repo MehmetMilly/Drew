@@ -56,6 +56,19 @@ const add = (check: string, result: string, pass: boolean) => {
   }
 }
 
+// ---- real strangers' strokes: Quick, Draw! regression corpus (CC BY 4.0)
+{
+  const { scoreQuickDraw, FLOOR } = await import('./quickdraw');
+  const per = scoreQuickDraw();
+  if (per) {
+    const low = Object.entries(per).filter(([c, e]) => e.ok / e.n < FLOOR[c]);
+    const txt = Object.entries(per)
+      .map(([c, e]) => `${c} ${Math.round((100 * e.ok) / e.n)}%`)
+      .join(', ');
+    add('classifier: Quick, Draw! strokes (1000)', txt, !low.length);
+  }
+}
+
 // ---- determinism (Node ×3)
 const nodeHash = detScenario();
 {

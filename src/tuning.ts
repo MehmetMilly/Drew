@@ -41,22 +41,26 @@ export const CLASSIFY = {
   zigTurnDeg: 70,
   zigMinVerts: 4,
   zigMaxSeg: 45,
+  zigCornerSpan: 14, // vertices closer than this are one rounded corner
+  zigMaxLongSeg: 400, // tall teeth are fine...
+  zigLongTurnDeg: 75, // ...if they turn hard (stairs and lightning bolts stay lines)
+  springDominates: 0.5, // a spring covering this much of a run beats loops found inside it
   zigMinAdvance: 0.5, // per-tooth progress vs tooth length: springs advance, shading does not
   hugMaxFrac: 0.25, // an overshoot up to this fraction of its ring's ink...
   hugDist: 30, // ...that stays this close to the ring is part of the loop
   // rounded springs (wiggles): see findWave
   waveSpacing: 6,
   waveHystDeg: 60,
-  waveMinSwingDeg: 100, // each bend turns the pen at least this much...
-  waveMaxSwingDeg: 330, // ...but less than a full curl (that's a loop)
-  waveMaxBend: 320, // px of ink per bend
+  waveMinSwingDeg: 85, // each bend turns the pen at least this much...
+  waveMaxSwingDeg: 420, // ...a tip that curls into a little coil still counts (a helix is springy)
+  waveMaxBendFrac: 0.5, // one bend may hold at most this fraction of the stroke's ink
   waveMinBends: 4, // ≈ teeth, like the sharp rule's 4 turns
   waveMinAspect: 1.4,
   waveStraightLen: 30, // a lead-in is straight when 30 px of it turns less than...
   waveStraightDeg: 12,
   waveLeadMul: 0.75, // ...and longer than this fraction of a typical tooth's ink
   waveLeadMin: 40, // tooth height / tooth spacing
-  waveMinAdvance: 0.22, // chord / ink over the spring: shading barely advances
+  waveMinAdvance: 0.08, // chord / ink over the spring: shading barely advances
   scribbleRadius: 30,
   scribbleRatio: 4.5,
   scribbleRatioSmall: 3.6, // half-size window, catches small scribbled fists

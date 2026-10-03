@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Phase 1 — The Toy: waiting at the Gate 1 human gate.** All Gate 1 automated checks are green. Waiting for the play-test notes and the human stroke fixtures before tagging `gate-1` and starting Phase 2.
+**Phase 1 — The Toy: waiting at the Gate 1 human gate.** All automated checks are green, including the tester's real strokes and a 1,000-stroke Quick, Draw! corpus. Waiting for the play-test notes on the four checklist questions before tagging `gate-1`.
 
 ## Done
 
@@ -20,9 +20,8 @@
 
 ## Next
 
-1. Gate 1 human: play on phone + desktop, capture strokes, return notes. (Instructions were given in chat.)
-2. Re-run `npm test` / `npm run verify` on the human fixtures; fix the classifier until ≥95%.
-3. Address play-test notes, then tag `gate-1`.
+1. ~~Capture human strokes~~ done: 34/34 single strokes and 6/6 joins pass; Quick, Draw! corpus added.
+2. Waiting for the Gate 1 checklist notes (four questions), then address them and tag `gate-1`.
 4. Phase 2: drawing grammar, metrics course, `tools/metrics.ts` (`npm run metrics`).
 
 ## Open problems
@@ -37,15 +36,16 @@
 | check | result | pass |
 |---|---|---|
 | sim purity (no Math.random/clock) | clean | PASS |
-| classifier: synthetic fixtures | 98.3% (295/300) | PASS |
-| determinism: Node ×3 | 578281b2 same | PASS |
+| classifier: synthetic fixtures | 97.6% (410/420) | PASS |
+| classifier: human fixtures | 100.0% (34/34) | PASS |
+| human sloppy joins → one creature | 6/6 | PASS |
+| classifier: Quick, Draw! strokes (1000) | line 100%, circle 98%, triangle 98%, square 99%, zigzag 90% | PASS |
+| determinism: Node ×3 | 44a83fe8 same | PASS |
 | no-noise tearing (100 creatures × 10 s) | 0 tears in 0 creatures | PASS |
 | monkey (300 scribble sets) | crash 0, NaN 0, vmax 3000 px/s, fell off 0 | PASS |
 | distinct bodies (each pair ≥20% on a metric) | 15/15 pairs distinct | PASS |
-| step time @ 906 particles (Node) | 0.77 ms | PASS |
-| determinism: browser vs Node | 578281b2 vs 578281b2 | PASS |
-| browser fps @ 882 particles, 4× CPU throttle | 60.0 fps, p95 16.7 ms | PASS |
+| step time @ 906 particles (Node) | 0.78 ms | PASS |
+| determinism: browser vs Node | 44a83fe8 vs 44a83fe8 | PASS |
+| browser fps @ 884 particles, 4× CPU throttle | 60.0 fps, p95 16.7 ms | PASS |
 
-Distinct-body metrics: stick700 walk 170 / reach 154 / jump 1 · spider 88 / 112 / 1 · worm 61 / 8 / 3 · box 58 / 116 / 1 · giant 86 / 696 / 1 · hopper 166 / 407 / 178.
-
-Reviewed sheets: `review/bodies.png`, `gait.png`, `worm.png`, `birth.png`, `live-pen.png`, `capture.png`.
+Classifier speed: median 0.14 ms/stroke, max 2.75 ms (desktop Node).
