@@ -39,6 +39,8 @@ export interface LevelDef {
   goal: Goal;
   draw: number; // world time scale while ink is wet
   ink: number; // px budget
+  /** pass-and-play rounds: nothing is recorded (no clears, badges, Hall entries or fails) */
+  casual?: boolean;
   /** Daily modifier (daily.ts): changes what births are allowed or how they're built */
   mod?: Modifier;
   /** px/s of ink that flows back into the pen while the world runs (the boss fight) */
@@ -93,8 +95,10 @@ export function countdown(w: World): number | null {
   const L = w.level;
   const gs = L?.def.goal;
   if (!L || !gs || (gs.type !== 'save' && gs.type !== 'score' && gs.type !== 'sumo' && !(gs.type === 'home' && gs.seconds))) return null;
-  if (L.startedAt < 0) return gs.seconds!;
-  return Math.max(0, gs.seconds! - (w.t - L.startedAt));
+  // Sumo's clock starts when both sides are awake
+  const t0 = gs.type === 'sumo' ? L.foesAt : L.startedAt;
+  if (t0 < 0) return gs.seconds!;
+  return Math.max(0, gs.seconds! - (w.t - t0));
 }
 
 export function threats(w: World): Body[] {
@@ -248,6 +252,8 @@ export function routeBlocked(w: World): boolean {
   if (L.blocked !== undefined) return L.blocked;
   const goal = L.def.goal;
   let blocked = false;
+  // rising water (Chapter 4): he can't walk out of it, so he scrambles up whatever carries him
+  if (goal.type === 'save' && w.props?.pools.length) blocked = true;
   if (goal.type === 'home') {
     const x0 = L.def.guy.x;
     const dir = Math.sign(goal.x - x0) || 1;

@@ -6,7 +6,11 @@ import type { LevelDef } from '../sim/level';
 import { CHAPTERS, ALL_LEVELS } from '../levels';
 import { load as loadSave, save, type Hero } from '../game/save';
 import { hallCanvas, PER_PAGE } from './hall';
-import { OPPONENTS, sumoLevel } from '../levels/sumo';
+import { OPPONENTS, RING, sumoLevel } from '../levels/sumo';
+import { WORLD } from '../tuning';
+
+const WORLD_W = WORLD.W;
+const VERSUS_DRAW = 8; // s each player has to draw
 import { dailyFor, dateKey } from '../levels/daily';
 import { levelThumb } from './thumb';
 import { pencilTick } from '../audio/pencil';
@@ -29,6 +33,8 @@ export class Shell {
   private stopHall: (() => void) | null = null;
   private hallPage = 0;
   private sumoPage = 0;
+  /** Sumo pass-and-play (design §12): best of five, alternating who draws first. */
+  private vs: { on: boolean; round: number; score: [number, number]; timer: number } = { on: false, round: 0, score: [0, 0], timer: 0 };
 
   constructor(private toy: Toy) {
     document.body.appendChild(this.root);
@@ -66,6 +72,10 @@ export class Shell {
   }
 
   show(s: Screen, level?: LevelDef, hero?: Hero) {
+    if (s !== 'play') {
+      this.vs.on = false;
+      clearInterval(this.vs.timer);
+    }
     if (s !== this.screen) sfxUi('page'); // moving between screens turns a page
     this.stopHall?.();
     this.stopHall = null;
@@ -237,6 +247,71 @@ export class Shell {
     return level?.goal.type === 'sumo' ? 'sumo' : level?.mod ? 'daily' : 'chapter';
   }
 
+  /** One pass-and-play round: the first drawer draws (their creature sleeps on the far side
+   *  of the ring), then the second drawer draws a counter, and both wake. */
+  private versusRound() {
+    const first = this.vs.round % 2;
+    const second = 1 - first;
+    const lv = (foe: { x: number; y: number }[][]): LevelDef => ({ ...sumoLevel(0), id: `versus-${this.vs.round}-${foe.length ? 'b' : 'a'}`, title: `Round ${this.vs.round + 1}`, hint: undefined, casual: true, goal: { type: 'sumo', seconds: 12, ring: RING, foe, name: `Player ${first + 1}` } });
+    this.show('play', lv([]));
+    this.vs.on = true;
+    this.drawTimer(`Player ${first + 1}, draw!`, () => this.toy.dryNow());
+    this.toy.capture = (strokes) => {
+      clearInterval(this.vs.timer);
+      // the first creature stands on the far side of the ring, facing the second drawer
+      const foe = strokes.map((st) => st.map((p) => ({ x: WORLD_W - p.x, y: p.y })));
+      this.show('play', lv(foe));
+      this.vs.on = true;
+      this.drawTimer(`Player ${second + 1}, draw!`, () => {
+        const drew = this.toy.drewAnything;
+        this.toy.dryNow();
+        if (!drew) this.versusResult(false); // nothing drawn: the first creature has the ring
+      });
+    };
+  }
+
+  /** The 8 s pencil timer for pass-and-play, shown as a banner. */
+  private drawTimer(text: string, done: () => void) {
+    this.root.querySelector('.vs-banner')?.remove();
+    const b = el('div', 'vs-banner', '');
+    this.root.append(b);
+    let left = VERSUS_DRAW;
+    const tick = () => {
+      b.innerHTML = `${text} <b>${left}</b>`;
+      if (left-- <= 0) {
+        clearInterval(this.vs.timer);
+        b.remove();
+        done();
+      }
+    };
+    clearInterval(this.vs.timer);
+    tick();
+    this.vs.timer = window.setInterval(tick, 1000);
+  }
+
+  /** A round is over: the second drawer won it if the first creature went off the ring. */
+  private versusResult(secondWon: boolean) {
+    if (this.card) return;
+    const first = this.vs.round % 2;
+    const winner = secondWon ? 1 - first : first;
+    this.vs.score[winner]++;
+    this.vs.round++;
+    const [a, b] = this.vs.score;
+    const done = a >= 3 || b >= 3;
+    const c = el('div', 'endcard', `<div class="plate">${done ? `Player ${winner + 1} wins!` : `Player ${winner + 1} takes it`}</div><p class="epitaph">Player 1 &nbsp;${a} – ${b}&nbsp; Player 2</p>`);
+    const row = el('div', 'buttons');
+    if (done) {
+      row.append(this.press(el('button', 'note small go', 'Again'), () => {
+        this.vs = { on: true, round: 0, score: [0, 0], timer: 0 };
+        this.versusRound();
+      }));
+    } else row.append(this.press(el('button', 'note small go', 'Next round →'), () => this.versusRound()));
+    row.append(this.press(el('button', 'note small', 'Done'), () => this.show('sumo')));
+    c.append(row);
+    this.root.append(c);
+    this.card = c;
+  }
+
   /** Daily Doodle: today's arena and modifier, a calendar page of stamps, the streak. */
   private daily() {
     this.toy.load(null);
@@ -294,6 +369,12 @@ export class Shell {
     };
     nav.append(this.press(el('button', 'tab', '‹'), go(-1)), el('span', '', `page ${this.sumoPage + 1} of ${pages}`), this.press(el('button', 'tab', '›'), go(1)));
     this.root.append(nav);
+    this.root.append(
+      this.press(el('button', 'note versus', '<b>Pass &amp; play</b><small>two players, best of five</small>'), () => {
+        this.vs = { on: true, round: 0, score: [0, 0], timer: 0 };
+        this.versusRound();
+      }),
+    );
     this.root.append(this.press(el('button', 'tab back', '← back'), () => this.show('title')));
   }
 
@@ -341,6 +422,7 @@ export class Shell {
 
   /** Fail: tap anywhere retries; a small Watch button sits beside the prompt. */
   private failWatch() {
+    if (this.vs.on && this.screen === 'play') return this.versusResult(false);
     if (this.screen !== 'play' || this.card) return;
     this.root.querySelector('.watch-fail')?.remove();
     const b = this.press(el('button', 'tab watch-fail', '▶ watch'), () => {
@@ -351,6 +433,7 @@ export class Shell {
   }
 
   private retry() {
+    if (this.vs.on) return; // a pass-and-play round is played once
     this.root.querySelector('.watch-fail')?.remove();
     if (this.card) {
       this.card.remove();
@@ -361,6 +444,7 @@ export class Shell {
 
   private endCard(info: { level: LevelDef; heroes: { name: string; kind: string }[]; newBadges: string[]; epitaph: string }) {
     if (this.screen !== 'play' || this.toy.level?.id !== info.level.id) return;
+    if (this.vs.on) return this.versusResult(true);
     const d = loadSave();
     const badges = d.badges[info.level.id] ?? [];
     const c = el('div', 'endcard');

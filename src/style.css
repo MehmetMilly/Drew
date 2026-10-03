@@ -689,3 +689,27 @@ body.slow #backdrop {
   font-size: 40px;
   color: #1b1b1f;
 }
+
+/* Sumo pass-and-play */
+.note.versus {
+  position: absolute;
+  left: 230px;
+  top: 1010px;
+  width: 260px;
+  --tilt: 1.5deg;
+}
+.vs-banner {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 250px;
+  text-align: center;
+  font-family: 'Gochi Hand', sans-serif;
+  font-size: 54px;
+  color: #1b1b1f;
+  pointer-events: none;
+}
+.vs-banner b {
+  color: #e23b2e;
+  margin-left: 12px;
+}

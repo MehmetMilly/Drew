@@ -78,6 +78,24 @@ export class Toy {
   onRetry: (() => void) | null = null;
   onWatchEnd: (() => void) | null = null;
   onFail: (() => void) | null = null;
+  /** Pass-and-play: when set, dry ink is handed over as strokes instead of being born. */
+  capture: ((strokes: Pt[][]) => void) | null = null;
+  /** The pencil is put down (a draw timer ran out). */
+  penLocked = false;
+
+  /** Any ink on the page this attempt (wet or born). */
+  get drewAnything() {
+    return this.wet.length > 0 || this.births.length > 0 || (this.live?.pts.length ?? 0) >= 2;
+  }
+
+  /** Time's up: the ink still on the page dries at once and nothing more can be drawn. */
+  dryNow() {
+    this.penLocked = true;
+    if (this.live && this.live.pts.length >= 2) this.commit(this.live);
+    this.live = null;
+    for (const s of this.wet) s.upAt = -Infinity;
+    if (!this.wet.length && this.capture) this.capture([]);
+  }
 
   /** Start a level (or the blank page with null). Retrying the same level keeps a ghost. */
   load(def: LevelDef | null) {
@@ -98,6 +116,7 @@ export class Toy {
     this.stampAt = Infinity;
     this.winInfo = null;
     this.inkUsed = 0;
+    this.penLocked = false;
     this.result = 'play';
     this.acc = 0;
     this.scale = this.scaleFrom = this.scaleTarget = 1;
@@ -238,6 +257,7 @@ export class Toy {
 
   private penDown(p: LivePt) {
     unlockAudio();
+    if (this.penLocked) return;
     if (this.now < this.readUntil) this.readUntil = this.now; // touching skips the title beat
     this.blocked = false;
     if (this.level && this.insideTerrain(p.x, p.y)) {
@@ -405,6 +425,15 @@ export class Toy {
   }
 
   private birth() {
+    if (this.capture) {
+      const cap = this.capture;
+      this.capture = null;
+      const got = this.wet.map((s) => s.pts.map((p) => ({ x: p.x, y: p.y })));
+      this.wet = [];
+      this.setScale(1, INK.easeOut);
+      cap(got);
+      return;
+    }
     const strokes = this.wet.map((s) => {
       const t0 = s.pts[0].t;
       return s.pts.map((p) => ({ x: p.x, y: p.y, t: p.t - t0, p: p.p }));
@@ -448,14 +477,14 @@ export class Toy {
         for (const st of best.strokes) for (const p of st) (sx += p.x, sy += p.y, n++);
         eye = { x: h.x - c.x + sx / n, y: h.y - c.y + sy / n };
       }
-      const fresh = recordWin(this.level.id, kinds, best ? { name: best.name, kind: best.kind, level: this.level.id, strokes: best.strokes, at: Date.now(), epitaph: ep, eye } : null);
+      const fresh = this.level.casual ? [] : recordWin(this.level.id, kinds, best ? { name: best.name, kind: best.kind, level: this.level.id, strokes: best.strokes, at: Date.now(), epitaph: ep, eye } : null);
       this.winInfo = { level: this.level, heroes, newBadges: fresh, epitaph: ep, strokes: this.drawn };
       this.endStep = this.world.steps;
       this.show = new Show(this.level, this.births, pickMoment(this.world), this.endStep, 'highlight', this.now + LEVEL.hitStop, loadSave().settings.reducedMotion);
       if (this.show.phase === 'done') this.slam();
     } else {
       this.endStep = this.world.steps;
-      recordFail(this.level.id);
+      if (!this.level.casual) recordFail(this.level.id);
       setTimeout(() => this.result === 'fail' && this.onFail?.(), LEVEL.failBeat * 1000);
     }
   }

@@ -188,7 +188,8 @@ export class WorldRenderer {
   private drawSleepingFoe(g: Ctx, frame: number) {
     const L = this.w.level;
     if (!L || L.def.goal.type !== 'sumo' || L.foesAt >= 0) return;
-    const foe = L.def.goal.foe;
+    const foe = L.def.goal.foe.filter((st) => st.length);
+    if (!foe.length) return;
     g.save();
     g.strokeStyle = this.pattern!;
     g.globalAlpha = 0.93;
