@@ -156,3 +156,12 @@ Every Chapter 2 row of `npm run verify` is green and Chapter 1 is unchanged. Wha
   - **Rafts:** a heavy, level, free-floating plank. It floats, drifts with the current, stops against banks, and carries what stands on it (contact grip).
   - **Kraken tentacles:** scripted, non-colliding tips the brain sees as threats. A tentacle reaches for him, latches, and hauls him and whoever carries him toward its root. The haul is a limited force, less a grip per planted foot of the carrier. A hand, fist or spring hitting the tip faster than 200 px/s makes it let go and recoil for 1.4 s.
   - **Water rescue** (`carryGoal`) applies only to SAVE levels: in SCORE levels the creatures fetch ducks instead.
+- **Chapter 5 damage** (2026-10-03, `src/sim/damage.ts`, defs ride in `LevelDef.props`):
+  - **Scissors:** a kinematic, non-colliding body (`data.ghost`) that homes on him with a limited turn rate (1.6 rad/s), so a miss swings round wide. Every link within 4 px of the blades is cut; touching him kills him ('snipped'). A creature that grabs it stops it, and it becomes an ordinary thrown body.
+  - **Fire:** a front running along the floor. Points on the burnt floor catch, fire climbs links at 90 px/s, and a point crumbles 1.2 s after catching. A flame touching him kills him ('burned').
+  - **Smudgers:** crawl toward the nearest ink (or him) and eat one point every 0.12 s. They are squashed by ink landing on them faster than 160 px/s downward, or by a striker. Touching him for 0.5 s kills him ('erased').
+  - **Big Eraser** (goal `boss`):
+    - Phase 1: a box pusher with a limited-force motor that bracers resist, rubbing out 10 points/s of whatever touches it.
+    - Shoved into the sharpener on its home edge, it comes out 20% smaller (phase 2) and hops at him; a hard hit mid-hop knocks it back.
+    - Sharpened again, it crumbles into 4 smudgers (phase 3); squashing the last one wins.
+  - **Ink regeneration:** `LevelDef.inkRegen` (px/s) refills the pen while the world runs (60 px/s in the boss fight).

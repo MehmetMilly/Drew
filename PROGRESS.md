@@ -53,6 +53,16 @@
 - Not built yet: level-card thumbnails, doodled HUD icons, Little Guy on the title, left-handed layout, closest-call moment scoring.
 - A stick figure can't raise its arms above its head (the head blocks the swing sector).
 
+## Chapter 5 (in progress, 2026-10-03)
+
+- Engine in: scissors, fire, smudgers, the Big Eraser with the sharpener, and ink regen (DECISIONS.md).
+- `src/levels/ch5.ts` holds a greybox 5-1…5-5. It is not in the index yet.
+- Greybox reference results:
+  - 5-1: only the giant survives.
+  - 5-4: everyone stalls.
+  - 5-5: the boss is not beaten by any reference yet.
+- Needs a level-author-deep pass after Chapters 3 and 4.
+
 ## Last `npm run verify`
 
 | check | result | pass |
