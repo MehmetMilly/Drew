@@ -762,7 +762,9 @@ export class World {
         wj = P.im[j];
       const ws = wi + wj;
       if (ws === 0) continue;
-      const push = (r2 - d) / d;
+      // relaxed: a foot landing between two links of another body must not wedge them
+      // apart faster than their own links can pull back together
+      const push = ((r2 - d) / d) * CREATURE_COLLIDE.relax;
       P.x[i] -= dx * push * (wi / ws);
       P.y[i] -= dy * push * (wi / ws);
       P.x[j] += dx * push * (wj / ws);

@@ -95,10 +95,19 @@ export const LOCO = {
   friction: 0.35,
   stanceFriction: 0.92,
   braceFrictionMul: 3,
-  stepLift: 0.5, // swing arc height as fraction of stride
+  stepLift: 0.75, // swing arc height as fraction of stride
+  liftCap: 0.5, // ...but never more than this fraction of the leg
+  scurry: 1.35, // cadence multiplier for 4+ feet: many legs patter
   cadenceBase: 2.2, // steps/s for a 60px leg
-  wriggleAmp: 4,
-  wriggleFreq: 3,
+  wriggleAmp: 6, // min hump height (px)
+  wriggleAmpMax: 22,
+  wriggleAmpK: 0.1, // hump height per px of body size
+  wriggleWave: 0.7, // hump wavelength as a fraction of body size
+  wriggleFreq: 1.6,
+  wriggleSurge: 3,
+  wriggleGripLoop: 1,
+  wriggleHold: 0.5, // how firmly the hump follows its wave each substep
+  wriggleGrip: 5, // extra servo gain on lifted particles (they have no ground friction)
   arriveDist: 14,
 };
 
@@ -114,6 +123,7 @@ export const STRENGTH = {
 };
 
 export const CREATURE_COLLIDE = {
+  relax: 0.5, // fraction of overlap resolved per contact pass (stops feet wedging links apart)
   cell: 40,
 };
 
@@ -142,6 +152,10 @@ export const KIND = {
 
 export const LOOK = {
   boilFps: 8,
+  birthPop: 0.45, // s for the eyes to pop open and settle
+  pointHeadMin: 16, // eye-cluster radius for creatures without a loop head
+  pointHeadMax: 26,
+  pointHeadK: 0.06,
   boilFrames: 3,
   boilAmp: 0.8,
   nameplateHold: 1.5,

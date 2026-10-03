@@ -93,3 +93,44 @@ export function pencilTick() {
   o.start(t);
   o.stop(t + 0.06);
 }
+
+/** Birth: a soft whoosh as time snaps back, then a rising "bloop" as the eyes pop. */
+export function birthPop(delay = 0) {
+  if (!ctx) return;
+  const t = ctx.currentTime + delay;
+  // whoosh: band-passed noise sweeping up
+  const n = ctx.createBufferSource();
+  const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.25), ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  let s = 7;
+  for (let i = 0; i < d.length; i++) {
+    s = (s * 16807) % 2147483647;
+    d[i] = (s / 2147483647) * 2 - 1;
+  }
+  n.buffer = buf;
+  const f = ctx.createBiquadFilter();
+  f.type = 'bandpass';
+  f.Q.value = 1.2;
+  f.frequency.setValueAtTime(500, t);
+  f.frequency.exponentialRampToValueAtTime(2400, t + 0.2);
+  const ng = ctx.createGain();
+  ng.gain.setValueAtTime(0.0001, t);
+  ng.gain.exponentialRampToValueAtTime(0.09, t + 0.08);
+  ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.24);
+  n.connect(f).connect(ng).connect(ctx.destination);
+  n.start(t);
+  n.stop(t + 0.25);
+  // bloop: sine with a fast upward pitch bend
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.type = 'sine';
+  const t2 = t + 0.06;
+  o.frequency.setValueAtTime(320, t2);
+  o.frequency.exponentialRampToValueAtTime(980, t2 + 0.09);
+  g.gain.setValueAtTime(0.0001, t2);
+  g.gain.exponentialRampToValueAtTime(0.22, t2 + 0.015);
+  g.gain.exponentialRampToValueAtTime(0.0001, t2 + 0.16);
+  o.connect(g).connect(ctx.destination);
+  o.start(t2);
+  o.stop(t2 + 0.18);
+}

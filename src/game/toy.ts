@@ -7,7 +7,7 @@ import { PAPERS, renderDesk, renderPaper } from '../render/materials';
 import { attachPen, LivePt } from '../input/pen';
 import { drawWet, strokeWidths, WetStroke } from './ink';
 import { clientToPage, layoutPage, PageRect } from './view';
-import { pencil, pencilTick, unlockAudio } from '../audio/pencil';
+import { pencil, pencilTick, unlockAudio, birthPop } from '../audio/pencil';
 import { boilState } from '../render/boil';
 
 const TAP_MAX_MOVE = 10;
@@ -237,9 +237,19 @@ export class Toy {
       return s.pts.map((p) => ({ x: p.x, y: p.y, t: p.t - t0, p: p.p }));
     });
     this.wet = [];
-    this.world.addStrokes(strokes);
+    const born = this.world.addStrokes(strokes);
     this.setScale(1, INK.easeOut);
+    if (born.length) {
+      birthPop();
+      try {
+        navigator.vibrate?.(12);
+      } catch {
+        /* no haptics */
+      }
+    }
   }
+
+  private cooled = false;
 
   private render(alpha: number) {
     const g = this.g,
@@ -275,13 +285,13 @@ export class Toy {
     }
     // slow time: the page cools (look-and-feel §7)
     const slow = Math.max(0, Math.min(1, (1 - this.scale) / (1 - INK.toyDrawSpeed)));
+    const cool = slow > 0.5;
+    if (cool !== this.cooled) document.body.classList.toggle('slow', (this.cooled = cool));
     if (slow > 0.01) {
-      // a cool wash stands in for desaturation (cheap on phones), plus the 6% vignette
-      g.fillStyle = `rgba(112,124,146,${0.1 * slow})`;
-      g.fillRect(0, 0, WORLD.W, WORLD.H);
+      // desaturation is a CSS filter on the static paper (body.slow); here only the 6% vignette
       const vg = g.createRadialGradient(WORLD.W / 2, WORLD.H / 2, WORLD.W * 0.45, WORLD.W / 2, WORLD.H / 2, WORLD.H * 0.75);
       vg.addColorStop(0, 'rgba(30,30,40,0)');
-      vg.addColorStop(1, `rgba(30,30,40,${0.16 * slow})`);
+      vg.addColorStop(1, `rgba(30,30,40,${0.12 * slow})`);
       g.fillStyle = vg;
       g.fillRect(0, 0, WORLD.W, WORLD.H);
     }

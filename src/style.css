@@ -33,3 +33,12 @@ canvas {
 #ink {
   z-index: 2;
 }
+
+/* slow time while drawing: the page cools (look-and-feel §7) */
+#backdrop {
+  transition: filter 200ms ease-out;
+}
+body.slow #backdrop {
+  filter: saturate(0.8) brightness(0.97);
+  transition: filter 150ms ease-out;
+}

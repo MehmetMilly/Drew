@@ -1,6 +1,6 @@
 // Faces do the acting (design.md §9): wobbly drawn ovals, pupils that lead,
 // saccades, blinks, brows by mode, sweat and strain, dizzy, happy, surprise.
-import { COLORS } from '../tuning';
+import { COLORS, LOOK } from '../tuning';
 import { hashNoise } from '../sim/rng';
 import type { Creature } from '../sim/creature';
 
@@ -16,6 +16,7 @@ export interface FaceView {
   mode: Creature['brain']['mode'];
   frame: number; // boil frame
   t: number;
+  age: number; // sim seconds since birth
 }
 
 function wobblyOval(g: Ctx, x: number, y: number, rx: number, ry: number, key: number, frame: number) {
@@ -32,6 +33,17 @@ function wobblyOval(g: Ctx, x: number, y: number, rx: number, ry: number, key: n
   g.closePath();
 }
 
+/** Eye scale over the first moments of life: shut slit → pop wide → settle. */
+export function birthPop(age: number): { x: number; y: number } {
+  const T = LOOK.birthPop;
+  if (age >= T) return { x: 1, y: 1 };
+  if (age < 0) return { x: 1, y: 0.08 };
+  const u = age / T;
+  // damped spring from 0 to 1 with ~35% overshoot
+  const k = 1 - Math.exp(-6 * u) * Math.cos(9 * u);
+  return { x: 0.85 + 0.15 * k + 0.1 * Math.sin(Math.PI * Math.min(1, u * 2.5)), y: Math.max(0.08, k) };
+}
+
 export function drawFace(g: Ctx, cr: Creature, v: FaceView) {
   const f = cr.face;
   const key = cr.seed & 0xffff;
@@ -39,8 +51,10 @@ export function drawFace(g: Ctx, cr: Creature, v: FaceView) {
   g.translate(v.hx, v.hy);
   g.rotate(v.angle);
   const sq = f.squash;
-  const sx = 1 + 0.3 * sq,
-    sy = 1 - 0.25 * sq;
+  // birth: the eyes pop open from a slit, overshoot, and settle (the magic trick)
+  const pop = birthPop(v.age);
+  const sx = (1 + 0.3 * sq) * pop.x,
+    sy = (1 - 0.25 * sq) * pop.y;
   const wide = 1 + 0.25 * f.surprise;
   const er = v.er * wide;
   // look direction in head space

@@ -88,8 +88,9 @@ export function actuate(w: World, cr: Creature, h: number) {
   if (grounded && want !== 0) {
     const sm = Math.min(1.5, Math.max(0.3, (cr.stats.strength / cr.stats.mass) * 40));
     const gain = LOCO.gain * sm;
-    for (const i of cr.ids) if (!stance.has(i)) servoX(w, i, want, gain, h);
-    if (!feet.length) wriggle(w, cr, h, Math.sign(want));
+    if (feet.length) {
+      for (const i of cr.ids) if (!stance.has(i)) servoX(w, i, want, gain, h);
+    } else wriggle(w, cr, h, want, gain);
   }
   // anticipation: lean into the move just before it starts
   if (!acting && b.mode === 'walk' && w.t > b.actAt - ACT.anticipation) {
@@ -177,7 +178,7 @@ function startSwing(w: World, cr: Creature, l: Limb, dir: number) {
 
 function stepSwing(w: World, cr: Creature, l: Limb, s: number, h: number) {
   const P = w.P;
-  const lift = Math.min(l.len * 0.45, cr.stats.stride * LOCO.stepLift);
+  const lift = Math.min(l.len * LOCO.liftCap, cr.stats.stride * LOCO.stepLift);
   const ease = s * s * (3 - 2 * s);
   const px = l.fromX + (l.toX - l.fromX) * ease;
   const py = l.fromY + (l.toY - l.fromY) * ease - lift * F.sin(Math.PI * Math.min(1, s * 1.05));
@@ -198,15 +199,24 @@ function stepSwing(w: World, cr: Creature, l: Limb, s: number, h: number) {
   void cr;
 }
 
-/** Footless bodies creep with a visible travelling wriggle along their length. */
-function wriggle(w: World, cr: Creature, h: number, dir: number) {
+/** Footless bodies inch along: a travelling hump lifts part of the body and carries it
+ *  forward while the rest stays planted on the page (the real caterpillar trick). */
+function wriggle(w: World, cr: Creature, h: number, want: number, gain: number) {
   const P = w.P;
+  const dir = Math.sign(want);
   const omega = 2 * Math.PI * LOCO.wriggleFreq;
+  const wl = Math.max(60, cr.stats.size * LOCO.wriggleWave);
+  // closed bodies (boxes, blobs) can barely hump: they shuffle
+  const grip = cr.loops.length ? LOCO.wriggleGripLoop : LOCO.wriggleGrip;
+  const amp = Math.min(LOCO.wriggleAmpMax, Math.max(LOCO.wriggleAmp, cr.stats.size * LOCO.wriggleAmpK));
   for (const i of cr.ids) {
-    const phase = (P.rx[i] * dir) / 40 - omega * w.t;
-    const vy = -Math.max(0, F.sin(phase)) * LOCO.wriggleAmp * omega * 0.5;
+    const phase = (2 * Math.PI * P.rx[i] * dir) / wl - omega * w.t;
+    const up = Math.max(0, F.sin(phase));
+    const vy = F.cos(phase) * (F.sin(phase) > 0 ? 1 : 0) * amp * omega;
     const cy = (P.y[i] - P.py[i]) / h;
-    P.py[i] = P.y[i] - (cy + (vy - cy) * 0.15) * h;
+    P.py[i] = P.y[i] - (cy + (vy - cy) * LOCO.wriggleHold) * h;
+    // humped particles surge forward, planted ones hold
+    servoX(w, i, want * (0.15 + up * LOCO.wriggleSurge), gain * (1 + up * grip), h);
   }
 }
 

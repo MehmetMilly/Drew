@@ -68,7 +68,7 @@ export function think(w: World, cr: Creature) {
   // blinking: a double blink at birth, then every 2–5 s
   const age = w.t - cr.bornAt;
   if (f.doubleBlink) {
-    if (age > 0.62) f.doubleBlink = false;
+    if (age > 0.9) f.doubleBlink = false;
   } else {
     f.blink -= dt;
     if (f.blink <= 0) {
@@ -89,6 +89,6 @@ export function think(w: World, cr: Creature) {
 /** Is the creature blinking right now? (includes the birth double blink) */
 export function isBlinking(w: World, cr: Creature): boolean {
   const age = w.t - cr.bornAt;
-  if (cr.face.doubleBlink) return (age > 0.18 && age < 0.28) || (age > 0.42 && age < 0.52);
+  if (cr.face.doubleBlink) return (age > 0.55 && age < 0.64) || (age > 0.76 && age < 0.85);
   return cr.face.blinkT > 0;
 }

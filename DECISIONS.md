@@ -21,6 +21,16 @@ Each entry: date, what changed, why.
 - **Distinct-bodies check** (physics §13) is read as: every pair of the six canonical bodies differs by ≥20% in *at least one* of walk speed, reach height, jump height.
 - **Browser perf check** runs headless Chromium with GPU rasterization (`--use-angle=metal --enable-gpu-rasterization`) under a 4× CPU throttle (DevTools "mid-tier mobile"). Phones raster canvas on the GPU; headless software raster is not representative and over-penalises fills.
 - **Adaptive resolution** for the world layer only (2× → down to 1× in 0.25 steps when frame work averages >11 ms). The paper is a static backdrop canvas and the live ink overlay stays at full resolution, so drawing always looks crisp.
-- **Slow-time "desaturation"** is a cool translucent wash plus the 6% vignette instead of a canvas `saturation` blend or CSS filter (both expensive on phones).
+- **Slow-time "desaturation"** (superseded below) was a cool translucent wash plus the 6% vignette instead of a canvas `saturation` blend or CSS filter (both expensive on phones).
 - **Toy floor** is a felt-tip band at y = 1190; tap = walk target + reach target for every creature (Phase 1 brief).
 - **Sim iteration savings**: bend constraints and terrain collision run on alternate iterations (terrain always on the last); a per-substep pair list replaces the full grid sweep for creature–creature contact. 0.8 ms/step at 900 particles in Node.
+
+## 2026-10-03 (toy feel pass)
+
+- **Slow-time desaturation revised**: the translucent wash read as grey in the live strip. Now a CSS `saturate(0.8) brightness(0.97)` filter on the *static* paper canvas only (toggled via `body.slow`, 150 ms in / 200 ms out) plus the 6% vignette on the world. The paper never repaints, so the filter is a cheap compositor job; browser fps still 60 under 4× throttle. Supersedes the earlier "cool wash" entry.
+- **Footless locomotion is an inchworm**: a travelling hump (height 0.1 × body size, 6–22 px; wavelength 0.7 × size) lifts part of the body and carries it forward with extra servo gain, while planted particles hold. Closed bodies (boxes) get no extra grip, so they shuffle. Worm 13 → 61 px/s, box 58 px/s; physics.md §locomotion already asks for a visible wriggle, so no doc change.
+- **Many legs patter**: 4+ feet multiply cadence by 1.35; step lift raised to 0.75 × stride, capped at 0.5 × leg length (0.6 caused a rare tear in the no-noise check).
+- **Point-head eyes scale with the body** (eye cluster radius 16–26 px from body size) instead of a fixed 13 px; worm eyes were unreadable at phone size.
+- **Birth eye pop**: eyes open from a slit with a damped-spring overshoot over 0.45 s, then the design §9 double blink (moved to 0.55–0.85 s so it doesn't hide the pop). A synth whoosh + rising "bloop" and a 12 ms haptic accompany it. Placeholder sound until the audio pass.
+- **Creature–creature contact resolves half the overlap per pass** (`CREATURE_COLLIDE.relax` 0.5). A giant's foot landing between two links of a worm could wedge them apart faster than the links pulled back, tearing during normal acting (physics.md §9 forbids that). Bodies still separate within the iterations.
+- **Dev capture page** (`/capture.html`): 34 single-stroke prompts labelled with the expected mark kinds, plus 6 multi-stroke "sloppy join" drawings that should each become one creature. Saves through a dev-only Vite middleware to `tests/fixtures/human/`, with a download fallback. `npm run verify` scores both when present.

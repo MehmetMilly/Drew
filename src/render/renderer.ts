@@ -140,11 +140,11 @@ export class WorldRenderer {
     } else {
       const i = cr.head.point;
       hx = this.px(i, a);
-      hy = this.py(i, a) - 13;
-      r = 13;
+      r = cr.head.r;
+      hy = this.py(i, a) - r * 0.6;
       angle = ((cr as Creature & { angle?: number }).angle ?? 0) * (1 - cr.stats.balance);
     }
-    const er = Math.max(5, Math.min(11, r * 0.3));
+    const er = cr.head.kind === 'point' ? Math.max(6.5, Math.min(11, r * 0.45)) : Math.max(5, Math.min(11, r * 0.3));
     const gap = er * 1.12;
     return { hx, hy, angle, er, gap, r };
   }
@@ -341,7 +341,7 @@ export class WorldRenderer {
   private drawCreatureFace(g: Ctx, cr: Creature, o: RenderOpts, frame: number) {
     const v = this.headView(cr, o.alpha);
     // a point head (worm): small eyes perched on the end
-    drawFace(g, cr, { ...v, blinking: isBlinking(this.w, cr), mode: cr.brain.mode, frame, t: o.realT });
+    drawFace(g, cr, { ...v, blinking: isBlinking(this.w, cr), mode: cr.brain.mode, frame, t: o.realT, age: this.w.t - cr.bornAt });
   }
 
   private drawIntent(g: Ctx, cr: Creature, o: RenderOpts) {

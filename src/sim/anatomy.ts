@@ -1,7 +1,7 @@
 // Anatomy read (design.md §5–6): head, tips → hands/feet, springs, lumps, stats,
 // kind and name. Runs at birth and after every graft or sever. Geometry only.
 import * as F from './fmath';
-import { KIND, LOCO, SHAPE, STRENGTH, WORLD } from '../tuning';
+import { KIND, LOCO, LOOK, SHAPE, STRENGTH, WORLD } from '../tuning';
 import { CT, PF, STRUCTURAL } from './store';
 import type { Creature, Limb, Spring } from './creature';
 import { EPITHET, Kind, NAMES, PIECE_NAMES } from './names';
@@ -213,7 +213,7 @@ export function readAnatomy(w: World, cr: Creature) {
   if (headLoop >= 0) {
     const l = cr.loops[headLoop];
     cr.head = { kind: 'loop', loop: headLoop, point: l.ring[0], r: Math.sqrt(l.area / Math.PI) };
-  } else cr.head = { kind: 'point', loop: -1, point: eyePoint, r: 12 };
+  } else cr.head = { kind: 'point', loop: -1, point: eyePoint, r: 12 }; // r resized from stats below
 
   // stats from geometry only
   let ink = 0;
@@ -232,8 +232,9 @@ export function readAnatomy(w: World, cr: Creature) {
   let buoy = 0;
   for (const l of cr.loops) buoy += l.area;
   const stride = feetN ? Math.max(14, legLen * 0.7) : 0;
-  const cadence = feetN ? LOCO.cadenceBase / Math.sqrt(Math.max(legLen, 20) / 60) : LOCO.wriggleFreq;
+  const cadence = feetN ? (LOCO.cadenceBase / Math.sqrt(Math.max(legLen, 20) / 60)) * (feetN >= 4 ? LOCO.scurry : 1) : LOCO.wriggleFreq;
   cr.stats = { ink, mass, w: W, h: H, size, strength, speed, balance, legLen, reach, buoyancy: buoy, stride, cadence };
+  if (cr.head.kind === 'point') cr.head.r = Math.min(LOOK.pointHeadMax, Math.max(LOOK.pointHeadMin, size * LOOK.pointHeadK));
 
   // kind: first match (design.md §6)
   const loops = cr.loops.length;
