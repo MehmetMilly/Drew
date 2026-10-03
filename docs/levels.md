@@ -83,9 +83,9 @@ Starting numbers; tune them from metrics.
 |---|---|---|---|---|---|---|
 | 1-1 | Hello, Friend | HUG | Little Guy alone and sad. Hint: *Draw him a friend.* | n/a (anything wins) | anything | 0.04 / 3000 |
 | 1-2 | Boulder | SAVE 5 | A boulder rolls down a long slope at him; he's backed against a wall | thin lines and arcs are crushed flat | braced biped, many-legged, giant | 0.04 / 2500 |
-| 1-3 | Walls | SAVE 4 | Saw-toothed crushers close from both sides with limited force | straight lines buckle, arcs fold | wide biped with bracing arms, X-shaped bodies, many-legged lying sideways | 0.05 / 2500 |
+| 1-3 | Walls | SAVE 4 | A saw-toothed wall drives in from the left (mass 1600, 170 px/s) at Little Guy, who stands near the page edge | whatever sits between wall and him is shoved into him and squeezed; a rigid box or arc can't hold it | many-legged, long-armed biped, heavy lumps | 0.05 / 2500 |
 | 1-4 | Bombs in the Bowl | SAVE 5 | He sits in a dip; two low-bounce bombs land on the slopes and roll in | shapes shield, bombs roll into the dip next to him | long-armed, giant (catch high), worm (flick) | 0.05 / 2500 |
-| 1-5 | Ninja | SAVE 4 | A ninja leaps from far left in a high arc at the King on his throne | low shapes get jumped over | tall long-armed, giant, two creatures | 0.06 / 2500 |
+| 1-5 | Ninja | SAVE 4 | A ninja leaps from far left in a high arc at the King on his throne, then dashes at him and cuts the ink he touches | low shapes get jumped over, arcs and boxes get cut and run past | tall long-armed (catch him), giant, stick figure | 0.06 / 2500 |
 
 ### Chapter 2, Boing: zigzag springs; HOME and SCORE begin (paper: graph paper)
 

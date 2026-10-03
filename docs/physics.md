@@ -99,10 +99,10 @@ Unit-test the classifier against labelled fixtures, aiming for 95% agreement:
 
 ## 10. Hazard physics notes
 
-- **Crushers** are motors with limited force, not kinematic walls, so ink can genuinely hold them. Their force sets the difficulty.
+- **Crushers** are motors with limited force, not kinematic walls, so a body that pushes back can genuinely hold them. Rigid ink does not: a wall stalls on any strut (a box, a flat worm) and recoils by mass share, so a pair of walls cannot crush a strut. Levels use one heavy wall (mass 1600) that shoves whatever lies between it and Little Guy against him; a wall face within `GUY.crushReach` of him kills.
 - **Boulders** are heavy circles; their speed on contact decides whether they crush.
 - **Bombs**: fuse timer, low restitution, grabbable. On explosion: an outward impulse that falls off over 170 px, a 140 px lethal radius for Little Guy, and links cut within 55 px.
-- **Enemies** (ninja, bully, sumo): capsule bodies with scripted motion (telegraph → act) and knockback; dizzy for 1 s after a hard hit.
+- **Enemies** (ninja, bully, sumo): capsule bodies with scripted motion (telegraph → act) and knockback; dizzy for 1 s after a hard hit. The ninja is grabbable, dashes at Little Guy after landing, and cuts every link he touches while attacking (his blade reaches 10 px past his body).
 - **Scissors** follow a path and cut every link they cross. **Fire** spreads along links from contact at a fixed px/s, burning them. **Smudgers** delete particles they touch at a rate.
 - **Cracked floors** break above an impulse threshold. **Rope bridges** break above a load threshold. **See-saws** are a hinged plank body.
 

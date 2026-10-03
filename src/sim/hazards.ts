@@ -16,13 +16,13 @@ export type Entity =
 export function spawnEntity(w: World, e: Entity): Body {
   switch (e.type) {
     case 'boulder':
-      return w.addBody({ kind: 'boulder', x: e.x, y: e.y, r: e.r ?? HAZ.boulderR, m: HAZ.boulderMass, restitution: 0.05, friction: 1, data: { vx: e.vx ?? 0, threat: 1, sleep: e.at ?? 0 } });
+      return w.addBody({ kind: 'boulder', x: e.x, y: e.y, r: e.r ?? HAZ.boulderR, m: HAZ.boulderMass, restitution: 0.05, friction: HAZ.boulderFriction, data: { vx: e.vx ?? 0, threat: 1, sleep: e.at ?? 0 } });
     case 'bomb':
       return w.addBody({ kind: 'bomb', x: e.x, y: e.y, r: HAZ.bombR, m: HAZ.bombMass, restitution: HAZ.bombBounce, friction: 0.8, grabbable: true, data: { vx: e.vx ?? 0, vy: e.vy ?? 0, threat: 1, sleep: e.at ?? 0, fuse: e.fuse ?? HAZ.bombFuse } });
     case 'crusher':
       return w.addBody({ kind: 'crusher', x: e.x, y: e.y, r: 0, hw: (e.w ?? HAZ.crusherW) / 2, hh: e.h / 2, m: HAZ.crusherMass, data: { dir: e.dir, speed: e.speed ?? HAZ.crusherSpeed, force: e.force ?? HAZ.crusherForce, threat: 1, sleep: e.at ?? 0, teeth: e.teeth === false ? 0 : 1, rail: e.y } });
     case 'ninja':
-      return w.addBody({ kind: 'ninja', x: e.x, y: e.y, r: HAZ.ninjaR, m: HAZ.ninjaMass, restitution: 0.2, friction: 0.5, data: { tx: e.tx, ty: e.ty, at: e.at, apex: e.apex ?? HAZ.ninjaApex, threat: 1, sleep: e.at, state: 0 } });
+      return w.addBody({ kind: 'ninja', x: e.x, y: e.y, r: HAZ.ninjaR, m: HAZ.ninjaMass, restitution: 0.2, friction: 0.5, grabbable: true, data: { tx: e.tx, ty: e.ty, at: e.at, apex: e.apex ?? HAZ.ninjaApex, threat: 1, sleep: e.at, state: 0 } });
   }
 }
 
@@ -67,6 +67,11 @@ export function preHazards(w: World, h: number) {
         b.px = b.x;
         b.py = b.y;
       }
+    } else if (b.kind === 'ninja' && b.data.state === 2 && b.held < 0 && w.guy?.alive) {
+      // landed: dash along the ground at him (a leap that missed is not the end of it)
+      const dir = Math.sign(w.P.x[w.guy.hip] - b.x) || 1;
+      const v = (b.x - b.px) / h;
+      b.px = b.x - (v + (dir * HAZ.ninjaRun - v) * HAZ.ninjaRunGain) * h;
     }
   }
 }
@@ -76,11 +81,29 @@ export function postHazards(w: World) {
   for (const b of w.bodies) {
     if (!b.alive || asleep(w, b)) continue;
     if (b.r > 0 && b.data.grounded) b.angle += (b.x - b.sx) / b.r;
+    if (b.kind === 'ninja' && b.data.state >= 1 && b.held < 0) slash(w, b);
+    if (b.kind === 'ninja' && b.data.state === 1 && b.data.grounded && w.t > b.data.at + HAZ.ninjaTell + 0.25) b.data.state = 2;
     b.data.grounded = 0;
     if (b.kind === 'bomb') {
       b.data.fuse -= WORLD.dt;
       if (b.data.fuse <= 0) explode(w, b);
     }
+  }
+}
+
+/** The ninja's blade: every link he touches while in his leap or dash is cut (ink is not armour). */
+function slash(w: World, b: Body) {
+  const P = w.P,
+    C = w.C;
+  const R = b.r + HAZ.ninjaCut;
+  for (let c = 0; c < C.n; c++) {
+    if (C.dead[c]) continue;
+    const a = C.a[c],
+      e = C.b[c];
+    if (P.flags[a] & PF.GUY) continue;
+    const mx = (P.x[a] + P.x[e]) / 2 - b.x,
+      my = (P.y[a] + P.y[e]) / 2 - b.y;
+    if (mx * mx + my * my < R * R) w.cut(c, 'slash');
   }
 }
 

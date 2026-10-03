@@ -240,7 +240,10 @@ export const GUY = {
   startleHop: 260, // px/s up when a big creature is born
   hugDist: 30, // a creature particle this close (and settled) is a hug
   crushGap: 14, // walls closer than his width around him: crushed
+  crushReach: 50, // a wall face this close to him has squeezed everything else out: crushed
   boulderKill: 260, // px/s relative speed of a boulder hitting him
+  bladeReach: 10, // px: a ninja's blade reaches this far past his body
+  stabTime: 0.2, // s an attacking enemy may stay against him
   enemyKill: 120, // px/s: an enemy touching him faster than this
   blastKill: 140, // bomb lethal radius (physics.md §10)
 };
@@ -249,6 +252,7 @@ export const GUY = {
 export const HAZ = {
   boulderR: 48,
   boulderMass: 80,
+  boulderFriction: 0, // body-terrain friction is a per-contact damper: 0 lets a boulder run down a slope
   bombR: 15,
   bombMass: 3,
   bombBounce: 0.12, // low: bouncy bombs ricochet off any passive shape (spike lesson)
@@ -257,13 +261,16 @@ export const HAZ = {
   blastSpeed: 900, // px/s outward kick at the centre
   blastCut: 55,
   crusherW: 40,
-  crusherMass: 40,
+  crusherMass: 1600, // heavy enough that only weight and strength can push it back (stalled walls recoil by mass share)
   crusherSpeed: 70,
-  crusherForce: 3000, // mass × px/s²: the motor's limit
+  crusherForce: 1200000, // mass × px/s²: the motor's limit (a spider, a long-armed biped or a bruiser holds it; a thin stick figure does not)
   ninjaR: 16,
-  ninjaMass: 8,
+  ninjaMass: 40,
   ninjaApex: 220,
   ninjaTell: 0.5, // s of crouch before the leap
+  ninjaCut: 8, // px beyond his body at which his blade cuts links
+  ninjaRun: 260, // px/s: dash along the ground after landing
+  ninjaRunGain: 0.08,
 };
 
 export const LEVEL = {

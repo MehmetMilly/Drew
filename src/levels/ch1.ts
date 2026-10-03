@@ -36,22 +36,22 @@ export const L1_2: LevelDef = {
   draw: 0.04,
   ink: 2500,
   terrain: [
-    [{ x: -200, y: 820 }, { x: 330, y: FLOOR }, { x: -200, y: FLOOR }],
+    [{ x: -200, y: 800 }, { x: 0, y: 880 }, { x: 150, y: 980 }, { x: 260, y: 1090 }, { x: 340, y: 1160 }, { x: 430, y: FLOOR }, { x: -200, y: FLOOR }],
     [{ x: 640, y: 960 }, { x: 920, y: 960 }, { x: 920, y: FLOOR }, { x: 640, y: FLOOR }],
   ],
-  entities: [{ type: 'boulder', x: 40, y: 760, at: 1.0 }],
+  entities: [{ type: 'boulder', x: 60, y: 840, at: 1.0 }],
   guy: { x: 620, y: FLOOR },
   anatomyMatters: false,
   baseline: { x: 600, y: FLOOR - 20 },
   refs: [
     { kind: 'Biped', strokes: CANON.stick700(520) },
-    { kind: 'Giant', strokes: CANON.giant(420) },
-    { kind: 'Heavy', strokes: CANON.bruiser(520) },
+    { kind: 'Giant', strokes: CANON.giant(300) },
+    { kind: 'Heavy', strokes: CANON.bruiser(470) },
   ],
   window: [3, 12],
 };
 
-// saw-toothed walls close from both sides with limited force
+// a saw-toothed wall drives in from the left with limited force; he is backed against the far wall
 export const L1_3: LevelDef = {
   id: '1-3',
   title: 'Walls',
@@ -60,17 +60,14 @@ export const L1_3: LevelDef = {
   draw: 0.05,
   ink: 2500,
   terrain: [],
-  entities: [
-    { type: 'crusher', x: 100, y: FLOOR - 160, h: 320, dir: 1, at: 0.8 },
-    { type: 'crusher', x: 620, y: FLOOR - 160, h: 320, dir: -1, at: 0.8 },
-  ],
-  guy: { x: 360, y: FLOOR },
+  entities: [{ type: 'crusher', x: 100, y: FLOOR - 160, h: 320, dir: 1, at: 0.4, speed: 170 }],
+  guy: { x: 600, y: FLOOR },
   anatomyMatters: true,
-  baseline: { x: 360, y: FLOOR - 20 },
+  baseline: { x: 600, y: FLOOR - 20 },
   refs: [
-    { kind: 'Biped', strokes: CANON.stick1100(360) },
-    { kind: 'Many-Legged', strokes: CANON.spider(360) },
-    { kind: 'Giant', strokes: CANON.giant(360) },
+    { kind: 'Many-Legged', strokes: CANON.spider(430) },
+    { kind: 'Long-Armed', strokes: CANON.reacher(430) },
+    { kind: 'Heavy', strokes: CANON.bruiser(430) },
   ],
   window: [3, 12],
 };
@@ -111,13 +108,13 @@ export const L1_5: LevelDef = {
   draw: 0.06,
   ink: 2500,
   terrain: [[{ x: 470, y: 1110 }, { x: 590, y: 1110 }, { x: 590, y: FLOOR }, { x: 470, y: FLOOR }]],
-  entities: [{ type: 'ninja', x: 40, y: FLOOR - 20, tx: 530, ty: 1090, at: 1.4, apex: 300 }],
+  entities: [{ type: 'ninja', x: 40, y: FLOOR - 20, tx: 530, ty: 1090, at: 1.4, apex: 220 }],
   guy: { x: 530, y: 1110, hat: 'crown' },
   anatomyMatters: true,
   baseline: { x: 530, y: 1090 },
   refs: [
     { kind: 'Long-Armed', strokes: CANON.reacher(400) },
-    { kind: 'Giant', strokes: CANON.giant(420) },
+    { kind: 'Giant', strokes: CANON.giant(300) },
     { kind: 'Biped', strokes: CANON.stick1100(400) },
   ],
   window: [3, 12],

@@ -158,24 +158,26 @@ function checkDeaths(w: World) {
   for (const b of w.bodies) {
     if (!b.alive || (b.data.sleep ?? 0) > w.t) continue;
     if (b.kind === 'boulder' || b.kind === 'ninja') {
-      const reach = b.r + GUY.radius + 2;
+      const reach = b.r + GUY.radius + 2 + (b.kind === 'ninja' ? GUY.bladeReach : 0);
       let touch = false;
       for (const i of g.ids) if (F.hypot(P.x[i] - b.x, P.y[i] - b.y) < reach) touch = true;
+      b.data.touchT = touch ? (b.data.touchT ?? 0) + h : 0;
       if (!touch) continue;
       const rvx = (b.x - b.sx) / h - (P.x[g.hip] - P.sx[g.hip]) / h,
         rvy = (b.y - b.sy) / h - (P.y[g.hip] - P.sy[g.hip]) / h;
       const sp = F.hypot(rvx, rvy);
       if (b.kind === 'boulder' && sp > GUY.boulderKill) return killGuy(w, g, 'squashed');
-      if (b.kind === 'ninja' && b.data.state === 1 && sp > GUY.enemyKill) return killGuy(w, g, 'ninja');
+      // a ninja in his leap or dash kills on a hard hit, or on a blade held against him (not while carried off)
+      if (b.kind === 'ninja' && b.data.state >= 1 && b.held < 0 && (sp > GUY.enemyKill || b.data.touchT > GUY.stabTime)) return killGuy(w, g, 'ninja');
     }
   }
-  // crushed between two walls (or a wall and the page edge)
-  const walls = w.bodies.filter((b) => b.alive && b.kind === 'crusher');
+  // crushed: a wall closes right up to him (ink in between has been squeezed out), or he is
+  // trapped between two walls / a wall and the page edge
+  const walls = w.bodies.filter((b) => b.alive && b.kind === 'crusher' && (b.data.sleep ?? 0) <= w.t);
   const left = walls.filter((b) => b.x < c.x).map((b) => b.x + b.hw!);
   const right = walls.filter((b) => b.x > c.x).map((b) => b.x - b.hw!);
-  if (left.length || right.length) {
-    const lx = left.length ? Math.max(...left) : 0;
-    const rx = right.length ? Math.min(...right) : WORLD.W;
-    if (rx - lx < GUY.crushGap) return killGuy(w, g, 'crushed');
-  }
+  const lx = left.length ? Math.max(...left) : 0;
+  const rx = right.length ? Math.min(...right) : WORLD.W;
+  if ((left.length && c.x - lx < GUY.crushReach) || (right.length && rx - c.x < GUY.crushReach)) return killGuy(w, g, 'crushed');
+  if ((left.length || right.length) && rx - lx < GUY.crushGap) return killGuy(w, g, 'crushed');
 }
