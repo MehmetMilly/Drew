@@ -192,8 +192,13 @@ const nodeHash = detScenario();
 // ---- levels (levels.md §3): refs win, robust under jitter, lazy baselines fail, pacing
 {
   const { ALL_LEVELS } = await import('../src/levels');
+  const { CHAPTER4 } = await import('../src/levels/ch4');
+  const { CHAPTER5 } = await import('../src/levels/ch5');
   const { validate, baseText } = await import('./levels');
-  for (const def of ALL_LEVELS) {
+  // --only=4- validates just those level ids (chapters not yet in the index included)
+  const only = process.argv.find((a) => a.startsWith('--only='))?.slice(7);
+  const pool = [...ALL_LEVELS, ...[...CHAPTER4, ...CHAPTER5].filter((l) => !ALL_LEVELS.some((a) => a.id === l.id))];
+  for (const def of only ? pool.filter((l) => l.id.startsWith(only)) : ALL_LEVELS) {
     const r = validate(def, quick ? 5 : 20);
     const b = baseText(r);
     add(`level ${def.id} ${def.title}`, `refs ${r.refs}, robust ${Math.round(r.robust * 100)}%, baselines ${b}${r.notes.length ? ' — ' + r.notes.join('; ') : ''}`, r.pass);
