@@ -328,6 +328,7 @@ export class World {
       firstName: '',
       seed,
       stats: null as unknown as Creature['stats'],
+      team: 0,
       brain: newBrain(),
       face: newFace(seed),
       skins: skins.filter((s) => {
@@ -1116,6 +1117,7 @@ export class World {
         const piece = this.makeCreature(g, gc, cr.loops.concat(), cr.lumps.concat(), cr.springs.concat(), cr.skins, oldStrokes.map((s) => s), true);
         if (!piece) continue;
         piece.grownFrom = cr.id;
+        piece.team = cr.team;
         piece.seed = (cr.seed * 31 + piece.id * 7) >>> 0;
         piece.firstName = '';
         readAnatomy(this, piece);

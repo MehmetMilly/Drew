@@ -24,7 +24,9 @@ export type Prop =
   /** a plank bridge [x0, x1] at y that snaps when the weight on it passes `load` */
   | { type: 'bridge'; x0: number; x1: number; y: number; load: number }
   /** a see-saw: a plank of half-length `len` on a pivot at (x, y) */
-  | { type: 'seesaw'; x: number; y: number; len: number; tilt?: number }
+  /** a see-saw: tips between `lo` and `hi` (rad, + = right end down; default ±tilt). It rests at
+   *  `lo` (left end down), or at `hi` with `flip`. */
+  | { type: 'seesaw'; x: number; y: number; len: number; tilt?: number; flip?: boolean; lo?: number; hi?: number }
   /** water across [x0, x1] with its surface at y, rising `rise` px/s from `at` up to `top`,
    *  flowing at `current` px/s (+ = right) */
   | { type: 'water'; x0: number; x1: number; y: number; rise?: number; at?: number; top?: number; current?: number }
@@ -48,7 +50,8 @@ export interface Plank {
   len: number; // half-length
   th: number; // angle (rad, + = right end down)
   pth: number; // angle last substep
-  tilt: number; // the most it tips before an end meets the ground
+  lo: number; // the stops: the most it tips either way before an end meets the ground (or its stop)
+  hi: number;
 }
 
 export interface PropState {
@@ -110,7 +113,12 @@ export function startProps(w: World, defs: Prop[]): PropState {
       dmgDefs.push(p);
     } else if (p.type === 'seesaw') {
       const tilt = p.tilt ?? PROP.seesawTilt;
-      S.planks.push({ x: p.x, y: p.y, len: p.len, th: -tilt, pth: -tilt, tilt });
+      const lo = p.lo ?? -tilt,
+        hi = p.hi ?? tilt;
+      // it rests with its left end down (a heavy drop on the right end flings the left one up and
+      // away to the left); `flip` rests it the other way, so the right end flings up and to the right
+      const th = p.flip ? hi : lo;
+      S.planks.push({ x: p.x, y: p.y, len: p.len, th, pth: th, lo, hi });
     }
   }
   if (dmgDefs.length) S.dmg = startDamage(w, dmgDefs);
@@ -165,8 +173,8 @@ export function swingPlanks(S: PropState) {
     const v = (k.th - k.pth) * PROP.seesawDamp;
     k.pth = k.th;
     k.th += v;
-    if (k.th > k.tilt) (k.th = k.tilt), (k.pth = k.tilt);
-    if (k.th < -k.tilt) (k.th = -k.tilt), (k.pth = -k.tilt);
+    if (k.th > k.hi) (k.th = k.hi), (k.pth = k.hi);
+    if (k.th < k.lo) (k.th = k.lo), (k.pth = k.lo);
   }
 }
 
@@ -213,8 +221,8 @@ export function collidePlanks(w: World, S: PropState) {
         P.ny[i] = ny;
       }
     }
-    if (k.th > k.tilt) k.th = k.tilt;
-    if (k.th < -k.tilt) k.th = -k.tilt;
+    if (k.th > k.hi) k.th = k.hi;
+    if (k.th < k.lo) k.th = k.lo;
   }
 }
 

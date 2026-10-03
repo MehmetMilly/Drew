@@ -6,11 +6,12 @@ import type { LevelDef } from '../sim/level';
 import { CHAPTERS, ALL_LEVELS } from '../levels';
 import { load as loadSave, save, type Hero } from '../game/save';
 import { hallCanvas, PER_PAGE } from './hall';
+import { OPPONENTS, sumoLevel } from '../levels/sumo';
 import { levelThumb } from './thumb';
 import { pencilTick } from '../audio/pencil';
 import { sfxUi } from '../audio/sfx';
 
-type Screen = 'title' | 'chapter' | 'play' | 'toy' | 'settings' | 'sketchbook' | 'hero' | 'credits';
+type Screen = 'title' | 'chapter' | 'sumo' | 'play' | 'toy' | 'settings' | 'sketchbook' | 'hero' | 'credits';
 
 const el = (tag: string, cls = '', html = '') => {
   const e = document.createElement(tag);
@@ -26,6 +27,7 @@ export class Shell {
   private chapterIdx = 0;
   private stopHall: (() => void) | null = null;
   private hallPage = 0;
+  private sumoPage = 0;
 
   constructor(private toy: Toy) {
     document.body.appendChild(this.root);
@@ -39,7 +41,7 @@ export class Shell {
       else if (this.toy.level) this.failWatch();
     };
     addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && (this.screen === 'play' || this.screen === 'toy' || this.screen === 'hero')) this.show(this.screen === 'play' ? 'chapter' : 'sketchbook');
+      if (e.key === 'Escape' && (this.screen === 'play' || this.screen === 'toy' || this.screen === 'hero')) this.show(this.screen === 'play' ? this.home(this.toy.level) : 'sketchbook');
     });
     this.show('title');
   }
@@ -75,6 +77,7 @@ export class Shell {
     this.toy.quiet = s !== 'play' && s !== 'toy';
     if (s === 'title') this.title();
     else if (s === 'chapter') this.chapter();
+    else if (s === 'sumo') this.sumo();
     else if (s === 'settings') this.settings();
     else if (s === 'sketchbook') this.sketchbook();
     else if (s === 'credits') this.credits();
@@ -103,7 +106,9 @@ export class Shell {
     this.root.append(this.logo());
     const notes = el('div', 'notes');
     const story = this.press(el('button', 'note n1', '<b>Story</b><small>Little Guy needs a friend</small>'), () => this.show('chapter'));
-    const sumo = el('button', 'note n2 locked', `<b>Sumo</b><small>${ch1 ? 'coming soon' : 'after Chapter 1'}</small>`);
+    const sumoOpen = ch1 || import.meta.env.DEV;
+    const sumo = el('button', `note n2 ${sumoOpen ? '' : 'locked'}`, `<b>Sumo</b><small>${sumoOpen ? 'shove them off the ring' : 'after Chapter 1'}</small>`);
+    if (sumoOpen) this.press(sumo, () => this.show('sumo'));
     const daily = el('button', 'note n3 locked', `<b>Daily</b><small>${ch1 ? 'coming soon' : 'after Chapter 1'}</small>`);
     notes.append(story, sumo, daily);
     const book = this.press(el('button', 'tab sketch', 'Sketchbook'), () => this.show('sketchbook'));
@@ -224,6 +229,40 @@ export class Shell {
     this.root.append(this.press(el('button', 'tab back', '← back'), () => this.show('title')));
   }
 
+  /** Where a level returns to: the Sumo ladder or its chapter. */
+  private home(level: LevelDef | null): Screen {
+    return level?.goal.type === 'sumo' ? 'sumo' : 'chapter';
+  }
+
+  /** The Sumo ladder: twelve opponents, each opening when the one before is beaten. */
+  private sumo() {
+    this.toy.load(null);
+    const d = loadSave();
+    const per = 6;
+    const pages = Math.ceil(OPPONENTS.length / per);
+    this.root.append(el('div', 'chapter-title', `Sumo<br><span>The Ladder</span>`));
+    const grid = el('div', 'levels');
+    for (let k = this.sumoPage * per; k < Math.min(OPPONENTS.length, (this.sumoPage + 1) * per); k++) {
+      const lv = sumoLevel(k);
+      const open = k === 0 || d.cleared['sumo-' + k] || import.meta.env.DEV;
+      const b = el('button', `note lvl ${open ? '' : 'locked'} ${d.cleared[lv.id] ? 'done' : ''}`, `<em>${k + 1}</em><b>${lv.title}</b><span class="slots"><small>${open ? OPPONENTS[k].counter : ''}</small></span>`);
+      b.insertBefore(levelThumb(lv), b.querySelector('.slots'));
+      b.style.setProperty('--tilt', `${((k * 37) % 7) - 3}deg`);
+      b.style.animationDelay = `${(k % per) * 40}ms`;
+      if (open) this.press(b, () => this.show('play', lv));
+      grid.append(b);
+    }
+    this.root.append(grid);
+    const nav = el('div', 'pager chapters');
+    const go = (n: number) => () => {
+      this.sumoPage = (this.sumoPage + n + pages) % pages;
+      this.show('sumo');
+    };
+    nav.append(this.press(el('button', 'tab', '‹'), go(-1)), el('span', '', `page ${this.sumoPage + 1} of ${pages}`), this.press(el('button', 'tab', '›'), go(1)));
+    this.root.append(nav);
+    this.root.append(this.press(el('button', 'tab back', '← back'), () => this.show('title')));
+  }
+
   private hud(level: LevelDef | null, back: Screen = 'title') {
     const bar = el('div', 'hud');
     if (level) {
@@ -255,7 +294,7 @@ export class Shell {
     note.append(
       this.press(el('button', 'line', level ? 'Levels' : back === 'title' ? 'Title' : 'Sketchbook'), () => {
         this.toy.paused = false;
-        this.show(level ? 'chapter' : back);
+        this.show(level ? this.home(level) : back);
       }),
     );
     scrim.append(note);
@@ -295,10 +334,12 @@ export class Shell {
     const slots = [0, 1, 2].map((k) => `<i class="slot ${badges[k] ? 'on' : ''} ${badges[k] && info.newBadges.includes(badges[k]) ? 'new' : ''}"></i>`).join('');
     c.innerHTML = `${names}<p class="epitaph">${info.epitaph}</p><div class="badges">${slots}<small>${badges.length ? 'Cleared with: ' + badges.map((b) => 'the ' + b).join(' · ') : ''}</small></div>`;
     const idx = ALL_LEVELS.findIndex((l) => l.id === info.level.id);
-    const next = ALL_LEVELS[idx + 1];
+    const rung = info.level.goal.type === 'sumo' ? Number(info.level.id.slice(5)) : 0;
+    const next = rung ? (rung < OPPONENTS.length ? sumoLevel(rung) : undefined) : ALL_LEVELS[idx + 1];
     const row = el('div', 'buttons');
     if (info.level.goal.type === 'boss') row.append(this.press(el('button', 'note small go', 'The End →'), () => this.show('credits')));
     else if (next) row.append(this.press(el('button', 'note small go', 'Next →'), () => this.show('play', next)));
+    else if (rung) row.append(this.press(el('button', 'note small go', 'Ladder done!'), () => this.show('sumo')));
     else row.append(this.press(el('button', 'note small go', 'Chapter done!'), () => this.show('chapter')));
     row.append(this.press(el('button', 'note small', 'Retry'), () => this.retry()));
     row.append(

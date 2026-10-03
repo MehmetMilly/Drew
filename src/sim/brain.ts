@@ -2,6 +2,7 @@
 // target for every creature), idle look-around, and the face state machine.
 // The eyes always lead: a new decision moves the pupils first and the body
 // starts BRAIN.eyeLead + ACT.anticipation later.
+import { planSumo } from './sumo';
 import * as F from './fmath';
 import { ACT, BRAIN, GUY, LOCO, LOOK, WORLD } from '../tuning';
 import type { Creature } from './creature';
@@ -210,6 +211,7 @@ function planLevel(w: World, cr: Creature, c: { x: number; y: number }) {
       } else plan = 'guard';
     }
   }
+  if (goal.type === 'sumo') ({ plan, tx, reach } = planSumo(w, cr, c, goal.ring));
   // other creatures already guard that side: stand a little further out
   tx = Math.max(10, Math.min(WORLD.W - 10, tx));
   const changed = plan !== b.plan || (reach?.body ?? -1) !== b.targetBody || (plan === 'carry' && Math.abs(tx - (b.targetX ?? tx)) > 120);

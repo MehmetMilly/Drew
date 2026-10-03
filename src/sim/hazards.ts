@@ -254,7 +254,12 @@ function sumoMotor(w: World, b: Body, h: number) {
   const lim = b.data.force / b.m;
   let a = Math.max(-lim, Math.min(lim, (dir * b.data.speed - v) / h));
   const hold = braceOn(w, b) / b.m;
-  if (hold > 0) a -= dir * hold;
+  if (hold > 0) {
+    a -= dir * hold;
+    // a braced sumo can be held and eased back, not hurled
+    const vn = v + a * h;
+    if (dir * vn < -HAZ.sumoBack) a = (-dir * HAZ.sumoBack - v) / h;
+  }
   b.px = b.x - (v + a * h) * h;
 }
 

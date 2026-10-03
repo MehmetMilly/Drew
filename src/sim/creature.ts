@@ -80,7 +80,7 @@ export interface Face {
 export interface Brain {
   mode: 'idle' | 'walk' | 'reach' | 'guard' | 'intercept' | 'brace' | 'carry' | 'sleep';
   /** level plan (design §8) driving the walk/reach targets; 'toy' on the blank page */
-  plan: 'toy' | 'guard' | 'intercept' | 'brace' | 'hug' | 'carry' | 'escort' | 'score';
+  plan: 'toy' | 'guard' | 'intercept' | 'brace' | 'hug' | 'carry' | 'escort' | 'score' | 'sumo';
   /** carry: the hands go for Little Guy himself */
   reachGuy: boolean;
   /** carry: spring legs jump now (a wall, ledge or gap ahead, or the goal above) */
@@ -129,6 +129,8 @@ export type Gait = 'walk' | 'scurry' | 'hop' | 'roll' | 'inch';
 export interface Creature {
   id: number;
   alive: boolean;
+  /** 0: the player's; 1: a Sumo opponent (sumo.ts) */
+  team: number;
   bornAt: number;
   ids: number[];
   cons: number[]; // constraint ids owned (structural + bends)

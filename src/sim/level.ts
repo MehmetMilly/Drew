@@ -2,7 +2,7 @@
 // watches Little Guy's fate and the goal each step, and keeps an event log for
 // epitaphs and money moments. Pure and deterministic.
 import * as F from './fmath';
-import { ACT, BODY, BRAIN, GUY, HAZ, LEVEL, PROP, WORLD } from '../tuning';
+import { ACT, BODY, BRAIN, GUY, HAZ, LEVEL, PROP, SUMO, WORLD } from '../tuning';
 import { spawnEntity, attacking, type Entity } from './hazards';
 import { CT, PF } from './store';
 import { spawnGuy, thinkGuy, killGuy, guyCentre, dismount, hopDown, setMood, type Guy, type GuyHat } from './littleguy';
@@ -11,11 +11,14 @@ import type { World, Body } from './world';
 import type { Creature } from './creature';
 import { startProps, type Prop } from './props';
 import { bossBeaten } from './damage';
+import { shrinkRing, spawnFoes, teamOnRing, type SumoRing } from './sumo';
 
 /** HOME: the flag's foot stands at (x, y) on the ground; the pole is LEVEL.flagH tall. */
 /** SCORE: n balls dropped down through the hoop (rim centre x, y) within `seconds`. */
 export type Goal =
   | { type: 'hug' }
+  /** SUMO: shove the pre-drawn opponent (`foe`, `name`) off the ring; the ring shrinks after `seconds` */
+  | { type: 'sumo'; seconds: number; ring: SumoRing; foe: Pt[][]; name: string }
   /** BOSS: beat the Big Eraser (sharpen it, punch it back in, squash its crumbs) */
   | { type: 'boss' }
   | { type: 'save'; seconds: number }
@@ -60,6 +63,7 @@ export interface LevelRun {
   resultAt: number;
   cause: string;
   hugT: number;
+  foesAt: number; // Sumo: when the opponent woke (-1: not yet)
   hugger: number;
   seen: number; // events processed
   squeezeT: number; // s he has been squeezed by ink a pusher is shoving
@@ -73,18 +77,18 @@ export interface LevelRun {
 export function startLevel(w: World, def: LevelDef) {
   // a level without the page floor has pits that open off the bottom of the page
   if (def.floor === false) w.terrain = w.terrain.filter((T) => T.kind !== 'floor');
-  for (const t of def.terrain) w.addTerrain(t);
+  for (const t of def.terrain) w.addTerrain(t.map((p) => ({ ...p }))); // copies: a Sumo ring shrinks
   if (def.props?.length) w.props = startProps(w, def.props);
   w.guy = spawnGuy(w, def.guy.x, def.guy.y, def.guy.hat ?? 'none');
   for (const e of def.entities) spawnEntity(w, e);
-  w.level = { def, startedAt: -1, result: 'play', resultAt: -1, cause: '', hugT: 0, hugger: -1, seen: 0, squeezeT: 0, score: 0, log: [] };
+  w.level = { def, startedAt: -1, result: 'play', resultAt: -1, cause: '', hugT: 0, foesAt: -1, hugger: -1, seen: 0, squeezeT: 0, score: 0, log: [] };
 }
 
 /** Seconds left on the SAVE countdown (null when the goal has none or it hasn't started). */
 export function countdown(w: World): number | null {
   const L = w.level;
   const gs = L?.def.goal;
-  if (!L || !gs || (gs.type !== 'save' && gs.type !== 'score' && !(gs.type === 'home' && gs.seconds))) return null;
+  if (!L || !gs || (gs.type !== 'save' && gs.type !== 'score' && gs.type !== 'sumo' && !(gs.type === 'home' && gs.seconds))) return null;
   if (L.startedAt < 0) return gs.seconds!;
   return Math.max(0, gs.seconds! - (w.t - L.startedAt));
 }
@@ -134,7 +138,21 @@ export function levelStep(w: World) {
     return;
   }
   const goal = L.def.goal;
-  if (goal.type === 'boss') {
+  if (goal.type === 'sumo') {
+    // the opponent wakes with the player's first creature
+    if (L.foesAt < 0 && w.creatures.some((cr) => cr.alive && cr.team === 0)) {
+      spawnFoes(w, goal.foe);
+      L.foesAt = w.t;
+    }
+    if (L.foesAt >= 0 && w.t - L.foesAt > SUMO.grace) {
+      if (teamOnRing(w, 1, goal.ring) <= 0) win(w);
+      else if (teamOnRing(w, 0, goal.ring) <= 0) {
+        L.result = 'fail';
+        L.resultAt = w.t;
+        L.cause = 'pushed out';
+      } else if (w.t - L.foesAt > goal.seconds) shrinkRing(w, goal.ring, WORLD.dt);
+    }
+  } else if (goal.type === 'boss') {
     if (w.props?.dmg && bossBeaten(w, w.props.dmg)) win(w);
   } else if (goal.type === 'save') {
     if (L.startedAt >= 0 && w.t - L.startedAt >= goal.seconds) win(w);
@@ -520,7 +538,7 @@ function checkDeaths(w: World) {
       if (touch && F.hypot(b.x - b.sx, b.y - b.sy) / h > GUY.ballKill) return killGuy(w, g, 'bonked');
       continue;
     }
-    if (b.kind === 'boulder' || b.kind === 'ninja') {
+    if (b.kind === 'boulder' || b.kind === 'ninja' || b.kind === 'sumo') {
       const reach = b.r + GUY.radius + 2 + (b.kind === 'ninja' ? GUY.bladeReach : 0);
       let touch = false;
       for (const i of g.ids) if (F.hypot(P.x[i] - b.x, P.y[i] - b.y) < reach) touch = true;
@@ -531,7 +549,8 @@ function checkDeaths(w: World) {
       const sp = F.hypot(rvx, rvy);
       if (b.kind === 'boulder' && sp > GUY.boulderKill) return killGuy(w, g, 'squashed');
       // a boulder that comes to rest against him has its weight on him (slowing it is not stopping it)
-      if (b.kind === 'boulder' && b.data.touchT > GUY.pinTime) return killGuy(w, g, 'squashed');
+      // the same for a sumo: leaning on him, or standing on him, is squashing him
+      if ((b.kind === 'boulder' || b.kind === 'sumo') && b.data.touchT > GUY.pinTime) return killGuy(w, g, 'squashed');
       // a ninja in his leap or dash kills on a hard hit, or on a blade held against him (not while carried off or dizzy)
       if (b.kind === 'ninja' && attacking(b) && (sp > GUY.enemyKill || b.data.touchT > GUY.stabTime)) return killGuy(w, g, 'ninja');
     }

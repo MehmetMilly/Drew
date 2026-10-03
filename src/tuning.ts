@@ -365,8 +365,9 @@ export const HAZ = {
   sumoR: 46, // the sumo bully (3-2): a heavy round pusher
   sumoMass: 600,
   sumoSpeed: 60, // px/s he shoves at
-  sumoForce: 900000, // mass × px/s²: his legs' limit (bracers take theirs off it)
+  sumoForce: 1500000, // mass × px/s²: his legs' limit (bracers take theirs off it): a roof (0.7M) or a lump on the ground is pushed, a bruiser, giant or spider (2M) holds him
   sumoStamp: 1.0, // s of stamping before the shove
+  sumoBack: 40, // px/s: the most a braced sumo is eased back
   spikeH: 22, // px: spike teeth height above the ground they stand on
 };
 
@@ -469,4 +470,15 @@ export const DMG = {
   rubRate: 10, // points per s it rubs out of what touches it
   sharpenerW: 70, // px: the sharpener's mouth from the page edge
   crumbs: 4, // smudgers it crumbles into
+};
+
+/** Sumo mode (design §12, sumo.ts). */
+export const SUMO = {
+  drive: 60, // px: it aims this far beyond the opponent, so it keeps walking into it
+  reachLow: 10, // px below the opponent's centre that hands go for (under its weight)
+  outDepth: 30, // px below the ring top a centre of mass counts as off
+  edgeSlop: 10, // px beyond the ring's edge
+  grace: 0.6, // s after waking before anyone can lose
+  shrink: 18, // px/s from each edge after time-out
+  minHalf: 30, // px: the ring never shrinks below this half width
 };

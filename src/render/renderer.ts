@@ -107,6 +107,7 @@ export class WorldRenderer {
     drawPlayers(g, w);
     drawBodies(g, w, o.alpha, frame);
     for (const cr of w.creatures) if (cr.alive) this.drawShadow(g, cr, o.alpha);
+    this.drawSleepingFoe(g, frame);
     this.drawInk(g, o.alpha, frame);
     this.drawDust(g);
     for (const cr of w.creatures) if (cr.alive) this.drawCreatureFace(g, cr, o, frame);
@@ -182,6 +183,38 @@ export class WorldRenderer {
   }
 
   // ---------------------------------------------------------------- ink
+
+  /** Sumo: the opponent is already drawn on the page, asleep, until the player's creature wakes. */
+  private drawSleepingFoe(g: Ctx, frame: number) {
+    const L = this.w.level;
+    if (!L || L.def.goal.type !== 'sumo' || L.foesAt >= 0) return;
+    const foe = L.def.goal.foe;
+    g.save();
+    g.strokeStyle = this.pattern!;
+    g.globalAlpha = 0.93;
+    g.lineWidth = 9;
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+    foe.forEach((st, si) => {
+      g.beginPath();
+      st.forEach((p, i) => {
+        const x = p.x + boil1(si * 2 + 901, i, frame) * LOOK.boilAmp,
+          y = p.y + boil1(si * 2 + 902, i, frame) * LOOK.boilAmp;
+        i ? g.lineTo(x, y) : g.moveTo(x, y);
+      });
+      g.stroke();
+    });
+    // a snore above its highest point
+    let top = foe[0][0];
+    for (const st of foe) for (const p of st) if (p.y < top.y) top = p;
+    const bob = Math.sin(this.w.t * 2) * 4;
+    g.fillStyle = COLORS.graphite;
+    g.font = '28px "Patrick Hand", cursive';
+    g.fillText('z', top.x + 20, top.y - 20 + bob);
+    g.font = '20px "Patrick Hand", cursive';
+    g.fillText('z', top.x + 38, top.y - 42 + bob);
+    g.restore();
+  }
 
   private drawInk(g: Ctx, a: number, frame: number) {
     const w = this.w,

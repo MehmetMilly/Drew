@@ -118,6 +118,17 @@ export function levelThumb(def: LevelDef): HTMLCanvasElement {
     g.lineTo(goal.x + 56, goal.y - LEVEL.flagH + 20);
     g.lineTo(goal.x, goal.y - LEVEL.flagH + 40);
     g.fill();
+  } else if (goal.type === 'sumo') {
+    // the opponent, in graphite (it's ink, just not yours)
+    g.strokeStyle = COLORS.graphite;
+    g.lineWidth = 8;
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+    for (const st of goal.foe) {
+      g.beginPath();
+      st.forEach((p, i) => (i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y)));
+      g.stroke();
+    }
   } else if (goal.type === 'score') {
     const hy = Math.max(goal.hoop.y, TOP + 40);
     g.strokeStyle = COLORS.yellow;
