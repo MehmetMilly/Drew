@@ -86,6 +86,8 @@ export class World {
   /** step time of the last step in ms (filled by callers that measure) */
   lastStepMs = 0;
 
+  private pairs = new Int32Array(4096);
+  private nPairs = 0;
   private smDx = new Float64Array(1024);
   private smDy = new Float64Array(1024);
   // spatial hash
@@ -359,12 +361,15 @@ export class World {
       for (const cr of live) if (cr.alive) actuate(this, cr, h);
       this.integrate(h);
       this.buildHash();
+      this.buildPairs();
       for (let it = 0; it < WORLD.iterations; it++) {
-        this.solveConstraints();
+        const lastIt = it === WORLD.iterations - 1;
+        // soft bending converges fine on every other pass
+        this.solveConstraints(it % 2 === 0);
         if (it % WORLD.shapeEvery === 0) for (const cr of live) if (cr.alive) this.shapeMatch(cr);
         if (it % 2 === 1) this.collideParticles();
         this.collideBodies();
-        this.collideTerrain(it === WORLD.iterations - 1);
+        if (it % 2 === 1 || lastIt) this.collideTerrain(lastIt);
       }
       this.contactFriction(h);
       this.checkTears();
@@ -407,14 +412,15 @@ export class World {
     }
   }
 
-  private solveConstraints() {
+  private solveConstraints(bends: boolean) {
     const P = this.P,
       C = this.C;
+    const T = C.type;
     const X = P.x,
       Y = P.y,
       IM = P.im;
     for (let c = 0; c < C.n; c++) {
-      if (C.dead[c]) continue;
+      if (C.dead[c] || (!bends && T[c] === CT.BEND)) continue;
       const a = C.a[c],
         b = C.b[c];
       const dx = X[b] - X[a],
@@ -702,42 +708,66 @@ export class World {
       }
   }
 
-  private collideParticles() {
+  /** Broad phase once per substep: pairs of particles from different creatures
+   *  within reach (+ margin). The iterations then only resolve those pairs. */
+  private buildPairs() {
     const P = this.P;
-    const r2 = 2 * BODY.radius;
-    const R2 = r2 * r2;
+    const reach = 2 * BODY.radius + 6;
+    const R2 = reach * reach;
     const gw = this.gw,
       gh = this.gh;
+    let n = 0;
     for (let cy = 0; cy < gh; cy++)
       for (let cx = 0; cx < gw; cx++) {
         for (let i = this.head[cy * gw + cx]; i !== NO_HIT; i = this.next[i]) {
           const oi = P.owner[i];
-          // neighbours: this cell (after i) and 4 forward cells
-          for (let n = 0; n < 5; n++) {
-            const nx = cx + (n === 1 ? 1 : n === 2 ? -1 : n === 3 ? 0 : n === 4 ? 1 : 0);
-            const ny = cy + (n >= 2 ? 1 : 0);
+          for (let k = 0; k < 5; k++) {
+            const nx = cx + (k === 1 ? 1 : k === 2 ? -1 : k === 4 ? 1 : 0);
+            const ny = cy + (k >= 2 ? 1 : 0);
             if (nx < 0 || nx >= gw || ny >= gh) continue;
-            let j = n === 0 ? this.next[i] : this.head[ny * gw + nx];
-            for (; j !== NO_HIT; j = this.next[j]) {
+            for (let j = k === 0 ? this.next[i] : this.head[ny * gw + nx]; j !== NO_HIT; j = this.next[j]) {
               if (P.owner[j] === oi && oi >= 0) continue;
               const dx = P.x[j] - P.x[i],
                 dy = P.y[j] - P.y[i];
-              const d2 = dx * dx + dy * dy;
-              if (d2 >= R2 || d2 < 1e-12) continue;
-              const d = Math.sqrt(d2);
-              const wi = P.im[i],
-                wj = P.im[j];
-              const ws = wi + wj;
-              if (ws === 0) continue;
-              const push = (r2 - d) / d;
-              P.x[i] -= dx * push * (wi / ws);
-              P.y[i] -= dy * push * (wi / ws);
-              P.x[j] += dx * push * (wj / ws);
-              P.y[j] += dy * push * (wj / ws);
+              if (dx * dx + dy * dy >= R2) continue;
+              if (n * 2 + 2 > this.pairs.length) {
+                const np = new Int32Array(this.pairs.length * 2);
+                np.set(this.pairs);
+                this.pairs = np;
+              }
+              this.pairs[n * 2] = i;
+              this.pairs[n * 2 + 1] = j;
+              n++;
             }
           }
         }
       }
+    this.nPairs = n;
+  }
+
+  private collideParticles() {
+    const P = this.P;
+    const r2 = 2 * BODY.radius;
+    const R2 = r2 * r2;
+    const pairs = this.pairs;
+    for (let k = 0; k < this.nPairs; k++) {
+      const i = pairs[k * 2],
+        j = pairs[k * 2 + 1];
+      const dx = P.x[j] - P.x[i],
+        dy = P.y[j] - P.y[i];
+      const d2 = dx * dx + dy * dy;
+      if (d2 >= R2 || d2 < 1e-12) continue;
+      const d = Math.sqrt(d2);
+      const wi = P.im[i],
+        wj = P.im[j];
+      const ws = wi + wj;
+      if (ws === 0) continue;
+      const push = (r2 - d) / d;
+      P.x[i] -= dx * push * (wi / ws);
+      P.y[i] -= dy * push * (wi / ws);
+      P.x[j] += dx * push * (wj / ws);
+      P.y[j] += dy * push * (wj / ws);
+    }
   }
 
   private collideBodies() {

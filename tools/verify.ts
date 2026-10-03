@@ -153,6 +153,12 @@ if (!skipBrowser) {
   add('determinism: browser vs Node', `${bh.toString(16)} vs ${nodeHash.toString(16)}`, bh === nodeHash);
 }
 
+if (!skipBrowser) {
+  const { browserPerf } = await import('./perfbrowser');
+  const p = await browserPerf(4);
+  add(`browser fps @ ${p.particles} particles, 4× CPU throttle`, `${p.fps.toFixed(1)} fps, p95 ${p.p95.toFixed(1)} ms`, p.fps >= 57 && p.p95 <= 17.5);
+}
+
 console.log('\n| check | result | pass |\n|---|---|---|');
 for (const r of rows) console.log(`| ${r.check} | ${r.result} | ${r.pass ? 'PASS' : 'FAIL'} |`);
 const ok = rows.every((r) => r.pass);

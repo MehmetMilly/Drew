@@ -27,6 +27,9 @@ canvas {
   touch-action: none;
   display: block;
 }
+#world {
+  z-index: 1;
+}
 #ink {
   z-index: 2;
 }

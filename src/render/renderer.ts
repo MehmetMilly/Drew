@@ -331,19 +331,11 @@ export class WorldRenderer {
     if (!isFinite(gy)) return;
     const h = Math.max(0, gy - maxY - 5);
     const wdt = Math.max(20, (maxX - minX) * 0.55) / (1 + h / 220);
-    const alpha = 0.22 / (1 + h / 90);
-    const grad = g.createRadialGradient(cx, gy, 1, cx, gy, wdt);
-    grad.addColorStop(0, `rgba(58,58,64,${alpha})`);
-    grad.addColorStop(1, 'rgba(58,58,64,0)');
-    g.save();
-    g.translate(cx, gy);
-    g.scale(1, 0.18);
-    g.translate(-cx, -gy);
-    g.fillStyle = grad;
-    g.beginPath();
-    g.arc(cx, gy, wdt, 0, Math.PI * 2);
-    g.fill();
-    g.restore();
+    const alpha = Math.min(1, 1 / (1 + h / 90));
+    if (!shadowSprite) shadowSprite = makeShadow();
+    g.globalAlpha = alpha;
+    g.drawImage(shadowSprite, cx - wdt, gy - wdt * 0.18, wdt * 2, wdt * 0.36);
+    g.globalAlpha = 1;
   }
 
   private drawCreatureFace(g: Ctx, cr: Creature, o: RenderOpts, frame: number) {
@@ -510,6 +502,22 @@ export class WorldRenderer {
     g.restore();
     void PEN;
   }
+}
+
+let shadowSprite: HTMLCanvasElement | null = null;
+/** A soft graphite smudge, rendered once and scaled under every figure. */
+function makeShadow(): HTMLCanvasElement {
+  const c = document.createElement('canvas');
+  c.width = 128;
+  c.height = 128;
+  const g = c.getContext('2d')!;
+  const grad = g.createRadialGradient(64, 64, 1, 64, 64, 64);
+  grad.addColorStop(0, 'rgba(58,58,64,0.24)');
+  grad.addColorStop(0.6, 'rgba(58,58,64,0.10)');
+  grad.addColorStop(1, 'rgba(58,58,64,0)');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 128, 128);
+  return c;
 }
 
 export function roundRect(g: Ctx, x: number, y: number, w: number, h: number, r: number) {

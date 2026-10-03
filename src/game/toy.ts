@@ -37,12 +37,16 @@ export class Toy {
   private tapMark: { x: number; y: number; t: number } | null = null;
   private hintAlpha = 1;
   private now = 0;
+  private overlayDirty = true;
 
+  private bg: CanvasRenderingContext2D;
   constructor(
+    private backdrop: HTMLCanvasElement,
     private canvas: HTMLCanvasElement,
     private overlay: HTMLCanvasElement,
   ) {
-    this.g = canvas.getContext('2d', { alpha: false })!;
+    this.bg = backdrop.getContext('2d', { alpha: false })!;
+    this.g = canvas.getContext('2d')!;
     this.og = overlay.getContext('2d', { desynchronized: true } as CanvasRenderingContext2DSettings)!;
     this.resize();
     addEventListener('resize', () => this.resize());
@@ -70,19 +74,57 @@ export class Toy {
     this.wet = [];
   }
 
+  // adaptive resolution for the world layer only: drawing stays crisp on the
+  // overlay, the paper on the static backdrop
+  private worldDpr = 2;
+  private frameAvg = 0;
+  private dprCool = 0;
+  private applyWorldDpr() {
+    const w = innerWidth,
+      h = innerHeight;
+    const d = Math.min(this.worldDpr, this.rect.dpr);
+    this.canvas.width = Math.round(w * d);
+    this.canvas.height = Math.round(h * d);
+  }
+  private adaptResolution(workMs: number) {
+    this.frameAvg = this.frameAvg * 0.95 + workMs * 0.05;
+    if (--this.dprCool > 0) return;
+    const max = this.rect.dpr;
+    if (this.frameAvg > 11 && this.worldDpr > 1) {
+      this.worldDpr = Math.max(1, this.worldDpr - 0.25);
+      this.applyWorldDpr();
+      this.dprCool = 60;
+    } else if (this.frameAvg < 5 && this.worldDpr < max) {
+      this.worldDpr = Math.min(max, this.worldDpr + 0.25);
+      this.applyWorldDpr();
+      this.dprCool = 240;
+    }
+  }
+
   private resize() {
     const dpr = Math.min(2, devicePixelRatio || 1);
     const w = innerWidth,
       h = innerHeight;
-    for (const c of [this.canvas, this.overlay]) {
+    for (const c of [this.backdrop, this.canvas, this.overlay]) {
       c.width = Math.round(w * dpr);
       c.height = Math.round(h * dpr);
       c.style.width = w + 'px';
       c.style.height = h + 'px';
     }
     this.rect = layoutPage(w, h, dpr);
+    this.worldDpr = Math.min(this.worldDpr, dpr);
+    this.applyWorldDpr();
     this.paper = renderPaper(PAPERS.cream, Math.round(this.rect.w * dpr), Math.round(this.rect.h * dpr));
     this.desk = renderDesk(Math.round(w * dpr), Math.round(h * dpr));
+    // static backdrop: desk, page shadow, paper (drawn once per resize)
+    const b = this.bg,
+      r = this.rect;
+    b.setTransform(1, 0, 0, 1, 0, 0);
+    b.drawImage(this.desk, 0, 0);
+    b.setTransform(dpr * r.scale, 0, 0, dpr * r.scale, dpr * r.x, dpr * r.y);
+    b.fillStyle = 'rgba(40,20,5,0.25)';
+    b.fillRect(6, 10, WORLD.W, WORLD.H);
+    b.drawImage(this.paper, 0, 0, WORLD.W, WORLD.H);
   }
 
   // ---------------------------------------------------------------- pen
@@ -160,7 +202,9 @@ export class Toy {
 
   private frame(tms: number) {
     const t = tms / 1000;
-    const dt = this.last ? Math.min(0.1, t - this.last) : 1 / 60;
+    let dt = this.last ? Math.min(0.1, t - this.last) : 1 / 60;
+    // vsync jitter around 60 Hz would alternate 0 and 2 sim steps per frame
+    if (Math.abs(dt - WORLD.dt) < 0.002) dt = WORLD.dt;
     this.last = t;
     this.now = t;
     // time scale easing (ease-out)
@@ -181,7 +225,9 @@ export class Toy {
       n++;
     }
     if (n === 4) this.acc = Math.min(this.acc, WORLD.dt);
+    const w0 = performance.now();
     this.render(this.acc / WORLD.dt);
+    this.adaptResolution(performance.now() - w0 + this.stepMs * n);
     requestAnimationFrame((tt) => this.frame(tt));
   }
 
@@ -198,14 +244,10 @@ export class Toy {
   private render(alpha: number) {
     const g = this.g,
       r = this.rect,
-      dpr = r.dpr;
+      dpr = Math.min(this.worldDpr, r.dpr);
     g.setTransform(1, 0, 0, 1, 0, 0);
-    if (this.desk) g.drawImage(this.desk, 0, 0);
+    g.clearRect(Math.floor(dpr * r.x) - 2, Math.floor(dpr * r.y) - 2, Math.ceil(dpr * r.w) + 4, Math.ceil(dpr * r.h) + 4);
     g.setTransform(dpr * r.scale, 0, 0, dpr * r.scale, dpr * r.x, dpr * r.y);
-    // page shadow on the desk
-    g.fillStyle = 'rgba(40,20,5,0.25)';
-    g.fillRect(6, 10, WORLD.W, WORLD.H);
-    if (this.paper) g.drawImage(this.paper, 0, 0, WORLD.W, WORLD.H);
     g.save();
     g.beginPath();
     g.rect(0, 0, WORLD.W, WORLD.H);
@@ -234,13 +276,12 @@ export class Toy {
     // slow time: the page cools (look-and-feel §7)
     const slow = Math.max(0, Math.min(1, (1 - this.scale) / (1 - INK.toyDrawSpeed)));
     if (slow > 0.01) {
-      g.fillStyle = `rgba(120,128,140,${0.1 * slow})`;
-      g.globalCompositeOperation = 'saturation';
+      // a cool wash stands in for desaturation (cheap on phones), plus the 6% vignette
+      g.fillStyle = `rgba(112,124,146,${0.1 * slow})`;
       g.fillRect(0, 0, WORLD.W, WORLD.H);
-      g.globalCompositeOperation = 'source-over';
       const vg = g.createRadialGradient(WORLD.W / 2, WORLD.H / 2, WORLD.W * 0.45, WORLD.W / 2, WORLD.H / 2, WORLD.H * 0.75);
       vg.addColorStop(0, 'rgba(30,30,40,0)');
-      vg.addColorStop(1, `rgba(30,30,40,${0.14 * slow})`);
+      vg.addColorStop(1, `rgba(30,30,40,${0.16 * slow})`);
       g.fillStyle = vg;
       g.fillRect(0, 0, WORLD.W, WORLD.H);
     }
@@ -253,6 +294,9 @@ export class Toy {
     const g = this.og,
       r = this.rect,
       dpr = r.dpr;
+    const any = this.wet.length > 0 || this.live !== null;
+    if (!any && !this.overlayDirty) return;
+    this.overlayDirty = any;
     g.setTransform(1, 0, 0, 1, 0, 0);
     g.clearRect(0, 0, this.overlay.width, this.overlay.height);
     g.setTransform(dpr * r.scale, 0, 0, dpr * r.scale, dpr * r.x, dpr * r.y);
