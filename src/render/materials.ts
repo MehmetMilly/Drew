@@ -53,6 +53,8 @@ export interface PaperSpec {
   fibre: string;
   fibres: number;
   grid?: { step: number; color: string; heavy: number };
+  /** crumpled: this many crease lines, each a shadow beside a highlight, plus eraser smudges */
+  creases?: number;
   seed: number;
 }
 
@@ -63,6 +65,8 @@ export const PAPERS: Record<string, PaperSpec> = {
   // Chapter 4: cold-press watercolour, bright and toothy (the washes are the water itself)
   wash: { base: '#F6F3EC', tooth: 0.12, blotch: 0.05, fibre: 'rgba(120,130,150,0.06)', fibres: 80, seed: 41 },
   // Chapter 2: engineering graph paper (a faint grey-green rule, so it never reads as a guide)
+  // Chapter 5: crumpled, smudged, flattened out again after the Eraser has been at it
+  crumpled: { base: '#EFEAE0', tooth: 0.08, blotch: 0.1, fibre: 'rgba(110,100,90,0.08)', fibres: 160, seed: 53, creases: 26 },
   graph: { base: '#F3F4EE', tooth: 0.05, blotch: 0.06, fibre: 'rgba(110,120,100,0.08)', fibres: 160, seed: 23, grid: { step: 24, color: 'rgba(96,128,110,0.16)', heavy: 1.8 } },
 };
 
@@ -131,6 +135,48 @@ export function renderPaper(spec: PaperSpec, w: number, h: number): HTMLCanvasEl
       g.moveTo(0, y * s);
       g.lineTo(w, y * s);
       g.stroke();
+    }
+  }
+  if (spec.creases) {
+    // creases: polylines that wander across the page and branch, each a dark fold with a
+    // lit edge beside it
+    for (let i = 0; i < spec.creases; i++) {
+      const pts: [number, number][] = [];
+      let x = (0.5 + 0.5 * hashNoise(i, 11, spec.seed)) * 720,
+        y = (0.5 + 0.5 * hashNoise(i, 12, spec.seed)) * 1280;
+      let a = hashNoise(i, 13, spec.seed) * Math.PI;
+      const n = 3 + Math.floor(3 * (0.5 + 0.5 * hashNoise(i, 14, spec.seed)));
+      pts.push([x, y]);
+      for (let k = 0; k < n; k++) {
+        a += hashNoise(i, 20 + k, spec.seed) * 0.6;
+        const L = 60 + 90 * (0.5 + 0.5 * hashNoise(i, 30 + k, spec.seed));
+        x += Math.cos(a) * L;
+        y += Math.sin(a) * L;
+        pts.push([x, y]);
+      }
+      for (const [off, col] of [[0, 'rgba(70,60,50,0.13)'], [1.6, 'rgba(255,255,250,0.5)']] as const) {
+        g.strokeStyle = col;
+        g.lineWidth = 1.3 * s;
+        g.beginPath();
+        pts.forEach(([px, py], k) => (k ? g.lineTo((px + off) * s, (py + off) * s) : g.moveTo((px + off) * s, (py + off) * s)));
+        g.stroke();
+      }
+    }
+    // smudges: grey rubbed-out patches
+    for (let i = 0; i < 7; i++) {
+      const x = (0.5 + 0.5 * hashNoise(i, 41, spec.seed)) * w,
+        y = (0.5 + 0.5 * hashNoise(i, 42, spec.seed)) * h;
+      const r = (40 + 50 * (0.5 + 0.5 * hashNoise(i, 43, spec.seed))) * s;
+      const sm = g.createRadialGradient(x, y, 0, x, y, r);
+      sm.addColorStop(0, 'rgba(90,90,95,0.07)');
+      sm.addColorStop(1, 'rgba(90,90,95,0)');
+      g.fillStyle = sm;
+      g.save();
+      g.translate(x, y);
+      g.scale(1.8, 0.7);
+      g.translate(-x, -y);
+      g.fillRect(x - r, y - r, r * 2, r * 2);
+      g.restore();
     }
   }
   // soft vignette and darker binding edge (left)

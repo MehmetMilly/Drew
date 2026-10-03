@@ -14,6 +14,7 @@ export function drawScissors(g: Ctx, w: World, b: Body, x: number, y: number) {
   g.save();
   g.translate(x, y);
   g.rotate(b.angle);
+  g.scale(1.4, 1.4);
   g.lineCap = 'round';
   for (const s of [-1, 1]) {
     g.save();

@@ -10,7 +10,7 @@ export const L5_1: LevelDef = {
   id: '5-1',
   title: 'Snip Snip',
   hint: 'Draw more mid-fight.',
-  paper: 'graph',
+  paper: 'crumpled',
   goal: { type: 'save', seconds: 6 },
   draw: 0.06,
   ink: 3500,
@@ -34,7 +34,7 @@ export const L5_1: LevelDef = {
 export const L5_2: LevelDef = {
   id: '5-2',
   title: 'Fuse',
-  paper: 'graph',
+  paper: 'crumpled',
   goal: { type: 'home', x: 650, y: FLOOR },
   draw: 0.08,
   ink: 3500,
@@ -55,7 +55,7 @@ export const L5_2: LevelDef = {
 export const L5_3: LevelDef = {
   id: '5-3',
   title: 'Smudgers',
-  paper: 'graph',
+  paper: 'crumpled',
   goal: { type: 'save', seconds: 8 },
   draw: 0.08,
   ink: 4000,
@@ -81,7 +81,7 @@ export const L5_3: LevelDef = {
 export const L5_4: LevelDef = {
   id: '5-4',
   title: 'Everything, Everywhere',
-  paper: 'graph',
+  paper: 'crumpled',
   goal: { type: 'home', x: 660, y: 1100 },
   draw: 0.07,
   ink: 4500,
@@ -108,7 +108,7 @@ export const L5_4: LevelDef = {
 export const L5_5: LevelDef = {
   id: '5-5',
   title: 'The Big Eraser',
-  paper: 'graph',
+  paper: 'crumpled',
   goal: { type: 'boss' },
   draw: 0.08,
   ink: 3000,
