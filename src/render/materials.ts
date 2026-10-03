@@ -14,7 +14,7 @@ export function makeCanvas(w: number, h: number): HTMLCanvasElement {
 }
 
 /** Smooth value noise in [0,1], tileable with period p. */
-function vnoise(x: number, y: number, p: number, seed: number) {
+export function vnoise(x: number, y: number, p: number, seed: number) {
   const xi = Math.floor(x),
     yi = Math.floor(y);
   const fx = x - xi,

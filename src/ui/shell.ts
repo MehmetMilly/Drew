@@ -12,6 +12,7 @@ import { WORLD } from '../tuning';
 const WORLD_W = WORLD.W;
 const VERSUS_DRAW = 8; // s each player has to draw
 import { dailyFor, dateKey } from '../levels/daily';
+import { PENCILS, setPencil } from '../render/pencils';
 import { levelThumb } from './thumb';
 import { pencilTick } from '../audio/pencil';
 import { sfxUi } from '../audio/sfx';
@@ -206,6 +207,7 @@ export class Shell {
         this.root.append(nav);
       }
     }
+    this.root.append(this.pencilCase());
     this.root.append(this.press(el('button', 'note blank', '<b>Blank page</b><small>draw anything</small>'), () => this.show('toy')));
     this.root.append(this.press(el('button', 'tab back', '← back'), () => this.show('title')));
   }
@@ -310,6 +312,29 @@ export class Shell {
     c.append(row);
     this.root.append(c);
     this.card = c;
+  }
+
+  /** The Pencil Case (design §12): pencils open with badges (and one with the Sumo ladder);
+   *  tapping an open one picks it. */
+  private pencilCase() {
+    const d = loadSave();
+    const badges = Object.values(d.badges).reduce((n, b) => n + b.length, 0);
+    const ladder = OPPONENTS.every((_, k) => d.cleared['sumo-' + (k + 1)]);
+    const box = el('div', 'pencil-case');
+    for (const p of PENCILS) {
+      const open = (p.unlock.badges ?? 0) <= badges && (!p.unlock.sumo || ladder);
+      const swatch = p.color === 'rainbow' ? 'linear-gradient(90deg,#d64545,#e0a030,#4caf50,#3f7fd6,#9b59b6)' : p.color;
+      const b = el('button', `pencil ${open ? '' : 'locked'} ${d.settings.pencil === p.id ? 'on' : ''}`, `<i style="background:${swatch}"></i><small>${open ? p.name : p.unlock.sumo ? 'beat the ladder' : `${p.unlock.badges} badges`}</small>`);
+      if (open)
+        this.press(b, () => {
+          d.settings.pencil = p.id;
+          save();
+          setPencil(p.id);
+          this.show('sketchbook');
+        });
+      box.append(b);
+    }
+    return box;
   }
 
   /** Daily Doodle: today's arena and modifier, a calendar page of stamps, the streak. */

@@ -3,7 +3,7 @@
 // off along each stroke in drawing order, a readable countdown to birth.
 import { COLORS } from '../tuning';
 import { ribbon, widthPx } from '../render/graphite';
-import { graphitePattern } from '../render/materials';
+import { inkPattern, pencilVersion } from '../render/pencils';
 import type { LivePt } from '../input/pen';
 
 type Ctx = CanvasRenderingContext2D;
@@ -36,9 +36,10 @@ export function strokeWidths(pts: LivePt[]): Float32Array {
 }
 
 let pat: CanvasPattern | null = null;
+let patV = -1;
 
 export function drawWet(g: Ctx, strokes: WetStroke[], now: number, wetTime: number, hidden = false) {
-  if (!pat) pat = graphitePattern(g);
+  if (!pat || patV !== pencilVersion()) (pat = inkPattern(g)), (patV = pencilVersion());
   for (const s of strokes) {
     const n = Math.min(s.pts.length, 20000);
     if (n === 0) continue;

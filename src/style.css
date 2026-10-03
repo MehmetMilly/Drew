@@ -713,3 +713,35 @@ body.slow #backdrop {
   color: #e23b2e;
   margin-left: 12px;
 }
+
+/* the Pencil Case: a row of pencils along the bottom of the Sketchbook */
+.pencil-case {
+  position: absolute;
+  left: 40px;
+  right: 40px;
+  top: 960px;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: auto;
+}
+.pencil {
+  width: 88px;
+  text-align: center;
+  font-family: 'Patrick Hand', cursive;
+  font-size: 18px;
+  line-height: 1.1;
+  color: #3a3a40;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+.pencil i {
+  display: block;
+  height: 18px;
+  margin: 0 6px 6px;
+  border-radius: 3px 10px 10px 3px;
+  clip-path: polygon(0 0, 82% 0, 100% 50%, 82% 100%, 0 100%);
+}
+.pencil.on small { text-decoration: underline wavy #3a3a40; font-weight: bold; }
+.pencil.locked { opacity: 0.4; }
+.pencil.locked i { filter: grayscale(1); }

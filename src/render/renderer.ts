@@ -8,7 +8,7 @@ import { World, SimEvent } from '../sim/world';
 import type { Creature } from '../sim/creature';
 import { PF, CT } from '../sim/store';
 import { isBlinking } from '../sim/brain';
-import { graphitePattern } from './materials';
+import { inkPattern, pencilVersion } from './pencils';
 import { ribbon, widthPx } from './graphite';
 import { drawFace } from './face';
 import { boil1, boilFrame } from './boil';
@@ -47,6 +47,7 @@ export interface RenderOpts {
 
 export class WorldRenderer {
   private pattern: CanvasPattern | null = null;
+  private patternV = -1;
   plates: Plate[] = [];
   private dusts: Dust[] = [];
   private snaps: Snap[] = [];
@@ -96,7 +97,7 @@ export class WorldRenderer {
   draw(g: Ctx, o: RenderOpts) {
     const w = this.w;
     this.events();
-    if (!this.pattern) this.pattern = graphitePattern(g);
+    if (!this.pattern || this.patternV !== pencilVersion()) (this.pattern = inkPattern(g)), (this.patternV = pencilVersion());
     const frame = boilFrame(o.realT);
     drawCountdown(g, w);
     drawGoal(g, w);

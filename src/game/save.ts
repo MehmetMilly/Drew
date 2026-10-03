@@ -20,7 +20,7 @@ export interface SaveData {
   badges: Record<string, string[]>; // level id → hero kinds it was cleared with (max 3)
   fails: Record<string, number>; // consecutive fails (adaptive ghost hint)
   hall: Hero[];
-  settings: { sound: number; music: number; intentLines: boolean; gentle: boolean; reducedMotion: boolean; haptics: boolean; leftHanded: boolean };
+  settings: { sound: number; music: number; intentLines: boolean; gentle: boolean; reducedMotion: boolean; haptics: boolean; leftHanded: boolean; pencil: string };
 }
 
 const fresh = (): SaveData => ({
@@ -29,7 +29,7 @@ const fresh = (): SaveData => ({
   badges: {},
   fails: {},
   hall: [],
-  settings: { sound: 1, music: 0.7, intentLines: true, gentle: false, reducedMotion: false, haptics: true, leftHanded: false },
+  settings: { sound: 1, music: 0.7, intentLines: true, gentle: false, reducedMotion: false, haptics: true, leftHanded: false, pencil: 'graphite' },
 });
 
 let cache: SaveData | null = null;
