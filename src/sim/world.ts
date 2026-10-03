@@ -484,7 +484,7 @@ export class World {
       preHazards(this, h);
       if (this.props) windForces(this, this.props, h), waterForces(this, this.props, h), tentacles(this, this.props, h), this.props.dmg && damageMotion(this, this.props.dmg, h);
       this.integrate(h);
-      if (this.props) swingPlanks(this.props), floatRafts(this, this.props, h);
+      if (this.props) swingPlanks(this.props, h), floatRafts(this, this.props, h);
       this.buildHash();
       this.buildPairs();
       for (let it = 0; it < WORLD.iterations; it++) {

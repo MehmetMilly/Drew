@@ -107,11 +107,11 @@ Starting numbers; tune them from metrics.
 
 | # | Name | Goal | Setup | Why the lazy answer fails | Intended bodies | Draw / Ink |
 |---|---|---|---|---|---|---|
-| 3-1 | Gust | HOME | A giant fan blows against the path to the flag. Hint: *scribbles are heavy* | light bodies are blown back with him | heavy, low many-legged, heavy giant | 0.05 / 3000 |
+| 3-1 | Gust | HOME in 11 s | A giant fan blows against the path to the flag (the gale ends at x 540). Hint: *scribbles are heavy*. The 11 s storm clock stops a slow crawler | light bodies are blown back with him | big-fisted heavy, springy with a scribbled belly, tiny scribble ball | 0.05 / 3000 |
 | 3-2 | Sumo Bully | SAVE 6 | A sumo shoves him toward a cliff edge | light shapes get shoved off together with him | heavy, braced giant, two heavies | 0.06 / 3000 |
-| 3-3 | See-Saw | HOME | He sits on one end of a see-saw; the flag is on a high ledge | nothing falls hard enough | heavy dropped from high, giant dropped, springy stomping | 0.04 / 3000 |
-| 3-4 | Rope Bridge | HOME | The bridge snaps above a load threshold. The twist: heavy fails | lumps and giants break it | light springy, floaty, tiny carrying him | 0.05 / 2500 |
-| 3-5 | Downstairs | HOME | The flag is two floors down, below cracked floors | nothing breaks floors | heavy riding down, heavy giant, heavy springy stomp | 0.05 / 3000 |
+| 3-3 | See-Saw | HOME | He sits on the high end of a long see-saw (it turns at most 4 rad/s, between 0.1 and 0.35 rad); the flag is on a 205 px ledge | nothing falls hard enough | heavy dropped on the far end, springy lump dropped from the top, giant that tosses him up the ledge | 0.04 / 3000 |
+| 3-4 | Rope Bridge | HOME | The bridge snaps above a load threshold (whole creatures are weighed, and it lets go 0.35 s later). The far bank is a 100 px step up. The twist: heavy fails | lumps and giants break it | light springy, tall biped tossing him, long-armed | 0.05 / 2500 |
+| 3-5 | Downstairs | HOME | The flag is two floors down, below cracked floors (a floor gives at 170k of whole-creature landing impulse) | nothing breaks floors | heavy dropped from high, tiny scribble ball dropped, springy with a scribbled belly | 0.05 / 3000 |
 
 ### Chapter 4, Wet Paper: loops float (paper: watercolour with blue washes)
 

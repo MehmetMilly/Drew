@@ -1,7 +1,7 @@
 // Chapter 3 props on the page, all felt-tip (they are the world, not threats): the fan and
 // its gusting air, cracked floors that split as they're strained, rope bridges that sag
 // under weight, see-saws and the chunks of whatever broke.
-import { COLORS, PROP } from '../tuning';
+import { COLORS, PROP, WORLD } from '../tuning';
 import type { World, Body } from '../sim/world';
 import type { PropState } from '../sim/props';
 import { hashNoise } from '../sim/rng';
@@ -195,8 +195,9 @@ function drawPlanks(g: Ctx, S: PropState) {
     // the pivot block
     g.beginPath();
     g.moveTo(k.x, k.y);
-    g.lineTo(k.x - 24, k.y + 44);
-    g.lineTo(k.x + 24, k.y + 44);
+    const foot = Math.max(k.y + 44, WORLD.floorY); // the pivot block stands on the floor
+    g.lineTo(k.x - 24 - (foot - k.y - 44) * 0.25, foot);
+    g.lineTo(k.x + 24 + (foot - k.y - 44) * 0.25, foot);
     g.closePath();
     g.fill();
     g.strokeStyle = COLORS.felt;

@@ -169,9 +169,10 @@ export function windForces(w: World, S: PropState, h: number) {
 }
 
 /** Per substep: the see-saw planks swing (Verlet on the angle, stops at the ground). */
-export function swingPlanks(S: PropState) {
+export function swingPlanks(S: PropState, h: number) {
+  const vmax = PROP.seesawRate * h; // rad per substep: a plank is heavy, however hard it is hit
   for (const k of S.planks) {
-    const v = (k.th - k.pth) * PROP.seesawDamp;
+    const v = Math.max(-vmax, Math.min(vmax, (k.th - k.pth) * PROP.seesawDamp));
     k.pth = k.th;
     k.th += v;
     if (k.th > k.hi) (k.th = k.hi), (k.pth = k.hi);
