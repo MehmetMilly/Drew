@@ -17,7 +17,7 @@ export type Goal =
   | { type: 'hug' }
   | { type: 'save'; seconds: number }
   | { type: 'home'; x: number; y: number }
-  | { type: 'score'; n: number; seconds: number; hoop: { x: number; y: number } };
+  | { type: 'score'; n: number; seconds: number; hoop: { x: number; y: number; bucket?: boolean } };
 
 export interface RefSolution {
   kind: string; // the hero kind it is meant to be (design §6)
@@ -202,7 +202,7 @@ export function canCarry(w: World, cr: Creature, g: Guy) {
 export function carryGoal(w: World): { x: number; y: number; home: boolean } | null {
   const d = w.level!.def;
   if (d.goal.type === 'home') return { x: d.goal.x, y: d.goal.y, home: true };
-  if (w.props?.pools.length) return { x: d.guy.x, y: -1e4, home: false };
+  if (d.goal.type === 'save' && w.props?.pools.length) return { x: d.guy.x, y: -1e4, home: false };
   return null;
 }
 
@@ -455,6 +455,8 @@ function scoreCheck(w: World, goal: { hoop: { x: number; y: number } }) {
       L.score++;
       b.data.scoredAt = w.t;
       b.data.backAt = w.t + LEVEL.scoreBack;
+      // a duck stays in the bucket
+      if (b.data.duck) b.alive = false;
       // who put it in: whoever held or threw it last
       w.emit({ type: 'score', cr: b.data.by ?? -1, x, y, v: L.score });
     }

@@ -115,6 +115,7 @@ function drawRubber(g: Ctx, b: Body, x: number, y: number, frame: number) {
 
 /** A SCORE ball (cargo: highlighter yellow) with felt seams. */
 function drawCargo(g: Ctx, b: Body, x: number, y: number, frame: number) {
+  if (b.data.duck) return drawDuck(g, b, x, y);
   g.fillStyle = COLORS.yellow;
   wobbleCircle(g, x, y, b.r, b.id * 17 + 6, frame);
   g.fill();
@@ -136,11 +137,42 @@ function drawCargo(g: Ctx, b: Body, x: number, y: number, frame: number) {
   g.restore();
 }
 
+/** A rubber duck (cargo, so highlighter yellow), bobbing, facing the way it drifts. */
+function drawDuck(g: Ctx, b: Body, x: number, y: number) {
+  const r = b.r;
+  const dir = b.x - b.sx < -0.05 ? -1 : 1;
+  g.save();
+  g.translate(x, y);
+  g.scale(dir, 1);
+  g.fillStyle = COLORS.yellow;
+  g.strokeStyle = COLORS.felt;
+  g.lineWidth = 2.2;
+  g.beginPath();
+  g.ellipse(0, r * 0.25, r * 1.1, r * 0.72, 0, 0, Math.PI * 2);
+  g.fill();
+  g.stroke();
+  g.beginPath();
+  g.arc(r * 0.55, -r * 0.5, r * 0.5, 0, Math.PI * 2);
+  g.fill();
+  g.stroke();
+  // beak and eye in felt
+  g.beginPath();
+  g.moveTo(r * 1.0, -r * 0.55);
+  g.lineTo(r * 1.45, -r * 0.42);
+  g.lineTo(r * 1.0, -r * 0.3);
+  g.stroke();
+  g.fillStyle = COLORS.felt;
+  g.beginPath();
+  g.arc(r * 0.68, -r * 0.62, 1.8, 0, Math.PI * 2);
+  g.fill();
+  g.restore();
+}
+
 /** The little players (felt, a cap so he isn't mistaken for Little Guy): they stand under
  *  where their ball rests, arms up holding it, or waving for it back. */
 export function drawPlayers(g: Ctx, w: World) {
   for (const b of w.bodies) {
-    if (b.kind !== 'cargo') continue;
+    if (b.kind !== 'cargo' || b.data.duck) continue;
     const x = b.data.hx,
       hy = b.data.hy + b.r; // hands
     const has = b.data.parked && b.alive;
@@ -601,8 +633,9 @@ export function drawGoal(g: Ctx, w: World) {
 
 /** SCORE's hoop: a felt pole and backboard, the rim in highlighter yellow (it is the goal), a
  *  felt net, and one yellow tally dot per point needed on the board. */
-function drawHoop(g: Ctx, w: World, hoop: { x: number; y: number }, n: number) {
+function drawHoop(g: Ctx, w: World, hoop: { x: number; y: number; bucket?: boolean }, n: number) {
   const L = w.level!;
+  if (hoop.bucket) return drawBucket(g, w, hoop, n);
   const side = hoop.x > w.W / 2 ? 1 : -1; // the backboard is on the far side of the page
   const half = LEVEL.hoopW / 2;
   const bx = hoop.x + side * (half + 6);
@@ -650,6 +683,62 @@ function drawHoop(g: Ctx, w: World, hoop: { x: number; y: number }, n: number) {
   for (let k = 0; k < n; k++) {
     const tx = bx + side * 26 * (k + 1.2),
       ty = hoop.y - LEVEL.hoopBoard - 14;
+    g.beginPath();
+    g.arc(tx, ty, 8, 0, Math.PI * 2);
+    if (k < L.score) {
+      g.fillStyle = COLORS.yellow;
+      g.fill();
+    }
+    g.strokeStyle = COLORS.felt;
+    g.lineWidth = 2;
+    g.stroke();
+  }
+  g.restore();
+}
+
+/** SCORE into a bucket (4-3): a felt pail, its rim in yellow, the ducks already in it peeking
+ *  out, and the tally dots above. */
+function drawBucket(g: Ctx, w: World, hoop: { x: number; y: number }, n: number) {
+  const L = w.level!;
+  const half = LEVEL.hoopW / 2;
+  const top = hoop.y,
+    bot = hoop.y + 70;
+  g.save();
+  g.lineJoin = 'round';
+  g.lineCap = 'round';
+  // ducks inside, behind the front wall
+  for (let k = 0; k < L.score; k++) {
+    const dx = (k - (L.score - 1) / 2) * 20;
+    g.fillStyle = COLORS.yellow;
+    g.strokeStyle = COLORS.felt;
+    g.lineWidth = 2;
+    g.beginPath();
+    g.arc(hoop.x + dx, top - 2 + Math.sin(w.t * 3 + k) * 1.5, 8, 0, Math.PI * 2);
+    g.fill();
+    g.stroke();
+  }
+  g.fillStyle = COLORS.felt;
+  g.beginPath();
+  g.moveTo(hoop.x - half, top);
+  g.lineTo(hoop.x + half, top);
+  g.lineTo(hoop.x + half * 0.75, bot);
+  g.lineTo(hoop.x - half * 0.75, bot);
+  g.closePath();
+  g.fill();
+  // handle
+  g.strokeStyle = COLORS.felt;
+  g.lineWidth = 3;
+  g.beginPath();
+  g.arc(hoop.x, top + 4, half * 0.95, Math.PI * 1.05, Math.PI * 1.95);
+  g.stroke();
+  g.strokeStyle = COLORS.yellow;
+  g.lineWidth = 5;
+  g.beginPath();
+  g.ellipse(hoop.x, top, half, 6, 0, 0, Math.PI * 2);
+  g.stroke();
+  for (let k = 0; k < n; k++) {
+    const tx = hoop.x + (k - (n - 1) / 2) * 26,
+      ty = top - 60;
     g.beginPath();
     g.arc(tx, ty, 8, 0, Math.PI * 2);
     if (k < L.score) {

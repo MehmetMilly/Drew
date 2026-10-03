@@ -70,6 +70,8 @@ export function drawProps(g: Ctx, w: World) {
   drawWind(g, w, S);
   drawSlabs(g, S);
   drawPlanks(g, S);
+  drawRafts(g, S);
+  drawTentacles(g, w, S);
   g.restore();
 }
 
@@ -221,4 +223,72 @@ export function drawChunk(g: Ctx, b: Body, x: number, y: number) {
   g.closePath();
   g.fill();
   g.restore();
+}
+
+/** Log rafts: three felt logs lashed together, end grain showing. */
+function drawRafts(g: Ctx, S: PropState) {
+  for (const r of S.rafts) {
+    g.fillStyle = COLORS.felt;
+    const hh = PROP.raftHalf;
+    g.beginPath();
+    g.roundRect(r.x - r.len, r.y - hh, r.len * 2, hh * 2, hh);
+    g.fill();
+    g.strokeStyle = COLORS.cream;
+    g.lineWidth = 1.6;
+    for (const k of [-0.5, 0.5]) {
+      g.beginPath();
+      g.moveTo(r.x + k * r.len * 1.4 - 2, r.y - hh + 2);
+      g.lineTo(r.x + k * r.len * 1.4 + 2, r.y + hh - 2);
+      g.stroke();
+    }
+    g.beginPath();
+    g.arc(r.x - r.len + hh, r.y, hh * 0.5, 0, Math.PI * 2);
+    g.arc(r.x + r.len - hh, r.y, hh * 0.5, 0, Math.PI * 2);
+    g.stroke();
+  }
+}
+
+/** Kraken tentacles: a tapering felt curve from the root to the tip, red suckers (the threat),
+ *  curling while it waits under the surface. */
+function drawTentacles(g: Ctx, w: World, S: PropState) {
+  for (const T of S.tentacles) {
+    if (w.t < T.prop.at - 0.4) continue;
+    const b = T.body;
+    const ax = T.prop.x,
+      ay = T.prop.y + 30;
+    const dx = b.x - ax,
+      dy = b.y - ay;
+    const L = Math.hypot(dx, dy) || 1;
+    // the body of it bows out to one side and sways
+    const sway = Math.sin(w.t * 3 + T.prop.x) * 0.25 + (T.mode === 'hold' ? 0.1 : 0.35);
+    const mx = ax + dx / 2 - (dy / L) * L * sway,
+      my = ay + dy / 2 + (dx / L) * L * sway;
+    const n = 16;
+    const pts: { x: number; y: number }[] = [];
+    for (let k = 0; k <= n; k++) {
+      const u = k / n;
+      pts.push({ x: (1 - u) * (1 - u) * ax + 2 * u * (1 - u) * mx + u * u * b.x, y: (1 - u) * (1 - u) * ay + 2 * u * (1 - u) * my + u * u * b.y });
+    }
+    g.fillStyle = COLORS.felt;
+    for (let k = 0; k <= n; k++) {
+      const r = 16 * (1 - k / n) + 5;
+      g.beginPath();
+      g.arc(pts[k].x, pts[k].y, r, 0, Math.PI * 2);
+      g.fill();
+    }
+    g.fillStyle = COLORS.red;
+    for (let k = 3; k < n; k += 3) {
+      g.beginPath();
+      g.arc(pts[k].x, pts[k].y, 3 * (1 - k / n) + 1.6, 0, Math.PI * 2);
+      g.fill();
+    }
+    // the tip curls round him while it holds
+    if (T.mode === 'hold') {
+      g.strokeStyle = COLORS.felt;
+      g.lineWidth = 5;
+      g.beginPath();
+      g.arc(b.x, b.y, 12, 0, Math.PI * 1.6);
+      g.stroke();
+    }
+  }
 }

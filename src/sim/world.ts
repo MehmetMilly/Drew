@@ -14,7 +14,7 @@ import { actuate } from './actuators';
 import { preHazards, postHazards, asleep, attacking } from './hazards';
 import { actuateGuy, GUY_OWNER, type Guy } from './littleguy';
 import { levelStep, spikeCut, type LevelRun } from './level';
-import { windForces, waterForces, swingPlanks, collidePlanks, stepProps, stepWater, type PropState } from './props';
+import { windForces, waterForces, swingPlanks, collidePlanks, stepProps, stepWater, floatRafts, collideRafts, tentacles, type PropState } from './props';
 
 export interface Terrain {
   pts: Pt[];
@@ -477,9 +477,9 @@ export class World {
       for (const cr of live) if (cr.alive) actuate(this, cr, h);
       if (this.guy) actuateGuy(this, this.guy, h);
       preHazards(this, h);
-      if (this.props) windForces(this, this.props, h), waterForces(this, this.props, h);
+      if (this.props) windForces(this, this.props, h), waterForces(this, this.props, h), tentacles(this, this.props, h);
       this.integrate(h);
-      if (this.props) swingPlanks(this.props);
+      if (this.props) swingPlanks(this.props), floatRafts(this, this.props, h);
       this.buildHash();
       this.buildPairs();
       for (let it = 0; it < WORLD.iterations; it++) {
@@ -489,7 +489,7 @@ export class World {
         if (it % WORLD.shapeEvery === 0) for (const cr of live) if (cr.alive) this.shapeMatch(cr);
         if (it % 2 === 1) this.collideParticles();
         this.collideBodies();
-        if (this.props) collidePlanks(this, this.props);
+        if (this.props) collidePlanks(this, this.props), collideRafts(this, this.props, h);
         if (it % 2 === 1 || lastIt) this.collideTerrain(lastIt);
       }
       this.contactFriction(h);
@@ -528,7 +528,7 @@ export class World {
       P.flags[i] &= ~PF.GROUND;
     }
     for (const b of this.bodies) {
-      if (!b.alive || b.held >= 0 || asleep(this, b)) continue;
+      if (!b.alive || b.held >= 0 || asleep(this, b) || b.data.kin) continue; // kinematic: moved by its script
       const vx = (b.x - b.px) * 0.999,
         vy = (b.y - b.py) * 0.999;
       b.px = b.x;
@@ -760,7 +760,7 @@ export class World {
     }
     if (last) {
       for (const b of this.bodies) {
-        if (!b.alive || b.held >= 0 || b.hw || asleep(this, b) || b.kind === 'chunk') continue;
+        if (!b.alive || b.held >= 0 || b.hw || asleep(this, b) || b.kind === 'chunk' || b.data.kin) continue;
         this.bodyTerrain(b);
       }
     }
@@ -934,14 +934,14 @@ export class World {
     const P = this.P;
     const pr = BODY.radius;
     for (const b of this.bodies) {
-      if (!b.alive || b.kind === 'chunk') continue; // debris of a broken floor just tumbles away
+      if (!b.alive || b.kind === 'chunk' || b.kind === 'tentacle') continue; // debris tumbles away; a tentacle is scripted
       if (b.hw) {
         this.collideBox(b);
         continue;
       }
       // an attacking ninja passes through ink, cutting it (hazards.ts); only a strike stops him
       if (attacking(b)) continue;
-      const bw = b.held >= 0 || asleep(this, b) ? 0 : b.m > 0 ? 1 / b.m : 0;
+      const bw = b.held >= 0 || asleep(this, b) || b.data.kin ? 0 : b.m > 0 ? 1 / b.m : 0;
       const shot = b.kind === 'cargo' && this.t < (b.data.clearUntil ?? -9) ? b.data.by : -9;
       const reach = b.r + pr;
       // query cells covering the body
@@ -978,10 +978,10 @@ export class World {
     // body vs body (circles)
     for (let a = 0; a < this.bodies.length; a++) {
       const A = this.bodies[a];
-      if (!A.alive || A.hw || A.kind === 'chunk') continue;
+      if (!A.alive || A.hw || A.kind === 'chunk' || A.kind === 'tentacle') continue;
       for (let c = a + 1; c < this.bodies.length; c++) {
         const B = this.bodies[c];
-        if (!B.alive || B.hw || B.kind === 'chunk') continue;
+        if (!B.alive || B.hw || B.kind === 'chunk' || B.kind === 'tentacle') continue;
         const dx = B.x - A.x,
           dy = B.y - A.y;
         const R = A.r + B.r;

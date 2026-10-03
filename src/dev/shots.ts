@@ -8,6 +8,7 @@ import { WORLD, COLORS } from '../tuning';
 import { drawWet, strokeWidths, WetStroke } from '../game/ink';
 import type { Pt } from '../sim/geom';
 import { startLevel } from '../sim/level';
+import { CHAPTER4 } from '../levels/ch4';
 import { ALL_LEVELS } from '../levels';
 
 export interface ShotRow {
@@ -46,7 +47,7 @@ export async function sheet(rows: ShotRow[], scale0 = CELL_W / WORLD.W): Promise
   rows.forEach((row, ri) => {
     const w = new World({ seed: 1 });
     const r = new WorldRenderer(w);
-    const lv = row.level ? ALL_LEVELS.find((l) => l.id === row.level) : undefined;
+    const lv = row.level ? [...ALL_LEVELS, ...CHAPTER4].find((l) => l.id === row.level) : undefined;
     if (lv) {
       startLevel(w, lv);
       for (let k = 0; k < Math.round((row.at ?? 0) / WORLD.dt); k++) w.step();

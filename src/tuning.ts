@@ -406,6 +406,19 @@ export const PROP = {
   plankHalf: 7, // px: half its thickness
   seesawTilt: 0.32, // rad it tips before an end meets the ground
   seesawDamp: 0.995,
+  // rafts (4-4): a heavy floating log platform
+  raftHalf: 10, // px half-thickness
+  raftMass: 300,
+  raftGrip: 0.3, // what stands on it is carried along
+  // kraken tentacles (4-5)
+  tipR: 14,
+  tentacleReach: 420, // px from its root
+  tentacleSpeed: 260, // px/s reaching
+  tentacleBack: 500, // px/s recoiling
+  tentacleRecoil: 1.4, // s it stays down after a hit
+  tentacleHit: 200, // px/s: a strike this fast makes it let go
+  tentaclePull: 18000, // mass × px/s²: its haul...
+  tentacleGrip: 2500, // ...less this for each planted foot (× strength) of whoever holds him
 };
 
 export const WATER = {

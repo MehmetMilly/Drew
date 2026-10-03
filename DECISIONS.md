@@ -151,3 +151,8 @@ Every Chapter 2 row of `npm run verify` is green and Chapter 1 is unchanged. Wha
   - He drowns after 1 s with his head under.
 - **Rescue from water:** in a level with water, the HOME carry brain runs with a "goal" at his starting x and far overhead (`carryGoal`). He boards whoever can carry him, and the carrier holds him there.
 - **Papers:** kraft `#C9A97A` (the look-and-feel value) and cold-press watercolour. Water is a watercolour wash with pigment pooling along the surface edge. It is a paper material, not the non-photo-blue guide colour.
+- **Chapter 4 pieces** (same day):
+  - **Ducks:** cargo that floats, with no player. A duck scored into a bucket stays there, drawn peeking out. The bucket is a SCORE hoop with `bucket: true`, and its rim must sit above the ground.
+  - **Rafts:** a heavy, level, free-floating plank. It floats, drifts with the current, stops against banks, and carries what stands on it (contact grip).
+  - **Kraken tentacles:** scripted, non-colliding tips the brain sees as threats. A tentacle reaches for him, latches, and hauls him and whoever carries him toward its root. The haul is a limited force, less a grip per planted foot of the carrier. A hand, fist or spring hitting the tip faster than 200 px/s makes it let go and recoil for 1.4 s.
+  - **Water rescue** (`carryGoal`) applies only to SAVE levels: in SCORE levels the creatures fetch ducks instead.

@@ -10,7 +10,9 @@ import { BODY, PROP, WATER, WORLD } from '../tuning';
 import { killGuy } from './littleguy';
 import { PF } from './store';
 import type { Pt } from './geom';
-import type { Terrain, World } from './world';
+import type { Body, Terrain, World } from './world';
+import { strikers } from './hazards';
+import { guyCentre } from './littleguy';
 
 export type Prop =
   /** wind blowing along +x (force < 0: along −x) inside a box, from `at` on */
@@ -23,7 +25,12 @@ export type Prop =
   | { type: 'seesaw'; x: number; y: number; len: number; tilt?: number }
   /** water across [x0, x1] with its surface at y, rising `rise` px/s from `at` up to `top`,
    *  flowing at `current` px/s (+ = right) */
-  | { type: 'water'; x0: number; x1: number; y: number; rise?: number; at?: number; top?: number; current?: number };
+  | { type: 'water'; x0: number; x1: number; y: number; rise?: number; at?: number; top?: number; current?: number }
+  /** a log raft of half-length `len` floating at (x, y): it carries what stands on it */
+  | { type: 'raft'; x: number; y: number; len: number }
+  /** a kraken tentacle rising from (x, y) under the water at `at`: it reaches for Little Guy,
+   *  latches on and hauls him toward its root; a hard hit makes it let go and recoil */
+  | { type: 'tentacle'; x: number; y: number; at: number; reach?: number };
 
 export interface Slab {
   prop: Extract<Prop, { type: 'crack' | 'bridge' }>;
@@ -50,6 +57,24 @@ export interface PropState {
   pools: Pool[];
   lift: Float32Array; // per particle: extra buoyancy from the loop it belongs to (this step)
   underT: number; // s Little Guy's head has been under water
+  rafts: Raft[];
+  tentacles: Tentacle[];
+}
+
+export interface Raft {
+  x: number;
+  y: number;
+  px: number;
+  py: number;
+  len: number;
+}
+
+export interface Tentacle {
+  prop: Extract<Prop, { type: 'tentacle' }>;
+  body: Body; // the tip: a threat the brain sees (and hands can hit)
+  mode: 'wait' | 'reach' | 'hold' | 'recoil';
+  until: number; // recoil ends
+  heldT: number; // s holding him
 }
 
 export interface Pool {
@@ -58,7 +83,7 @@ export interface Pool {
 }
 
 export function startProps(w: World, defs: Prop[]): PropState {
-  const S: PropState = { defs, slabs: [], planks: [], vy: new Float32Array(w.P.cap), pools: [], lift: new Float32Array(w.P.cap), underT: 0 };
+  const S: PropState = { defs, slabs: [], planks: [], vy: new Float32Array(w.P.cap), pools: [], lift: new Float32Array(w.P.cap), underT: 0, rafts: [], tentacles: [] };
   for (const p of defs) {
     if (p.type === 'crack' || p.type === 'bridge') {
       const h = p.type === 'crack' ? (p.h ?? PROP.crackH) : PROP.bridgeH;
@@ -72,6 +97,11 @@ export function startProps(w: World, defs: Prop[]): PropState {
       S.slabs.push({ prop: p, terrain: w.terrain[w.terrain.length - 1], load: 0, peak: 0, brokeAt: -1 });
     } else if (p.type === 'water') {
       S.pools.push({ prop: p, y: p.y });
+    } else if (p.type === 'raft') {
+      S.rafts.push({ x: p.x, y: p.y, px: p.x, py: p.y, len: p.len });
+    } else if (p.type === 'tentacle') {
+      const body = w.addBody({ kind: 'tentacle', x: p.x, y: p.y, r: PROP.tipR, m: 50, data: { threat: 1, sleep: p.at, ax: p.x, ay: p.y, kin: 1 } });
+      S.tentacles.push({ prop: p, body, mode: 'wait', until: 0, heldT: 0 });
     } else if (p.type === 'seesaw') {
       const tilt = p.tilt ?? PROP.seesawTilt;
       S.planks.push({ x: p.x, y: p.y, len: p.len, th: -tilt, pth: -tilt, tilt });
@@ -307,4 +337,191 @@ export function stepWater(w: World, S: PropState) {
   const P = w.P;
   S.underT = P.y[g.head] > surfaceAt(S, P.x[g.head]) ? S.underT + WORLD.dt : 0;
   if (S.underT > WATER.drown) killGuy(w, g, 'drowned');
+}
+
+// ------------------------------------------------------------------ rafts
+
+/** Per substep: a raft falls, floats on the water it is in, drifts with the current, and stops
+ *  against the ground (a bank, the bottom). Past the end of the water it simply falls. */
+export function floatRafts(w: World, S: PropState, h: number) {
+  for (const r of S.rafts) {
+    let vx = (r.x - r.px) / h,
+      vy = (r.y - r.py) / h;
+    vy += w.gravity * h;
+    const surf = surfaceAt(S, r.x);
+    if (r.y + PROP.raftHalf > surf) {
+      const depth = Math.min(1, (r.y + PROP.raftHalf - surf) / (2 * PROP.raftHalf));
+      vy -= WATER.floatAccel * depth * h;
+      const pool = S.pools.find((q) => r.x >= q.prop.x0 && r.x <= q.prop.x1);
+      const cur = pool?.prop.current ?? 0;
+      const k = Math.min(1, WATER.drag * h * depth);
+      vx += (cur - vx) * k;
+      vy *= 1 - k;
+    }
+    r.px = r.x;
+    r.py = r.y;
+    r.x += vx * h;
+    r.y += vy * h;
+    // the ground under or beside it (a bank, the riverbed)
+    for (const ex of [-r.len, 0, r.len]) {
+      const d = w.terrainDepth(r.x + ex, r.y, PROP.raftHalf);
+      if (d > 0) {
+        r.y -= d;
+        if (r.py > r.y) r.py = r.y;
+        // a bank beside it stops it
+        if (ex !== 0 && w.terrainDepth(r.x + ex, r.y - 2, PROP.raftHalf) > 0) r.x = r.px;
+      }
+    }
+  }
+}
+
+/** In the constraint loop: particles against rafts. A raft is heavy, so most of the push goes
+ *  to the particle; what stands on it is carried along (contact friction). */
+export function collideRafts(w: World, S: PropState, h: number) {
+  if (!S.rafts.length) return;
+  const P = w.P;
+  const R = BODY.radius + PROP.raftHalf;
+  for (const r of S.rafts) {
+    const rvx = (r.x - r.px) / h;
+    for (let i = 0; i < P.n; i++) {
+      if (!(P.flags[i] & PF.ALIVE)) continue;
+      const dx = P.x[i] - r.x,
+        dy = P.y[i] - r.y;
+      if (Math.abs(dx) > r.len + R || Math.abs(dy) > R) continue;
+      const u = Math.max(-r.len, Math.min(r.len, dx));
+      let nx = P.x[i] - (r.x + u),
+        ny = P.y[i] - r.y;
+      const d = F.hypot(nx, ny);
+      if (d >= R) continue;
+      if (d < 1e-6) (nx = 0), (ny = -1);
+      else (nx /= d), (ny /= d);
+      const depth = R - d;
+      const wp = P.im[i],
+        wr = 1 / PROP.raftMass;
+      P.x[i] += nx * depth * (wp / (wp + wr));
+      P.y[i] += ny * depth * (wp / (wp + wr));
+      r.x -= nx * depth * (wr / (wp + wr));
+      r.y -= ny * depth * (wr / (wp + wr));
+      if (ny < -0.5) {
+        P.flags[i] |= PF.GROUND;
+        P.nx[i] = nx;
+        P.ny[i] = ny;
+        const vx = (P.x[i] - P.px[i]) / h;
+        P.px[i] = P.x[i] - (vx + (rvx - vx) * PROP.raftGrip) * h;
+      }
+    }
+  }
+}
+
+// ------------------------------------------------------------------ the kraken
+
+/** Per substep: tentacles rise and reach for him, latch on and haul toward the root (his
+ *  carrier is hauled with him), and let go, recoiling, when a hand, fist or spring hits them. */
+export function tentacles(w: World, S: PropState, h: number) {
+  const g = w.guy;
+  const P = w.P;
+  for (const T of S.tentacles) {
+    const b = T.body;
+    const p = T.prop;
+    const reach = p.reach ?? PROP.tentacleReach;
+    if (w.t < p.at || !g?.alive) {
+      b.px = b.x;
+      b.py = b.y;
+      continue;
+    }
+    if (T.mode === 'wait') T.mode = 'reach';
+    // a hard hit on the tip: it lets go and sinks back for a while
+    if (T.mode !== 'recoil' && struck(w, b, h)) {
+      T.mode = 'recoil';
+      T.until = w.t + PROP.tentacleRecoil;
+      w.emit({ type: 'knock', x: b.x, y: b.y });
+    }
+    const c = guyCentre(w, g);
+    let tx: number, ty: number, speed: number;
+    if (T.mode === 'recoil') {
+      tx = p.x;
+      ty = p.y;
+      speed = PROP.tentacleBack;
+      if (w.t >= T.until) T.mode = 'reach';
+    } else if (T.mode === 'reach') {
+      // toward him, as far as it stretches
+      const dx = c.x - p.x,
+        dy = c.y - p.y;
+      const d = F.hypot(dx, dy) || 1;
+      const L = Math.min(d, reach);
+      tx = p.x + (dx / d) * L;
+      ty = p.y + (dy / d) * L;
+      speed = PROP.tentacleSpeed;
+      if (F.hypot(b.x - c.x, b.y - c.y) < PROP.tipR + GUY_GRAB) {
+        T.mode = 'hold';
+        T.heldT = 0;
+        w.emit({ type: 'grab', x: b.x, y: b.y });
+      }
+    } else {
+      // hold: the tip stays on him and hauls him (and whoever holds him) toward its root
+      T.heldT += h;
+      tx = c.x;
+      ty = c.y;
+      speed = 2000;
+      haul(w, g, p.x, p.y, h);
+    }
+    const dx = tx - b.x,
+      dy = ty - b.y;
+    const d = F.hypot(dx, dy);
+    const step = Math.min(d, speed * h);
+    const nx = d > 0 ? (b.x + (dx / d) * step) : b.x,
+      ny = d > 0 ? (b.y + (dy / d) * step) : b.y;
+    b.px = b.x;
+    b.py = b.y;
+    b.x = nx;
+    b.y = ny;
+    void P;
+  }
+}
+
+const GUY_GRAB = 10;
+
+/** The haul: a limited force toward the root, shared by him and whoever carries him (a heavy,
+ *  planted carrier wins the tug of war). */
+function haul(w: World, g: NonNullable<World['guy']>, ax: number, ay: number, h: number) {
+  const P = w.P;
+  const carrier = g.ride >= 0 ? w.creatures[g.ride] : g.heldBy >= 0 ? w.creatures[g.heldBy] : null;
+  const ids = carrier && carrier.alive ? carrier.ids.concat(g.ids) : g.ids;
+  let m = 0,
+    cx = 0,
+    cy = 0;
+  for (const i of ids) (m += P.m[i]), (cx += P.x[i] * P.m[i]), (cy += P.y[i] * P.m[i]);
+  cx /= m;
+  cy /= m;
+  const dx = ax - cx,
+    dy = ay - cy;
+  const d = F.hypot(dx, dy) || 1;
+  // the planted feet of a carrier hold some of it (friction on the ground)
+  let grip = 0;
+  if (carrier) for (const l of carrier.limbs) if (l.foot && P.flags[l.tip] & PF.GROUND) grip += PROP.tentacleGrip * carrier.stats.strength;
+  const f = Math.max(0, PROP.tentaclePull - grip);
+  const dv = (f / m) * h;
+  for (const i of ids) {
+    P.px[i] -= (dx / d) * dv * h;
+    P.py[i] -= (dy / d) * dv * h;
+  }
+}
+
+/** Is a hand, fist or spring hitting the tentacle tip hard right now? */
+function struck(w: World, b: Body, h: number): boolean {
+  const P = w.P;
+  const reach = b.r + BODY.radius + 8;
+  for (const cr of w.creatures) {
+    if (!cr.alive || w.t < cr.brain.actAt) continue;
+    for (const i of strikers(w, cr)) {
+      const dx = b.x - P.x[i],
+        dy = b.y - P.y[i];
+      const d = F.hypot(dx, dy);
+      if (d > reach || d < 1e-6) continue;
+      const vx = (P.x[i] - P.px[i]) / h - (b.x - b.px) / h,
+        vy = (P.y[i] - P.py[i]) / h - (b.y - b.py) / h;
+      if ((vx * dx + vy * dy) / d > PROP.tentacleHit) return true;
+    }
+  }
+  return false;
 }

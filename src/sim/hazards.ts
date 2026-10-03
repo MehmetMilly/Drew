@@ -23,7 +23,7 @@ export type Entity =
   /** a sumo bully (3-2): stamps, then shoves at Little Guy with a limited-force motor */
   | { type: 'sumo'; x: number; y: number; at: number; speed?: number; force?: number }
   /** a SCORE ball held up by a little player standing at (x, y + its height) */
-  | { type: 'cargo'; x: number; y: number }
+  | { type: 'cargo'; x: number; y: number; duck?: boolean }
   /** a spike floor along [x0, x1] with its teeth standing on ground at y: cuts what lands on it */
   | { type: 'spikes'; x0: number; x1: number; y: number };
 
@@ -44,7 +44,7 @@ export function spawnEntity(w: World, e: Entity): Body | null {
     case 'ball':
       return w.addBody({ kind: 'ball', x: e.x, y: e.y, r: e.r ?? HAZ.ballR, m: HAZ.ballMass, restitution: HAZ.ballBounce, friction: 0.05, grabbable: true, data: { vx: e.vx, vy: e.vy, threat: 1, sleep: e.at, life: e.at + (e.life ?? HAZ.ballLife) } });
     case 'cargo':
-      return w.addBody({ kind: 'cargo', x: e.x, y: e.y, r: HAZ.cargoR, m: HAZ.cargoMass, restitution: HAZ.cargoBounce, friction: 0.4, grabbable: true, data: { cargo: 1, hx: e.x, hy: e.y, parked: 1, restT: 0, backAt: -1 } });
+      return w.addBody({ kind: 'cargo', x: e.x, y: e.y, r: HAZ.cargoR, m: HAZ.cargoMass, restitution: HAZ.cargoBounce, friction: 0.4, grabbable: true, data: { cargo: 1, hx: e.x, hy: e.y, parked: e.duck ? 0 : 1, restT: 0, backAt: -1, duck: e.duck ? 1 : 0, floats: e.duck ? 1 : 0 } });
     case 'sumo':
       return w.addBody({ kind: 'sumo', x: e.x, y: e.y, r: HAZ.sumoR, m: HAZ.sumoMass, restitution: 0.05, friction: 0.9, data: { threat: 1, pusher: 1, sleep: e.at, speed: e.speed ?? HAZ.sumoSpeed, force: e.force ?? HAZ.sumoForce, at: e.at } });
     case 'spikes':
@@ -136,7 +136,7 @@ export function postHazards(w: World) {
       // a loose ball that lies still (or left the page) goes back to its player
       const still = F.hypot(b.x - b.sx, b.y - b.sy) < 0.6;
       b.data.restT = still ? b.data.restT + WORLD.dt : 0;
-      if (b.data.restT > LEVEL.cargoBack || b.x < -60 || b.x > WORLD.W + 60 || (b.data.backAt > 0 && w.t >= b.data.backAt)) parkCargo(b);
+      if ((b.data.restT > LEVEL.cargoBack && !b.data.duck) || b.x < -60 || b.x > WORLD.W + 60 || (b.data.backAt > 0 && w.t >= b.data.backAt)) parkCargo(b);
     }
     if (b.kind === 'bomb') {
       b.data.fuse -= WORLD.dt;
@@ -312,7 +312,7 @@ function leap(w: World, b: Body, tx: number, ty: number, apex: number, h: number
 }
 
 /** Ink that is acting on him: hands (and the lump fists on them) and springs firing. */
-function strikers(w: World, cr: Creature): number[] {
+export function strikers(w: World, cr: Creature): number[] {
   const out: number[] = [];
   const P = w.P;
   for (const l of cr.limbs) {
