@@ -165,3 +165,19 @@ Every Chapter 2 row of `npm run verify` is green and Chapter 1 is unchanged. Wha
     - Shoved into the sharpener on its home edge, it comes out 20% smaller (phase 2) and hops at him; a hard hit mid-hop knocks it back.
     - Sharpened again, it crumbles into 4 smudgers (phase 3); squashing the last one wins.
   - **Ink regeneration:** `LevelDef.inkRegen` (px/s) refills the pen while the world runs (60 px/s in the boss fight).
+- **Sumo** (2026-10-04, `src/sim/sumo.ts`, `src/levels/sumo.ts`):
+  - Creatures carry a `team` (0 is the player's, 1 the opponent's). Pieces keep their team.
+  - The opponent is pre-drawn stroke data on the goal. It sleeps on the page (graphite, snoring) and is born together with the player's first creature.
+  - The brain aims beyond the nearest enemy, so it walks into it and leans; its hands go for the enemy's middle.
+  - A side is off when its centre of mass drops 30 px below the ring top or leaves its edges. The ring shrinks 18 px/s per edge after 12 s.
+  - The referee (Little Guy) stands on the floor beside the ring. The gyōji hat comes later.
+  - First-pass ladder results with eight canonical heroes: Big Doris is beaten by nothing yet, and the Champion is beaten by almost everything. The ladder needs a tuning pass.
+- **Daily Doodle** (2026-10-04, `src/levels/daily.ts`, `src/sim/daily.ts`):
+  - The arena and modifier come from an FNV-1a hash of the local date string.
+  - The first-pass arenas are the story levels that teach each hazard. Dedicated compact arenas can replace them later.
+  - Modifiers that change bodies act inside the sim at birth (`LevelDef.mod`), so replays match:
+    - Kind-only rules, No Heads (no loop head) and Exactly Two Friends puff rule-breaking births to dust.
+    - Mirror adds the reflected strokes.
+    - Heavy Ink makes every particle 5× its mass.
+  - One Stroke and Blind Draw are input and render rules in the toy. Half Ink halves the budget.
+  - A cleared day is `cleared['daily-YYYY-MM-DD']`. The calendar stamps those days, and the streak counts back from today.
