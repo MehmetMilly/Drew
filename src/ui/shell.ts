@@ -7,6 +7,7 @@ import { CHAPTERS, ALL_LEVELS } from '../levels';
 import { load as loadSave, save, type Hero } from '../game/save';
 import { hallCanvas, PER_PAGE } from './hall';
 import { pencilTick } from '../audio/pencil';
+import { sfxUi } from '../audio/sfx';
 
 type Screen = 'title' | 'chapter' | 'play' | 'toy' | 'settings' | 'sketchbook' | 'hero';
 
@@ -60,6 +61,7 @@ export class Shell {
   }
 
   show(s: Screen, level?: LevelDef, hero?: Hero) {
+    if (s !== this.screen) sfxUi('page'); // moving between screens turns a page
     this.stopHall?.();
     this.stopHall = null;
     this.screen = s;
