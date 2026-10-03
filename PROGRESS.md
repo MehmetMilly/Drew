@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Phase 2 — Grammar and metrics (lean): done for what Chapter 1 needs.** `gate-1` tagged after two play-test rounds. Metrics course and grafting are in; water/wind move to just before Chapter 4 (DECISIONS.md). Next: Phase 3, the Chapter 1 vertical slice, greybox first so fun can be tested early.
+**Phase 3 — Chapter 1 vertical slice: built, waiting at Gate 3 (human play-test).** Not tagged until the tester passes it.
 
 ## Done
 
@@ -18,23 +18,31 @@
 - Dev capture page `/capture.html` for ~40 labelled human strokes → `tests/fixtures/human/`.
 - Gate 1 round 1 fixes: hop / scurry / walk / roll / inch gaits from the body plan; front + turnaround; eye lead 0.25 s with notice and hand wind-up; arms swing from the shoulder as one piece within a body-clear sector; weld aim rule (spider regression) with an anatomy verify row; pencil volume and stuck-scratch fix.
 - Phase 2: `npm run metrics` → LEVEL_METRICS.md (walk, 20° slope, reach up/sideways, jump, 200 px gap); grafting with re-read and "X grew an arm!" plate (verify row; live check `tsx tools/graftshot.mts` → review/graft.png).
+- Phase 3:
+  - Sim: Little Guy ragdoll and reactions; hazards (rolling boulder, heavy saw wall, bombs, a grabbable dashing ninja that cuts ink); the level runner (HUG/SAVE goals, countdown, deaths, event log); level brain plans (guard, intercept, brace, hug); grab and throw.
+  - Levels: 1-1..1-5 tuned green by a level-author: 3 refs of different kinds each, ≥95% under jitter, lazy baselines fail.
+  - Play page: ink pencil and budget, no-draw zones, ghost of the last attempt, adaptive hint ghost after 3 fails; win stamp, fail ✗ beat, one-tap retry.
+  - Replays: deterministic re-simulation, money-moment scoring, a 0.3× highlight with zoom, Watch (drawing timelapse with a pencil, then the action, then the moment), Save clip (MediaRecorder).
+  - Juice: trauma shake, hit-stop, onomatopoeia.
+  - DOM shell: self-drawing logo whose D wakes up, chapter spread with badge slots, HUD, pause note, end card, settings, Sketchbook with the Hall of Heroes (blinking heroes; tap one to bring it back to life) and the blank page.
+  - Audio, by the audio agent: buses with ducking and slow-time low-pass; doodle voices; every sim event voiced; loops for boulder, crusher and fuse; a procedural calm/action music placeholder; Kenney CC0 samples (CREDITS.md).
+  - PWA: manifest, icons, offline service worker (checked offline), safe-area layout.
+  - Critic pass done (DECISIONS.md).
 - Perf: 60 fps at ~880 particles under 4× CPU throttle; 0.77 ms/step in Node.
 
 ## Next
 
-1. ~~Capture human strokes~~ done: 34/34 single strokes and 6/6 joins pass; Quick, Draw! corpus added.
-2. ~~Gate 1~~ passed (two rounds).
-3. Possible extra: per-kind birth gestures (springy bounces, roller rocks) if birth still feels samey.
-4. ~~Phase 2 (lean)~~: metrics + grafting done.
-5. Phase 3: Little Guy ragdoll → level runner + goals + countdown → brain targets + grab/throw → hazards (boulder, crushers, bombs, ninja) → levels 1-1..1-5 greybox with reference solutions and baselines → play-test.
-6. Before Chapter 4: water + wind, buoyancy metrics. Deferred Phase 2 polish: spring punch tuning, frame strips per mark.
+1. **Gate 3**: the tester plays Chapter 1 on a phone (`npm run dev`, LAN URL). Questions: is it fun, do the levels read, does the camera feel too far out, how is the audio balance?
+2. After Gate 3: Phase 4 (Chapters 2–5 and the finale). Water and wind come before Chapter 4.
 
 ## Open problems
 
-- A stick figure can't raise arms above its head (the head blocks the swing sector). Reads fine so far; revisit if levels need overhead reaches.
-- Turnaround squashes the body for a frame or two mid-turn (dog's tail crumples briefly). Watch in play.
-- Birth sound and pencil are synth placeholders until the Phase 3 audio pass.
-- Contact sheets with per-row crops reuse the first row's scale (`src/dev/shots.ts`); keep crops per sheet.
+- **Camera scale (critic's top point)**: on a phone the action sits in the bottom quarter of the page and Little Guy is about 20 css px tall. Fixing it means framing or zoom, which affects every level. Asking at Gate 3.
+- The giant's long limbs crinkle into zigzags under load; ninja slashes sever without the full severed-piece beat.
+- 1-3 Walls has a narrow force window (a passive box loses only above ~1M force; the giant holds only below ~800k). Rigid ink can't be crushed by two walls (physics.md §10).
+- The music is a procedural placeholder (no named stock track); the music/pencil balance hasn't been checked by ear.
+- Not built yet: level-card thumbnails, doodled HUD icons, Little Guy on the title, left-handed layout, closest-call moment scoring.
+- A stick figure can't raise its arms above its head (the head blocks the swing sector).
 
 ## Last `npm run verify`
 
@@ -51,8 +59,13 @@
 | anatomy: canonical bodies (kind, gait, feet, hands) | 12/12 | PASS |
 | grafting: line onto a living box | 1 creature, "Keith grew an arm!" | PASS |
 | distinct bodies (each pair ≥20% on a metric) | 15/15 pairs distinct | PASS |
-| step time @ 906 particles (Node) | 0.85 ms | PASS |
+| level 1-1 Hello, Friend | refs 3/3, robust 100%, baselines line✓ box✓ roof✓ blob✓ | PASS |
+| level 1-2 Boulder | refs 3/3, robust 100%, baselines line✗ box✓ roof✗ blob✓ | PASS |
+| level 1-3 Walls | refs 3/3, robust 95%, baselines line✗ box✗ roof✗ blob✓ | PASS |
+| level 1-4 Bombs in the Bowl | refs 3/3, robust 95%, baselines line✗ box✗ roof✗ blob✗ | PASS |
+| level 1-5 Ninja | refs 3/3, robust 100%, baselines line✗ box✗ roof✗ blob✗ | PASS |
+| step time @ 906 particles (Node) | 0.97 ms | PASS |
 | determinism: browser vs Node | 57b147f3 vs 57b147f3 | PASS |
-| browser fps @ 884 particles, 4× CPU throttle | 60.0 fps, p95 16.7 ms | PASS |
+| browser fps @ 884 particles, 4× CPU throttle | 60.0 fps, p95 16.8 ms | PASS |
 
-Classifier speed: median 0.14 ms/stroke, max 2.75 ms (desktop Node).
+ALL GREEN (2026-10-03).
