@@ -2,6 +2,7 @@
 // A stroke is cut into an ordered list of parts; consecutive parts join end to start.
 // Loops start and end at the same point (the closing vertex), so tails attach there.
 
+import * as F from './fmath';
 import { CLASSIFY, BODY } from '../tuning';
 import { Pt, centroidOf, dist, pathLength, polyArea, rdp, resample, segIntersect, turnAngle, convexHull } from './geom';
 
@@ -105,12 +106,12 @@ function findScribbles(pts: Pt[]): { ranges: Range[]; even: Pt[]; arc: number[] 
     const cx = hull.reduce((s, p) => s + p.x, 0) / hull.length;
     const cy = hull.reduce((s, p) => s + p.y, 0) / hull.length;
     let rad = 0;
-    for (const p of hull) rad = Math.max(rad, Math.hypot(p.x - cx, p.y - cy));
+    for (const p of hull) rad = Math.max(rad, F.hypot(p.x - cx, p.y - cy));
     const lim = rad * 1.25 + 8;
     let a = r.a,
       b = r.b;
-    while (a > 0 && Math.hypot(even[a - 1].x - cx, even[a - 1].y - cy) < lim) a--;
-    while (b < n - 1 && Math.hypot(even[b + 1].x - cx, even[b + 1].y - cy) < lim) b++;
+    while (a > 0 && F.hypot(even[a - 1].x - cx, even[a - 1].y - cy) < lim) a--;
+    while (b < n - 1 && F.hypot(even[b + 1].x - cx, even[b + 1].y - cy) < lim) b++;
     // a short leftover tail at either end is part of the scribble
     const tailMax = 26;
     if (a * SP < tailMax) a = 0;
@@ -323,8 +324,8 @@ export function classifyStroke(raw: readonly Pt[]): Classified {
     if (q.kind !== 'scribble') continue;
     const c = centroidOf(q.pts);
     let rad = 0;
-    for (const p of q.pts) rad = Math.max(rad, Math.hypot(p.x - c.x, p.y - c.y));
-    const inside = (p: Pt) => Math.hypot(p.x - c.x, p.y - c.y) < rad * 1.1 + 10;
+    for (const p of q.pts) rad = Math.max(rad, F.hypot(p.x - c.x, p.y - c.y));
+    const inside = (p: Pt) => F.hypot(p.x - c.x, p.y - c.y) < rad * 1.1 + 10;
     for (const nb of [k - 1, k + 1]) {
       const l = parts[nb];
       if (!l || l.kind !== 'line' || l.ink > 60) continue;

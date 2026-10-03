@@ -1,21 +1,22 @@
 // Canonical drawings (levels.md §1, spike's six + the rest). Used by metrics,
 // verify, tests and shots. Stroke data only; nothing here reads what they depict.
+import * as F from './fmath';
 import type { Pt } from './geom';
 
-export const GROUND_Y = 1140;
+export const GROUND_Y = 1190;
 const G = GROUND_Y - 4;
 
 export function arc(cx: number, cy: number, r: number, a0: number, a1: number, n = 40): Pt[] {
   const p: Pt[] = [];
   for (let i = 0; i <= n; i++) {
     const a = a0 + ((a1 - a0) * i) / n;
-    p.push({ x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) });
+    p.push({ x: cx + r * F.cos(a), y: cy + r * F.sin(a) });
   }
   return p;
 }
 export const circle = (cx: number, cy: number, r: number) => arc(cx, cy, r, -Math.PI / 2, Math.PI * 1.5 - 0.05, 48);
 export function line(x0: number, y0: number, x1: number, y1: number): Pt[] {
-  const n = Math.max(2, Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 4));
+  const n = Math.max(2, Math.ceil(F.hypot(x1 - x0, y1 - y0) / 4));
   const p: Pt[] = [];
   for (let i = 0; i <= n; i++) p.push({ x: x0 + ((x1 - x0) * i) / n, y: y0 + ((y1 - y0) * i) / n });
   return p;
@@ -32,7 +33,7 @@ export function poly(vs: Pt[]): Pt[] {
 export function springLine(x0: number, y0: number, x1: number, y1: number, teeth = 6, amp = 12): Pt[] {
   const dx = x1 - x0,
     dy = y1 - y0;
-  const L = Math.hypot(dx, dy);
+  const L = F.hypot(dx, dy);
   const ux = dx / L,
     uy = dy / L;
   const nx = -uy,
@@ -55,7 +56,7 @@ export function scribbleBlob(cx: number, cy: number, r: number, n = 16): Pt[] {
   for (let i = 0; i < n; i++) {
     const a = i * 2.39996;
     const rr = r * (0.55 + 0.45 * ((i * 7) % 5) / 4);
-    vs.push({ x: cx + Math.cos(a) * rr, y: cy + Math.sin(a) * rr });
+    vs.push({ x: cx + F.cos(a) * rr, y: cy + F.sin(a) * rr });
   }
   return poly(vs);
 }

@@ -1,5 +1,6 @@
 // Strokes → particles, constraints and skins (physics.md §4). Returns connected
 // groups; world.ts turns each group into a creature via anatomy.ts.
+import * as F from './fmath';
 import { BODY, WORLD } from '../tuning';
 import { classifyStroke, Part } from './classify';
 import { Pt, convexHull, dist, pathLength, resample, centroidOf, clamp, pointInPoly } from './geom';
@@ -65,7 +66,7 @@ export function buildBodies(w: World, strokes: readonly (readonly PenPt[])[]): B
   const strokeEnds: number[][] = [];
 
   const link = (a: number, b: number, k: number, type: number) => {
-    const c = C.add(a, b, Math.max(1, Math.hypot(P.x[b] - P.x[a], P.y[b] - P.y[a])), k, type);
+    const c = C.add(a, b, Math.max(1, F.hypot(P.x[b] - P.x[a], P.y[b] - P.y[a])), k, type);
     out.cons.push(c);
     return c;
   };
@@ -101,7 +102,7 @@ export function buildBodies(w: World, strokes: readonly (readonly PenPt[])[]): B
       const joinTo = (first: number) => {
         if (prevEnd >= 0 && prevEnd !== first) link(prevEnd, first, 1, CT.JOINT);
       };
-      const reuse = (x: number, y: number) => prevEnd >= 0 && Math.hypot(P.x[prevEnd] - x, P.y[prevEnd] - y) < sp * 0.35;
+      const reuse = (x: number, y: number) => prevEnd >= 0 && F.hypot(P.x[prevEnd] - x, P.y[prevEnd] - y) < sp * 0.35;
 
       if (part.kind === 'line' || part.kind === 'loop') {
         const closed = part.kind === 'loop';
@@ -180,7 +181,7 @@ export function buildBodies(w: World, strokes: readonly (readonly PenPt[])[]): B
         if (ring.length > 20) ring = resample(hull, pathLength([...hull, hull[0]]) / 20, true);
         if (ring.length < 3) {
           const r = 8;
-          ring = [0, 1, 2, 3, 4, 5].map((k) => ({ x: c0.x + r * Math.cos(k), y: c0.y + r * Math.sin(k) }));
+          ring = [0, 1, 2, 3, 4, 5].map((k) => ({ x: c0.x + r * F.cos(k), y: c0.y + r * F.sin(k) }));
         }
         const total = BODY.lumpMassMul * (part.ink / BODY.spacing);
         const m = total / (ring.length + 1);
@@ -203,7 +204,7 @@ export function buildBodies(w: World, strokes: readonly (readonly PenPt[])[]): B
           let best = rid[0],
             bd = Infinity;
           for (const i of rid) {
-            const d = Math.hypot(P.x[i] - x, P.y[i] - y);
+            const d = F.hypot(P.x[i] - x, P.y[i] - y);
             if (d < bd) {
               bd = d;
               best = i;
@@ -241,7 +242,7 @@ function bindChain(sk: SkinPart, pts: Pt[], pid: number[], segC: number[], close
     let best = k,
       bd = Infinity;
     for (let q = k; q < n; q++) {
-      const d = Math.hypot(pts[q].x - x, pts[q].y - y);
+      const d = F.hypot(pts[q].x - x, pts[q].y - y);
       if (d < bd) {
         bd = d;
         best = q;
@@ -268,7 +269,7 @@ function bindChain(sk: SkinPart, pts: Pt[], pid: number[], segC: number[], close
       by = P.y[b];
     const dx = bx - ax,
       dy = by - ay;
-    const L = Math.hypot(dx, dy);
+    const L = F.hypot(dx, dy);
     sk.pa[q] = a;
     sk.pb[q] = b;
     sk.cid[q] = a === b ? -1 : segC[Math.min(seg, segC.length - 1)] ?? -1;
@@ -290,7 +291,7 @@ function weld(w: World, strokeIds: number[][], strokeEnds: number[][], out: Buil
   const welds = new Map<number, number>();
   const can = (i: number) => (welds.get(i) ?? 0) < 2;
   const add = (i: number, j: number) => {
-    const c = C.add(i, j, Math.max(1, Math.hypot(P.x[j] - P.x[i], P.y[j] - P.y[i])), 1, CT.WELD);
+    const c = C.add(i, j, Math.max(1, F.hypot(P.x[j] - P.x[i], P.y[j] - P.y[i])), 1, CT.WELD);
     out.cons.push(c);
     welds.set(i, (welds.get(i) ?? 0) + 1);
     welds.set(j, (welds.get(j) ?? 0) + 1);
@@ -330,7 +331,7 @@ function weld(w: World, strokeIds: number[][], strokeEnds: number[][], out: Buil
           let ux = 0,
             uy = 0;
           if (q !== undefined) {
-            const L = Math.hypot(P.x[e] - P.x[q], P.y[e] - P.y[q]) || 1;
+            const L = F.hypot(P.x[e] - P.x[q], P.y[e] - P.y[q]) || 1;
             ux = (P.x[e] - P.x[q]) / L;
             uy = (P.y[e] - P.y[q]) / L;
           }
@@ -339,7 +340,7 @@ function weld(w: World, strokeIds: number[][], strokeEnds: number[][], out: Buil
           for (const j of other) {
             const dx = P.x[j] - P.x[e],
               dy = P.y[j] - P.y[e];
-            const d = Math.hypot(dx, dy);
+            const d = F.hypot(dx, dy);
             if (d >= bd) continue;
             if (d > BODY.weldDist && q !== undefined && dx * ux + dy * uy < 0.3 * d && !insideLoop(e, j)) continue;
             bd = d;
@@ -353,7 +354,7 @@ function weld(w: World, strokeIds: number[][], strokeEnds: number[][], out: Buil
         let best = -1,
           bd = BODY.weldDist;
         for (const j of B) {
-          const d = Math.hypot(P.x[j] - P.x[i], P.y[j] - P.y[i]);
+          const d = F.hypot(P.x[j] - P.x[i], P.y[j] - P.y[i]);
           if (d < bd) {
             bd = d;
             best = j;

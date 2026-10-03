@@ -2,6 +2,7 @@
 // target for every creature), idle look-around, and the face state machine.
 // The eyes always lead: a new decision moves the pupils first and the body
 // starts BRAIN.eyeLead + ACT.anticipation later.
+import * as F from './fmath';
 import { ACT, BRAIN, LOCO, LOOK, WORLD } from '../tuning';
 import type { Creature } from './creature';
 import { hashNoise } from './rng';
@@ -34,7 +35,7 @@ export function think(w: World, cr: Creature) {
   let focusX: number, focusY: number;
   if (b.targetX !== null) {
     const dx = b.targetX - c.x;
-    const reachable = Math.hypot(b.reachX - head.x, b.reachY - head.y) < senseRange(cr);
+    const reachable = F.hypot(b.reachX - head.x, b.reachY - head.y) < senseRange(cr);
     if (Math.abs(dx) > LOCO.arriveDist + cr.stats.w * 0.15) {
       b.mode = 'walk';
       b.dir = Math.sign(dx) || 1;

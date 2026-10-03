@@ -1,4 +1,5 @@
 // Small geometry kit. Pure functions over {x,y} points.
+import * as F from './fmath';
 
 export interface Pt {
   x: number;
@@ -11,7 +12,7 @@ export interface InkPt extends Pt {
   p: number;
 }
 
-export const dist = (a: Pt, b: Pt) => Math.hypot(b.x - a.x, b.y - a.y);
+export const dist = (a: Pt, b: Pt) => F.hypot(b.x - a.x, b.y - a.y);
 
 export function pathLength(p: readonly Pt[]): number {
   let l = 0;
@@ -30,13 +31,13 @@ export function resample(pts: readonly Pt[], sp: number, closed = false): Pt[] {
       ay = src[i - 1].y;
     const bx = src[i].x,
       by = src[i].y;
-    let seg = Math.hypot(bx - ax, by - ay);
+    let seg = F.hypot(bx - ax, by - ay);
     while (acc + seg >= sp && seg > 1e-9) {
       const t = (sp - acc) / seg;
       ax += (bx - ax) * t;
       ay += (by - ay) * t;
       out.push({ x: ax, y: ay });
-      seg = Math.hypot(bx - ax, by - ay);
+      seg = F.hypot(bx - ax, by - ay);
       acc = 0;
     }
     acc += seg;
@@ -101,9 +102,9 @@ export function rdp(p: readonly Pt[], eps: number): number[] {
       ay = p[a].y,
       dx = p[b].x - ax,
       dy = p[b].y - ay;
-    const L = Math.hypot(dx, dy);
+    const L = F.hypot(dx, dy);
     for (let i = a + 1; i < b; i++) {
-      const d = L < 1e-9 ? Math.hypot(p[i].x - ax, p[i].y - ay) : Math.abs((p[i].x - ax) * dy - (p[i].y - ay) * dx) / L;
+      const d = L < 1e-9 ? F.hypot(p[i].x - ax, p[i].y - ay) : Math.abs((p[i].x - ax) * dy - (p[i].y - ay) * dx) / L;
       if (d > bd) {
         bd = d;
         best = i;
@@ -178,8 +179,8 @@ export function closestOnSeg(px: number, py: number, ax: number, ay: number, bx:
 }
 
 export function turnAngle(a: Pt, b: Pt, c: Pt): number {
-  const a1 = Math.atan2(b.y - a.y, b.x - a.x);
-  const a2 = Math.atan2(c.y - b.y, c.x - b.x);
+  const a1 = F.atan2(b.y - a.y, b.x - a.x);
+  const a2 = F.atan2(c.y - b.y, c.x - b.x);
   let d = a2 - a1;
   while (d > Math.PI) d -= 2 * Math.PI;
   while (d < -Math.PI) d += 2 * Math.PI;

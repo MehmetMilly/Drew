@@ -1,5 +1,6 @@
 // The simulation world (physics.md §2). Fixed 60 Hz step, 2 substeps, 10 iterations,
 // shape matching every 3rd iteration. Pure and deterministic.
+import * as F from './fmath';
 import { BODY, CREATURE_COLLIDE, LOCO, SHAPE, WORLD } from '../tuning';
 import { Particles, Constraints, PF, CT, STRUCTURAL } from './store';
 import { buildBodies, components, PenPt } from './build';
@@ -99,8 +100,8 @@ export class World {
     this.rng = mulberry32(opts.seed ?? 7);
     if (opts.floor !== false) {
       this.addTerrain([
-        { x: -200, y: 1140 },
-        { x: this.W + 200, y: 1140 },
+        { x: -200, y: WORLD.floorY },
+        { x: this.W + 200, y: WORLD.floorY },
         { x: this.W + 200, y: 1600 },
         { x: -200, y: 1600 },
       ]);
@@ -383,7 +384,7 @@ export class World {
       if (!(P.flags[i] & PF.ALIVE)) continue;
       let vx = (P.x[i] - P.px[i]) * damp,
         vy = (P.y[i] - P.py[i]) * damp;
-      const sp = Math.hypot(vx, vy);
+      const sp = F.hypot(vx, vy);
       if (sp > vmax) {
         vx *= vmax / sp;
         vy *= vmax / sp;
@@ -473,11 +474,11 @@ export class World {
       sc += mi * (rx * qx + ry * qy);
       ss += mi * (rx * qy - ry * qx);
     }
-    const raw = Math.atan2(ss, sc);
+    const raw = F.atan2(ss, sc);
     (cr as Creature & { angle?: number }).angle = raw;
     const ang = raw * (1 - cr.stats.balance);
-    const co = Math.cos(ang),
-      si = Math.sin(ang);
+    const co = F.cos(ang),
+      si = F.sin(ang);
     const k0 = SHAPE.k;
     // spring offsets for distal particles
     let spOff: Map<number, [number, number]> | null = null;
@@ -636,10 +637,19 @@ export class World {
 
   private contactFriction(h: number) {
     const P = this.P;
-    void h;
+    const vmax = WORLD.maxSpeed * h;
     for (let i = 0; i < P.n; i++) {
       const f = P.flags[i];
-      if (!(f & PF.ALIVE) || !(f & PF.GROUND)) continue;
+      if (!(f & PF.ALIVE)) continue;
+      // speed clamp after the solve too (physics.md §2: 3000 px/s)
+      const ivx = P.x[i] - P.px[i],
+        ivy = P.y[i] - P.py[i];
+      const sp = Math.sqrt(ivx * ivx + ivy * ivy);
+      if (sp > vmax) {
+        P.px[i] = P.x[i] - (ivx * vmax) / sp;
+        P.py[i] = P.y[i] - (ivy * vmax) / sp;
+      }
+      if (!(f & PF.GROUND)) continue;
       const nx = P.nx[i],
         ny = P.ny[i];
       const vx = P.x[i] - P.px[i],
@@ -803,10 +813,11 @@ export class World {
       if (t === CT.BEND || t === CT.LUMP || t === CT.GRAB) continue;
       const a = C.a[c],
         b = C.b[c];
-      const d = Math.hypot(P.x[b] - P.x[a], P.y[b] - P.y[a]);
+      const d = F.hypot(P.x[b] - P.x[a], P.y[b] - P.y[a]);
       const rest = C.rest[c];
       C.strain[c] = d / rest - 1;
-      const broke = t === CT.WELD ? d > rest + BODY.tearWeld : d > rest * BODY.tearLink;
+      // short tail links (a stroke's last few px) tear by the same absolute stretch as a full link
+      const broke = t === CT.WELD ? d > rest + BODY.tearWeld : d > Math.max(rest * BODY.tearLink, rest + BODY.spacing * (BODY.tearLink - 1));
       if (broke) this.cut(c, 'stretch');
     }
   }
@@ -821,7 +832,7 @@ export class World {
     this.totalTears++;
     const a = C.a[c],
       b = C.b[c];
-    this.emit({ type: 'tear', cr: P.owner[a], x: (P.x[a] + P.x[b]) / 2, y: (P.y[a] + P.y[b]) / 2, text: why });
+    this.emit({ type: 'tear', cr: P.owner[a], x: (P.x[a] + P.x[b]) / 2, y: (P.y[a] + P.y[b]) / 2, text: why + ':' + C.type[c] + ':' + C.rest[c].toFixed(1) });
   }
 
   /** After tears: split creatures into pieces. Pieces ≥ 60px of ink grow eyes. */

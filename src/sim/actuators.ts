@@ -1,6 +1,7 @@
 // Actuators (physics.md §6). All intent goes through `servo`, which rewrites a
 // particle's implied velocity toward a desired one with a gain below 1. Targets
 // are clamped to what the body can physically reach.
+import * as F from './fmath';
 import { ACT, LOCO } from '../tuning';
 import { PF } from './store';
 import type { Creature, Limb, Spring } from './creature';
@@ -104,7 +105,7 @@ export function actuate(w: World, cr: Creature, h: number) {
     const range = senseRange(cr);
     for (const l of hands) {
       const tip = l.tip;
-      const d = Math.hypot(b.reachX - P.x[tip], b.reachY - P.y[tip]);
+      const d = F.hypot(b.reachX - P.x[tip], b.reachY - P.y[tip]);
       if (d > range) continue;
       reachTo(w, cr, l, b.reachX, b.reachY, h);
       react(w, cr, new Set(l.chain), h);
@@ -124,7 +125,7 @@ export function actuate(w: World, cr: Creature, h: number) {
   let strain = 0;
   for (const l of hands)
     if (l.reaching) {
-      const dr = Math.hypot(P.x[l.tip] - P.x[l.root], P.y[l.tip] - P.y[l.root]);
+      const dr = F.hypot(P.x[l.tip] - P.x[l.root], P.y[l.tip] - P.y[l.root]);
       strain = Math.max(strain, dr / (l.len * ACT.reachEnvelope) - 0.85);
     }
   cr.face.strain += (Math.max(0, strain * 4) - cr.face.strain) * 0.05;
@@ -136,7 +137,7 @@ function reachTo(w: World, cr: Creature, l: Limb, tx: number, ty: number, h: num
   // clamp the target inside the limb's envelope (spike lesson: no skyhooks)
   let gx = tx - P.x[root],
     gy = ty - P.y[root];
-  const gl = Math.hypot(gx, gy) || 1;
+  const gl = F.hypot(gx, gy) || 1;
   const R = l.len * ACT.reachEnvelope * ACT.reachSlack;
   if (gl > R) {
     gx *= R / gl;
@@ -147,7 +148,7 @@ function reachTo(w: World, cr: Creature, l: Limb, tx: number, ty: number, h: num
   const tip = l.tip;
   const dx = cx - P.x[tip],
     dy = cy - P.y[tip];
-  const d = Math.hypot(dx, dy) || 1e-6;
+  const d = F.hypot(dx, dy) || 1e-6;
   const vmax = ACT.reachSpeed * (0.7 + 0.3 * Math.min(2, cr.stats.strength));
   const sp = Math.min(vmax, d * 8);
   const vx = (dx / d) * sp,
@@ -179,14 +180,14 @@ function stepSwing(w: World, cr: Creature, l: Limb, s: number, h: number) {
   const lift = Math.min(l.len * 0.45, cr.stats.stride * LOCO.stepLift);
   const ease = s * s * (3 - 2 * s);
   const px = l.fromX + (l.toX - l.fromX) * ease;
-  const py = l.fromY + (l.toY - l.fromY) * ease - lift * Math.sin(Math.PI * Math.min(1, s * 1.05));
+  const py = l.fromY + (l.toY - l.fromY) * ease - lift * F.sin(Math.PI * Math.min(1, s * 1.05));
   const tip = l.tip;
   const dx = px - P.x[tip],
     dy = py - P.y[tip];
   const vmax = 1400;
   let vx = dx / (h * 6),
     vy = dy / (h * 6);
-  const v = Math.hypot(vx, vy);
+  const v = F.hypot(vx, vy);
   if (v > vmax) {
     vx *= vmax / v;
     vy *= vmax / v;
@@ -203,7 +204,7 @@ function wriggle(w: World, cr: Creature, h: number, dir: number) {
   const omega = 2 * Math.PI * LOCO.wriggleFreq;
   for (const i of cr.ids) {
     const phase = (P.rx[i] * dir) / 40 - omega * w.t;
-    const vy = -Math.max(0, Math.sin(phase)) * LOCO.wriggleAmp * omega * 0.5;
+    const vy = -Math.max(0, F.sin(phase)) * LOCO.wriggleAmp * omega * 0.5;
     const cy = (P.y[i] - P.py[i]) / h;
     P.py[i] = P.y[i] - (cy + (vy - cy) * 0.15) * h;
   }
@@ -244,14 +245,18 @@ function runSprings(w: World, cr: Creature, h: number) {
         }
         break;
       }
-      case 'extend':
-        C.rest[s.c] = s.len0 * extend;
+      case 'extend': {
+        // release fast but not in a single step: an instant 1.45× jump in rest
+        // length yanks neighbouring links past their tear limit
+        const u = Math.min(1, s.t / (eT * 0.5));
+        C.rest[s.c] = s.len0 * (compress + (extend - compress) * u);
         C.k[s.c] = ACT.springKFire;
         if (s.t >= eT) {
           s.state = 'recover';
           s.t = 0;
         }
         break;
+      }
       case 'recover': {
         const u = Math.min(1, s.t / 0.2);
         C.rest[s.c] = s.len0 * (extend + (1 - extend) * u);

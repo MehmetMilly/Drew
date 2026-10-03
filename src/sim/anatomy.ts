@@ -1,5 +1,6 @@
 // Anatomy read (design.md §5–6): head, tips → hands/feet, springs, lumps, stats,
 // kind and name. Runs at birth and after every graft or sever. Geometry only.
+import * as F from './fmath';
 import { KIND, LOCO, SHAPE, STRENGTH, WORLD } from '../tuning';
 import { CT, PF, STRUCTURAL } from './store';
 import type { Creature, Limb, Spring } from './creature';
@@ -124,7 +125,7 @@ export function readAnatomy(w: World, cr: Creature) {
     const chain = fistOut !== undefined ? [tip, fistOut] : [tip];
     let prev = -1,
       cur = fistOut ?? tip,
-      len = fistOut !== undefined ? Math.hypot(P.rx[fistOut] - P.rx[tip], P.ry[fistOut] - P.ry[tip]) : 0,
+      len = fistOut !== undefined ? F.hypot(P.rx[fistOut] - P.rx[tip], P.ry[fistOut] - P.ry[tip]) : 0,
       spring = -1;
     if (fistOut !== undefined) {
       // walk on from the joint, away from the lump
@@ -169,7 +170,7 @@ export function readAnatomy(w: World, cr: Creature) {
       chain.length = Math.min(chain.length, cut);
       root = chain[chain.length - 1];
       len = 0;
-      for (let k = 1; k < chain.length; k++) len += Math.hypot(P.rx[chain[k]] - P.rx[chain[k - 1]], P.ry[chain[k]] - P.ry[chain[k - 1]]);
+      for (let k = 1; k < chain.length; k++) len += F.hypot(P.rx[chain[k]] - P.rx[chain[k - 1]], P.ry[chain[k]] - P.ry[chain[k - 1]]);
     }
     if (chain.length < 2 && len < 15) continue;
     limbs.push({
@@ -219,12 +220,12 @@ export function readAnatomy(w: World, cr: Creature) {
   for (const c of cr.cons) if (!C.dead[c] && (C.type[c] === CT.LINK || C.type[c] === CT.SPRING)) ink += C.rest0[c];
   for (const l of cr.lumps) ink += l.ink;
   ink = Math.max(ink, 10);
-  const strength = Math.pow(ink / STRENGTH.ref, STRENGTH.exp);
+  const strength = F.pow(ink / STRENGTH.ref, STRENGTH.exp);
   const feetN = feet.length;
   const legLen = feetN ? feet.reduce((s, l) => s + l.len, 0) / feetN : 0;
   const size = Math.max(W, H);
   const legF = feetN ? Math.min(LOCO.legMax, Math.max(LOCO.legMin, LOCO.legMin + legLen / 75)) : LOCO.footless;
-  const speed = (LOCO.speedBase * legF) / Math.pow(Math.max(size, 60) / 250, 0.45);
+  const speed = (LOCO.speedBase * legF) / F.pow(Math.max(size, 60) / 250, 0.45);
   const balance = feetN >= 2 ? SHAPE.balance2 : feetN === 1 ? SHAPE.balance1 : SHAPE.balance0;
   const hands = limbs.filter((l) => !l.foot);
   const reach = hands.reduce((m, l) => Math.max(m, l.len), 0);
@@ -293,7 +294,7 @@ function finishSpring(w: World, _cr: Creature, s: Spring, adj: Map<number, { to:
   }
   const dx = P.rx[s.b] - P.rx[s.a],
     dy = P.ry[s.b] - P.ry[s.a];
-  const L = Math.hypot(dx, dy) || 1;
+  const L = F.hypot(dx, dy) || 1;
   s.ax = dx / L;
   s.ay = dy / L;
 }

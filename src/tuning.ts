@@ -15,6 +15,7 @@ export const WORLD = {
   maxPerCreature: 400,
   damping: 0.998,
   killY: 1280 + 200, // below the page: gone
+  floorY: 1190, // the blank page's felt-tip floor
 };
 
 export const BODY = {
