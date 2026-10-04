@@ -746,20 +746,27 @@ body.slow #backdrop {
 }
 
 /* the Pencil Case: a row of pencils along the bottom of the Sketchbook */
+/* the Pencil Case: one row of real-size pencils that scrolls sideways (legible at 360 px) */
 .pencil-case {
   position: absolute;
-  left: 40px;
-  right: 40px;
-  top: 960px;
+  left: 0;
+  right: 0;
+  top: 935px;
   display: flex;
-  justify-content: space-between;
+  gap: 18px;
+  padding: 4px 40px 8px;
+  overflow-x: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  touch-action: pan-x;
   pointer-events: auto;
 }
+.pencil-case::-webkit-scrollbar { display: none; }
 .pencil {
-  width: 88px;
-  text-align: center;
+  flex: 0 0 136px;
+  text-align: left;
   font-family: 'Patrick Hand', cursive;
-  font-size: 18px;
+  font-size: 24px;
   line-height: 1.1;
   color: #3a3a40;
   background: none;
@@ -768,13 +775,14 @@ body.slow #backdrop {
 }
 .pencil i {
   display: block;
-  height: 18px;
-  margin: 0 6px 6px;
+  height: 24px;
+  margin: 0 0 6px;
   border-radius: 3px 10px 10px 3px;
   clip-path: polygon(0 0, 82% 0, 100% 50%, 82% 100%, 0 100%);
 }
 .pencil.on small { text-decoration: underline wavy #3a3a40; font-weight: bold; }
-.pencil.locked { opacity: 0.4; }
+.pencil.locked { opacity: 0.55; }
+.pencil.locked small::before { content: 'locked: '; }
 .pencil.locked i { filter: grayscale(1); }
 
 /* Doodle Pad: a palette of hand-lettered chips under the HUD */
