@@ -16,6 +16,11 @@ const JUICE: Record<string, [number, number, string?]> = {
   knock: [0.07, 0.22, 'BONK'],
   grab: [0.05, 0.12],
   ninjaLeap: [0, 0.05],
+  // Chapter 5 and modes
+  squish: [0.06, 0.18, 'SQUISH'],
+  grind: [0.1, 0.35, 'GRRRIND'],
+  ruleBreak: [0, 0.05, 'POOF'],
+  thud: [0, 0.12],
 };
 const LAND_TRAUMA = 0.1;
 const DECAY = 1.2; // trauma per second
