@@ -119,11 +119,15 @@ function planLevel(w: World, cr: Creature, c: { x: number; y: number }) {
       // brace (walls, boulders): get between it and him, plant the feet and lean into it
       const face = th.x - side * (th.hw ?? th.r);
       const near = Math.abs(face - gc.x) < BRAIN.braceDist + cr.stats.w;
-      plan = near || soon ? 'brace' : 'guard';
+      plan = near || soon || th.data.shove ? 'brace' : 'guard';
       tx = plan === 'brace' ? face - side * Math.max(4, half * 0.4) + side * BRAIN.bracePush : gc.x + side * (half + BRAIN.guardGap);
+      // a pusher that has to be shoved somewhere (the Big Eraser into its sharpener): keep
+      // walking into it, all the way, rather than holding it at bay
+      if (th.data.shove) tx = face + side * half;
       // a boulder is met close in front of him, not chased up its slope
       if (plan === 'brace' && !th.hw) tx = side > 0 ? Math.min(tx, gc.x + half + BRAIN.braceMeet) : Math.max(tx, gc.x - half - BRAIN.braceMeet);
-      if (plan === 'brace') reach = th.hw ? { x: face, y: Math.min(gc.y - 20, c.y), body: th.id } : { x: th.x, y: th.y, body: th.id };
+      // (hands push on the face itself: on a low box like the Eraser, not over its top)
+      if (plan === 'brace') reach = th.hw ? { x: face, y: Math.max(th.y - th.hh! * 0.6, Math.min(gc.y - 20, c.y)), body: th.id } : { x: th.x, y: th.y, body: th.id };
     } else if (soon) {
       plan = 'intercept';
       tx = gc.x + side * (half + BRAIN.guardGap);
@@ -131,6 +135,13 @@ function planLevel(w: World, cr: Creature, c: { x: number; y: number }) {
       let punch = 0;
       for (const l of cr.limbs) if (!l.foot && l.spring >= 0) punch = Math.max(punch, l.len);
       if (punch) tx = th.x - side * punch * BRAIN.punchStand;
+      // a little crawler on the ground (a smudger) is stomped: walk onto it, feet first
+      // (only within a body width of its post beside him: it must not leave him to chase one)
+      if (th.data.stomp && !punch) {
+        const at = th.x + ((th.x - th.sx) / WORLD.dt) * BRAIN.lead;
+        const post = gc.x + side * (half + BRAIN.guardGap);
+        tx = side > 0 ? Math.max(gc.x + BRAIN.guardGap, Math.min(at, post + half)) : Math.min(gc.x - BRAIN.guardGap, Math.max(at, post - half));
+      }
       // hands go for where it will be, not where it was
       reach = { x: th.x + (th.x - th.sx) / WORLD.dt * BRAIN.lead, y: th.y + (th.y - th.sy) / WORLD.dt * BRAIN.lead, body: th.id };
     } else tx = gc.x + side * (half + BRAIN.guardGap);

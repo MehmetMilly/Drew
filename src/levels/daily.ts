@@ -23,7 +23,7 @@ export const ARENAS: { name: string; level: LevelDef; no?: Modifier[] }[] = [
   { name: 'Ninja', level: L1_5, no: ['giants', 'tiny'] },
   { name: 'Spikes', level: L2_4, no: ['tiny'] },
   { name: 'Bridge', level: L3_4, no: ['tiny'] },
-  { name: 'Smudgers', level: L5_3 },
+  { name: 'Smudgers', level: L5_3, no: ['one-stroke', 'worms'] }, // smudgers must be stepped on: feet, and more than a lump
 ];
 
 export const MODIFIERS: { id: Modifier; name: string }[] = [

@@ -454,30 +454,61 @@ export const DMG = {
   scissorsSpeed: 260, // px/s
   scissorsTurn: 1.6, // rad/s: they swing round wide when they miss
   scissorsCut: 4, // px beyond the body that the blades cut
+  scissorsTell: 0.6, // s snapping in place before the first pass
+  scissorsPasses: 3, // passes at him before they give up and fly off the page
+  scissorsMiss: 60, // px past its closest approach that ends a pass
+  scissorsCatch: 3, // points at the end of a hand that can close on them
+  scissorsKnock: 520, // px/s a hard hit knocks them away
+  scissorsKnockUp: 200, // px/s of that upward
+  scissorsDrag: 1.6, // 1/s: how fast a knocked pair slows
+  scissorsStun: 0.8, // s tumbling, blades shut, after a knock
   fireSpeed: 70, // px/s the floor fire spreads
   fireH: 18, // px above the floor the flames reach
   burnSpeed: 90, // px/s fire climbs a link
   burnLife: 1.2, // s a point burns before it crumbles
   smudgerR: 11,
-  smudgerSpeed: 70, // px/s crawl
-  smudgerHop: 1.4, // s between hops
+  smudgerSpeed: 110, // px/s crawl (ground friction holds them to about 75% of it): any faster and feet can't stomp them
+  smudgerStallV: 20, // px/s: slower than this against something...
+  smudgerStall: 0.35, // s: ...this long, and it hops over it
+  smudgerGain: 0.3, // per substep: how hard they scuttle toward that speed
+  smudgerHop: 0.8, // s between hops
   smudgerJump: 420, // px/s hop up toward high ink
   eatEvery: 0.12, // s per point eaten
   nibble: 0.5, // s touching him before he is rubbed out
-  stomp: 160, // px/s down onto it squashes it
+  stomp: 60, // px/s: a foot coming down on a smudger this fast...
+  stepOn: 4, // px: ...within its radius plus this (it scuttles under ink, so feet land on it)...
+  stepMass: 40, // ...of a creature at least this heavy squashes it
+  underFoot: 0.5, // × its radius: crawling this far under a planted foot of such a creature squashes it too
   eraserW: 150,
   eraserH: 90,
   eraserMass: 300,
-  eraserSpeed: 60, // px/s
-  eraserForce: 40000, // mass·px/s² motor limit: two strong bracers beat it
-  eraserBack: 90, // px/s a braced Eraser can be driven back at
-  eraserHopV: 620, // px/s up
-  eraserHopVx: 140, // px/s across per hop
+  eraserSpeed: 45, // px/s it slides at him in phase 1
+  eraserForce: 40000, // mass·px/s² motor limit: any planted bracer out-pushes it
+  eraserBack: 60, // px/s a braced Eraser is driven back at: a slow, straining shove to the sharpener
+  eraserShrink: 0.8, // × its size once sharpened
+  eraserOutVx: 260, // px/s: it leaps back out of the sharpener at him, over whatever is at the mouth
+  grindTime: 1.2, // s it is held grinding in the sharpener
+  knocksToCrumble: 2, // mid-air knocks back into the sharpener before it crumbles (each one sharpens it smaller)
+  eraserHopV: 620, // px/s up: its leap back out of the sharpener
+  eraserLeapApex: 90, // px: each leap at him peaks this high (into the hands of whoever stands guard)...
+  eraserHopVx: 320, // ...at up to this many px/s across (it lands on him if it can)
   eraserHopRest: 1.2, // s on the ground between hops
-  eraserKnock: 360, // px/s a mid-air punch knocks it back
-  rubRate: 10, // points per s it rubs out of what touches it
+  eraserKnock: 520, // px/s at most: a mid-air hit lobs it back into the sharpener's mouth...
+  knockLobT: 0.6, // s ...in a flight at least this long (a far lob goes higher, never faster)
+  eraserKnockCool: 0.3, // s before it can be knocked again
+  knockSlop: 10, // px beyond its faces a strike lands...
+  knockSpeed: 220, // ...moving this fast
+  slamErase: 8, // points it rubs out of what it lands on
+  rubRate: 4, // points per s it rubs out of what touches it
+  rubStill: 5, // px/s: in phase 1 it rubs only the face it slides into (held still or driven back, nothing)
+  fleeDist: 160, // px: Little Guy walks away from an Eraser this close...
+  fleeEdge: 30, // ...as far as this from the page edge
   sharpenerW: 70, // px: the sharpener's mouth from the page edge
-  crumbs: 4, // smudgers it crumbles into
+  crumbs: 3, // smudgers it crumbles into...
+  crumbSpeed: 80, // px/s ...dazed: slower than a fresh smudger...
+  crumbEatSlow: 3, // ...and eating ink this many times slower
+  crumbsAt: 0, // s after the last grind the first crumb comes alive (at once: there is always a threat to face)...
+  crumbsEvery: 1.5, // ...and the rest this far apart
 };
 
 /** Sumo mode (design §12, sumo.ts). */

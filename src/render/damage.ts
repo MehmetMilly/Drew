@@ -165,8 +165,10 @@ export function drawSharpener(g: Ctx, w: World) {
   const b = D.boss;
   const left = b.data.home < w.W / 2;
   const x0 = left ? 0 : w.W - DMG.sharpenerW;
-  const top = b.data.ground - DMG.eraserH * 0.7,
-    bot = b.data.ground + DMG.eraserH / 2;
+  // (on the floor where the Eraser started: it sinks a little each time it is sharpened smaller)
+  const gy = b.data.base ?? b.data.ground;
+  const top = gy - DMG.eraserH * 0.7,
+    bot = gy + DMG.eraserH / 2;
   g.save();
   g.fillStyle = COLORS.felt;
   g.fillRect(left ? x0 - 30 : x0, top - 20, DMG.sharpenerW + 30, bot - top + 20);

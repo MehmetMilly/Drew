@@ -33,7 +33,8 @@ export const SHOTS: Record<string, any[]> = {
   birth: [{ label: 'birth', draw: [{ canon: 'stick700', x: 360 }], wet: true, times: [0, 0, 0.02, 0.08, 0.14, 0.22, 0.32, 0.6], crop: { x: 240, y: 880, w: 240, h: 240 } }],
   levels: ['1-1', '1-2', '1-3', '1-4', '1-5'].flatMap((id) => [0, 1].map((ref) => ({ label: id, level: id, ref, draw: [], times: [0.2, 1, 2, 3, 4.5, 6] }))),
   sumo: ['sumo-1', 'sumo-3', 'sumo-7', 'sumo-12'].flatMap((id) => [0, 1].map((ref) => ({ label: id, level: id, ref, draw: [], times: [0.2, 1.5, 2.5, 3.5, 5, 8] }))),
-  ch5: ['5-1', '5-2', '5-3', '5-4', '5-5'].flatMap((id) => [0, 1].map((ref) => ({ label: id, level: id, ref, draw: [], times: [0.2, 1.5, 2.5, 3.5, 5, 7] }))),
+  // (the boss fight runs 13-26 s with the refs: its strip spans the three phases)
+  ch5: ['5-1', '5-2', '5-3', '5-4', '5-5'].flatMap((id) => [0, 1].map((ref) => ({ label: id, level: id, ref, draw: [], times: id === '5-5' ? [1, 4, 8, 12, 16, 22] : [0.2, 1.5, 2.5, 3.5, 5, 7] }))),
   ch4: ['4-1', '4-2', '4-3', '4-4', '4-5'].flatMap((id) => [0, 1].map((ref) => ({ label: id, level: id, ref, draw: [], times: [0.2, 1, 2, 3, 4.5, 6] }))),
   ch3: ['3-1', '3-2', '3-3', '3-4', '3-5'].flatMap((id) => [0, 1].map((ref) => ({ label: id, level: id, ref, draw: [], times: [0.2, 1, 2, 3, 4.5, 6] }))),
   ch2: ['2-1', '2-2', '2-3', '2-4', '2-5'].flatMap((id) => [0, 1, 2].map((ref) => ({ label: id, level: id, ref, draw: [], times: [0.2, 1, 2, 3, 4.5, 6] }))),

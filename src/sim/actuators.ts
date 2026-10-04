@@ -158,7 +158,7 @@ export function actuate(w: World, cr: Creature, h: number) {
           const lead = ACT.punchCompressT + ACT.punchExtendT * 0.5;
           qx = tb.x + ((tb.x - tb.px) / h) * lead;
           qy = tb.y + ((tb.y - tb.py) / h) * lead;
-          rr = tb.r;
+          rr = tb.hw ? Math.min(tb.hw, tb.hh!) : tb.r; // a box: its nearer half-size
         }
         // ...from where the fist will be at full extension, along the spring
         const sp = cr.springs[l.spring];

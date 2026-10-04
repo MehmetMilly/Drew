@@ -16,7 +16,11 @@ export interface Attempt {
 }
 
 /** Play one attempt: the drawing is born at level time `at` (≈ instant, as drawn in slow time). */
-export function attempt(def: LevelDef, strokes: Pt[][], seed = 1, at = 0, limit = 14): Attempt {
+/** How long an attempt may run before it is a timeout: 14 s, or for a boss fight (about a minute,
+ *  levels.md §5) the end of its pacing window plus a margin. */
+export const attemptLimit = (def: LevelDef) => (def.goal.type === 'boss' ? (def.window?.[1] ?? 60) + 10 : 14);
+
+export function attempt(def: LevelDef, strokes: Pt[][], seed = 1, at = 0, limit = attemptLimit(def)): Attempt {
   const w = new World({ seed });
   startLevel(w, def);
   if (at > 0) run(w, at);
@@ -79,7 +83,9 @@ export function baselines(def: LevelDef): Record<string, Pt[][]> {
   const b = def.baseline ?? { x: def.guy.x, y: def.guy.y - 20 };
   // the lazy shapes go toward what matters: the threat, the flag or the hoop
   const G = def.goal;
-  const e = def.entities.find((q) => 'x' in q) as { x: number } | undefined;
+  // (Chapter 5's threats are props: scissors, smudgers and the Eraser count as the first threat too)
+  const dmg = def.props?.find((p) => p.type === 'scissors' || p.type === 'smudger' || p.type === 'eraser');
+  const e = (def.entities.find((q) => 'x' in q) ?? dmg) as { x: number } | undefined;
   const toward = G.type === 'home' ? G.x : G.type === 'score' ? G.hoop.x : e?.x;
   const side = toward !== undefined ? Math.sign(toward - def.guy.x) || -1 : -1;
   const gy = def.guy.y; // his feet

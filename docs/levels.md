@@ -127,11 +127,11 @@ Starting numbers; tune them from metrics.
 
 | # | Name | Goal | Setup | Why the lazy answer fails | Intended bodies | Draw / Ink |
 |---|---|---|---|---|---|---|
-| 5-1 | Snip Snip | SAVE 6 | Flying scissors cut through ink; severed pieces come alive. Hint: *draw more mid-fight* | single shapes are cut apart | many-limbed (redundancy), giant, live grafting | 0.06 / 3500 |
-| 5-2 | Fuse | HOME | A burning corridor; fire climbs from the feet | slow walkers burn up | long-legged runner, springy, grafting legs on the run | 0.08 / 3500 |
-| 5-3 | Smudgers | SAVE 8 | Little eraser critters crawl in and eat ink; stomp them | eaten | heavy stompers, many-legged, team | 0.08 / 4000 |
-| 5-4 | Everything, Everywhere | HOME | A gap, then bombs, then water | each piece denies a different lazy answer | springy floaty, team, grafting | 0.07 / 4500 |
-| 5-5 | The Big Eraser | boss, ~60 s | Ink regenerates at 60 px/s. Phase 1: the Eraser rubs out what it touches; shove it toward the pencil sharpener at the page edge. Phase 2: it hops; punch it mid-air. Phase 3: it splits into smudgers | n/a | everything the player has learned | 0.08 / regenerating |
+| 5-1 | Snip Snip | SAVE 6 | Two pairs of scissors (from the right at 0.8 s, from the left at 1.8 s) each make three passes at him, cutting every link they cross, then fly off. A hand that closes on a pair stops it; a hard hit knocks it away. Hint: *draw more mid-fight* | single shapes are cut apart, and nothing passive stops the blades | long-armed (catches), springy (punches), giant | 0.06 / 3500 |
+| 5-2 | Fuse | HOME | Fire runs along the floor behind him from 1 s at 70 px/s; the flag is on a 90 px ledge, 220 px past its face | a lazy carrier stalls at the ledge face and burns | biped runner, springy (hops the ledge), giant, heavy (tosses him up) | 0.08 / 3500 |
+| 5-3 | Smudgers | SAVE 8 | Four smudgers crawl in from one side, 1 s apart, under ink, eating it, toward him at the page edge; stomp them | they pass under anything that doesn't step on them | heavy stompers, many-legged, biped | 0.08 / 4000 |
+| 5-4 | Everything, Everywhere | HOME | Scissors drop on him at once; at 2.5 s his bank catches fire; a 250 px gap stands between him and the flag | a shield is cut, nothing lazy crosses the gap, and the fire catches whoever dawdles | springy with hands (catches, hops him over), long-armed, biped and heavy (toss him over) | 0.07 / 4500 |
+| 5-5 | The Big Eraser | boss, 15-30 s (window 10-60) | Ink regenerates at 60 px/s; Little Guy keeps away from it. Phase 1: the Eraser slides at him and rubs out what it slides into; a bracer walks it back into the pencil sharpener at the page edge. Phase 2: sharpened smaller, it leaps at him; a hand that meets it mid-leap (a punch, or a hand held up in its path) lobs it back into the sharpener; twice. Phase 3: it crumbles into three dazed smudgers that a body heavy enough crushes by touching | a heavy lump can shove it in, but nothing without a hand can hit it mid-leap | heavy, springy, biped | 0.08 / regenerating |
 
 **Finale**: the sharpener grinds the Eraser, shavings rain down, and Little Guy hugs every surviving creature. The credits are drawn with the player's own Hall of Heroes, waving.
 
