@@ -2,6 +2,7 @@
 // countdown in the sky, blasts, the poof, the hug heart. Greybox-first, but in the
 // game's materials: felt-tip black, danger red, highlighter yellow.
 import { drawEraser, drawScissors, drawSmudger } from './damage';
+import { ringTerrain } from '../sim/sumo';
 import { NINJA } from '../sim/hazards';
 import { COLORS, HAZ, LEVEL, LOOK } from '../tuning';
 import { boil1 } from './boil';
@@ -768,6 +769,33 @@ function drawBucket(g: Ctx, w: World, hoop: { x: number; y: number }, n: number)
     g.strokeStyle = COLORS.felt;
     g.lineWidth = 2;
     g.stroke();
+  }
+  g.restore();
+}
+
+/** Sumo: the ring's straw-bale edge, a cream rope along the top of the felt block that
+ *  shrinks with it, knotted at both ends. */
+export function drawRing(g: Ctx, w: World) {
+  const goal = w.level?.def.goal;
+  if (goal?.type !== 'sumo') return;
+  const T = ringTerrain(w, goal.ring);
+  if (!T) return;
+  const y = goal.ring.y + 10;
+  g.save();
+  g.strokeStyle = COLORS.cream;
+  g.lineWidth = 5;
+  g.lineCap = 'round';
+  g.setLineDash([14, 7]);
+  g.beginPath();
+  g.moveTo(T.minX + 14, y);
+  g.lineTo(T.maxX - 14, y);
+  g.stroke();
+  g.setLineDash([]);
+  g.fillStyle = COLORS.cream;
+  for (const x of [T.minX + 12, T.maxX - 12]) {
+    g.beginPath();
+    g.arc(x, y, 7, 0, Math.PI * 2);
+    g.fill();
   }
   g.restore();
 }
