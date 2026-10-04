@@ -6,6 +6,7 @@ import type { LevelDef } from '../sim/level';
 import { CHAPTERS, ALL_LEVELS } from '../levels';
 import { load as loadSave, save, type Hero } from '../game/save';
 import { TIPS } from '../levels/tips';
+import { CANON } from '../sim/canon';
 import { hallCanvas, PER_PAGE } from './hall';
 import { OPPONENTS, RING, sumoLevel } from '../levels/sumo';
 import { WORLD } from '../tuning';
@@ -20,7 +21,7 @@ import { levelThumb } from './thumb';
 import { pencilTick } from '../audio/pencil';
 import { sfxCountdown, sfxUi } from '../audio/sfx';
 
-type Screen = 'title' | 'chapter' | 'sumo' | 'daily' | 'doodle' | 'play' | 'toy' | 'settings' | 'sketchbook' | 'hero' | 'credits';
+type Screen = 'tutorial' | 'title' | 'chapter' | 'sumo' | 'daily' | 'doodle' | 'play' | 'toy' | 'settings' | 'sketchbook' | 'hero' | 'credits';
 
 /** Progression (design §13): a chapter opens when 4 of the one before are cleared; inside it,
  *  levels open one by one; the finale (a boss) needs every other level of its chapter. */
@@ -69,7 +70,7 @@ export class Shell {
     addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && (this.screen === 'play' || this.screen === 'toy' || this.screen === 'hero')) this.show(this.screen === 'play' ? this.home(this.toy.level) : 'sketchbook');
     });
-    this.show('title');
+    this.show(loadSave().tutored ? 'title' : 'tutorial');
   }
 
   /** The layer sits exactly on the page and scales with it. */
@@ -106,6 +107,7 @@ export class Shell {
     this.root.className = 'ui ' + s + (loadSave().settings.leftHanded ? ' lefty' : '');
     this.toy.quiet = s !== 'play' && s !== 'toy';
     if (s === 'title') this.title();
+    else if (s === 'tutorial') this.tutorial();
     else if (s === 'chapter') this.chapter();
     else if (s === 'sumo') this.sumo();
     else if (s === 'daily') this.daily();
@@ -142,7 +144,64 @@ export class Shell {
     notes.append(story, sumo, daily);
     const book = this.press(el('button', 'tab sketch', 'Sketchbook'), () => this.show('sketchbook'));
     const set = this.press(el('button', 'tab', 'settings'), () => this.show('settings'));
-    this.root.append(notes, book, set, this.littleGuy());
+    const how = this.press(el('button', 'tab how', 'how to play'), () => this.show('tutorial'));
+    this.root.append(notes, book, set, how, this.littleGuy());
+  }
+
+  /** First launch (playtest 2026-10-04: "the player just doesn't know what things do"): the
+   *  auto-pen draws one body per mark on the live page, each wakes up and shows off, and one
+   *  caption says what that mark does. Then the pencil is the player's. */
+  private tutorial() {
+    this.toy.load(null);
+    this.toy.quiet = true;
+    const W = 720;
+    const lessons: { say: string; body: string; x: number }[] = [
+      { say: 'Everything you draw <b>comes alive</b>.', body: 'stick700', x: W / 2 },
+      { say: 'Loops are bodies. Lines are <b>legs</b> and <b>arms</b>.', body: 'spider', x: W / 2 },
+      { say: 'Zigzags are <b>springs</b>. Boing!', body: 'hopper', x: W / 2 },
+      { say: 'Scribble hard to make it <b>heavy</b>.', body: 'bruiser', x: W / 2 },
+      { say: 'Bigger is <b>stronger</b>… but slower.', body: 'stick1100', x: W / 2 },
+    ];
+    const cap = el('div', 'note tut-cap');
+    const dots = el('div', 'tut-dots', lessons.map(() => '<i></i>').join(''));
+    const skip = this.press(el('button', 'tab tut-skip', 'skip ›'), () => finish());
+    this.root.append(cap, dots, skip);
+    let alive = true;
+    const finish = () => {
+      if (!alive) return;
+      alive = false;
+      loadSave().tutored = true;
+      save();
+      this.show('play', ALL_LEVELS[0]);
+    };
+    const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    (async () => {
+      for (let i = 0; i < lessons.length && alive && this.screen === 'tutorial'; i++) {
+        const L = lessons[i];
+        this.toy.clear();
+        cap.innerHTML = L.say;
+        cap.classList.remove('in');
+        void cap.offsetWidth;
+        cap.classList.add('in');
+        dots.querySelectorAll('i').forEach((d, k) => d.classList.toggle('on', k <= i));
+        await wait(700);
+        if (!alive || this.screen !== 'tutorial') return;
+        this.toy.autoDraw(CANON[L.body](L.x));
+        while (alive && this.screen === 'tutorial' && !this.toy.settled) await wait(100);
+        // it shows off: a tap up and to one side, then the other (walk, reach, hop)
+        await wait(500);
+        if (alive && this.screen === 'tutorial') this.toy.poke(L.x + 190, 820);
+        await wait(1500);
+        if (alive && this.screen === 'tutorial') this.toy.poke(L.x - 170, 860);
+        await wait(1500);
+      }
+      if (!alive || this.screen !== 'tutorial') return;
+      this.toy.clear();
+      cap.innerHTML = 'Your turn! Draw Little Guy a <b>friend</b>.';
+      skip.remove();
+      dots.remove();
+      this.root.append(this.press(el('button', 'note small go tut-go', 'Let’s draw →'), finish));
+    })();
   }
 
   /** Little Guy on the title, by the floor, waving, scarf in highlighter. */

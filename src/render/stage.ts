@@ -426,6 +426,54 @@ export function drawGuy(g: Ctx, w: World, guy: Guy, alpha: number, frame: number
   g.translate(-hx0, -hy0);
   drawGuyAt(g, w, guy, (i) => lerp(P.sx[i], P.x[i], alpha), (i) => lerp(P.sy[i], P.y[i], alpha), frame);
   g.restore();
+  drawHaul(g, w, guy, alpha);
+}
+
+/** A tall carrier hauls him up (playtest: he used to float up to its head on his own): while he
+ *  climbs a tall creature, its nearest hand stretches down like rubber, grips his chest and pulls.
+ *  Render only: the sim's climb is unchanged. */
+function drawHaul(g: Ctx, w: World, guy: Guy, alpha: number) {
+  if (guy.ride < 0 || guy.perch < 0) return;
+  const age = w.t - guy.rideAt,
+    left = guy.climbFor - age;
+  if (left <= 0) return;
+  const P = w.P;
+  const X = (i: number) => lerp(P.sx[i], P.x[i], alpha),
+    Y = (i: number) => lerp(P.sy[i], P.y[i], alpha);
+  const cx = X(guy.chest),
+    cy = Y(guy.chest);
+  if (Y(guy.perch) > cy - GUY.height * 0.8) return; // a low hop needs no hand
+  const cr = w.creatures[guy.ride];
+  if (!cr?.alive) return;
+  // from the nearest hand (no hands: from its top, a scruff-of-the-neck pull)
+  let from = guy.perch,
+    bd = Infinity;
+  for (const L of cr.limbs) {
+    if (L.foot) continue;
+    const d = (X(L.tip) - cx) ** 2 + (Y(L.tip) - cy) ** 2;
+    if (d < bd) (bd = d), (from = L.tip);
+  }
+  const fx = X(from),
+    fy = Y(from);
+  const k = Math.min(1, age / 0.12, left / 0.12);
+  // a sagging rubber arm, thinning as it stretches
+  const len = Math.hypot(cx - fx, cy - fy);
+  const sag = Math.min(40, len * 0.15);
+  g.save();
+  g.globalAlpha = k;
+  g.strokeStyle = COLORS.graphite;
+  g.lineCap = 'round';
+  g.lineWidth = Math.max(3.4, LOOK.haulWidth * (1 - Math.min(0.25, len / 900)));
+  g.beginPath();
+  g.moveTo(fx, fy);
+  g.quadraticCurveTo((fx + cx) / 2 + sag * 0.5, (fy + cy) / 2 + sag, cx, cy - 4);
+  g.stroke();
+  // the fist round his scarf
+  g.lineWidth = 2.4;
+  g.beginPath();
+  g.ellipse(cx, cy - 4, 6.5, 5.5, 0, 0, Math.PI * 2);
+  g.stroke();
+  g.restore();
 }
 
 function drawGuyAt(g: Ctx, w: World, guy: Guy, X: (i: number) => number, Y: (i: number) => number, frame: number) {
@@ -802,6 +850,9 @@ export function drawRing(g: Ctx, w: World) {
   const T = ringTerrain(w, goal.ring);
   if (!T) return;
   const y = goal.ring.y + 10;
+  const L = w.level!;
+  // after time-out the ring is closing in: the rope turns red (a threat) and blinks
+  const closing = L.foesAt >= 0 && w.t - L.foesAt > goal.seconds;
   g.save();
   // the rope is what matters here (yellow): push the other one past it
   g.strokeStyle = closing && Math.floor(w.t * 4) % 2 ? COLORS.red : COLORS.yellow;
@@ -821,9 +872,6 @@ export function drawRing(g: Ctx, w: World) {
   }
   g.restore();
 }
-  const L = w.level!;
-  // after time-out the ring is closing in: the rope turns red (a threat) and blinks
-  const closing = L.foesAt >= 0 && w.t - L.foesAt > goal.seconds;
 
 /** Sumo: the floor is lava. A flat red pool with a wavy lip and a few bubbles: one fill, cheap
  *  on phones. Drawn before the terrain so the ring block and the perch stand in it. */

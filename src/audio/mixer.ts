@@ -40,7 +40,7 @@ let noiseBuf: AudioBuffer | null = null;
 // pencil the loudest bus while drawing)
 export const LEVEL = {
   master: 0.9,
-  music: 2.5,
+  music: 1.6, // playtest 2026-10-04: "decrease the music a bit" (≈ −4 dB)
   pencil: 5,
   creatures: 0.6,
   world: 0.5,

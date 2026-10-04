@@ -902,3 +902,63 @@ input:focus-visible {
   outline: 3px dashed #3a3a40;
   outline-offset: 4px;
 }
+
+/* first-launch tutorial */
+.tut-cap {
+  position: absolute;
+  top: 150px;
+  left: 50%;
+  width: 600px;
+  margin-left: -300px;
+  font-size: 44px;
+  line-height: 1.15;
+  text-align: center;
+  padding: 26px 30px;
+  --tilt: -1.5deg;
+  animation: none;
+  opacity: 0;
+  transform: rotate(var(--tilt)) translateY(-12px);
+  transition: opacity 260ms ease-out, transform 260ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+.tut-cap.in {
+  opacity: 1;
+  transform: rotate(var(--tilt)) translateY(0);
+}
+.tut-cap b {
+  display: inline;
+  font: inherit;
+  background: linear-gradient(transparent 55%, rgba(242, 194, 48, 0.6) 55%);
+}
+.tut-dots {
+  position: absolute;
+  top: 90px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+}
+.tut-dots i {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 3px solid #3a3a40;
+}
+.tut-dots i.on {
+  background: #3a3a40;
+}
+.tab.tut-skip {
+  top: auto;
+  bottom: 60px;
+}
+.note.tut-go {
+  position: absolute;
+  top: 420px;
+  left: 50%;
+  transform: translateX(-50%) rotate(1deg);
+  font-size: 48px;
+}
+.tab.how {
+  right: auto;
+  left: 30px;
+}

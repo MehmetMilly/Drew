@@ -20,6 +20,7 @@ export interface SaveData {
   badges: Record<string, string[]>; // level id → hero kinds it was cleared with (max 3)
   fails: Record<string, number>; // consecutive fails (adaptive ghost hint)
   hall: Hero[];
+  tutored?: boolean; // the first-launch tutorial has been seen
   settings: { sound: number; music: number; voices: number; intentLines: boolean; gentle: boolean; reducedMotion: boolean; haptics: boolean; leftHanded: boolean; pencil: string };
 }
 

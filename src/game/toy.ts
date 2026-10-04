@@ -210,6 +210,17 @@ export class Toy {
     return !!this.auto;
   }
 
+  /** Send every creature toward a spot (as a tap does on the toy page), with the tap ring. */
+  poke(x: number, y: number) {
+    this.world.toyTarget = { x, y };
+    this.tapMark = { x, y, t: this.now };
+  }
+
+  /** Nothing is being drawn or drying: whatever was drawn has been born. */
+  get settled() {
+    return !this.auto && !this.live && !this.wet.length;
+  }
+
   private autoStep(dt: number) {
     const a = this.auto;
     if (!a || this.now < this.readUntil || this.paused) return;
@@ -864,11 +875,20 @@ export class Toy {
     // the one handwritten hint, until the first stroke
     if (L.hint && !this.drawn.length && !this.wet.length && !this.live) {
       g.save();
-      g.globalAlpha = Math.min(1, Math.max(0, since - 0.3) / 0.4) * 0.9;
-      g.fillStyle = COLORS.blue;
-      g.font = '42px "Gochi Hand", cursive';
+      g.globalAlpha = Math.min(1, Math.max(0, since - 0.3) / 0.4);
+      g.font = '46px "Gochi Hand", cursive';
       g.textAlign = 'center';
-      g.fillText(L.hint, WORLD.W / 2, 520);
+      // on a white slip: non-photo blue alone vanished into some papers (playtest, 3-1)
+      const hw = g.measureText(L.hint).width / 2 + 24;
+      g.fillStyle = 'rgba(255,253,246,0.92)';
+      g.beginPath();
+      g.roundRect(WORLD.W / 2 - hw, 474, hw * 2, 66, 12);
+      g.fill();
+      g.strokeStyle = COLORS.blue;
+      g.lineWidth = 2.5;
+      g.stroke();
+      g.fillStyle = COLORS.felt; // the words in felt-tip, so they read; the slip's edge is the guide blue
+      g.fillText(L.hint, WORLD.W / 2, 522);
       g.restore();
     }
     this.drawPencil(g);
