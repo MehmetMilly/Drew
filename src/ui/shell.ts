@@ -547,19 +547,19 @@ export class Shell {
     };
     note.append(el('b', '', 'Paused'));
     note.append(this.press(el('button', 'line', 'Keep drawing'), close));
-    if (level)
-      note.append(
-        this.press(el('button', 'line', 'Start over'), () => {
-          close();
-          this.retry();
-        }),
-      );
     note.append(
-      this.press(el('button', 'line', level ? 'Levels' : back === 'title' ? 'Title' : 'Sketchbook'), () => {
+      this.press(el('button', 'line', level ? 'Levels' : back === 'title' ? 'Home' : 'Sketchbook'), () => {
         this.toy.paused = false;
         this.show(level ? this.home(level) : back);
       }),
     );
+    if (level || back !== 'title')
+      note.append(
+        this.press(el('button', 'line', 'Home'), () => {
+          this.toy.paused = false;
+          this.show('title');
+        }),
+      );
     scrim.append(note);
     scrim.addEventListener('pointerdown', (e) => {
       e.stopPropagation();

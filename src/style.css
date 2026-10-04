@@ -980,28 +980,40 @@ input:focus-visible {
   left: 30px;
 }
 
-/* the standing tip: a slip under the HUD row, drawn through (only its button takes touches) */
+/* the standing tip: a scrap of note paper taped under the countdown, drawn through (only its
+   button takes touches). It greys out once the attempt has ink, and is gone on a win. */
 .tip-strip {
   position: absolute;
-  top: 168px; /* under the countdown numerals */
-  left: 30px;
-  right: 30px;
+  top: 172px;
+  left: 40px;
+  right: 40px;
   display: flex;
   align-items: center;
   gap: 18px;
-  padding: 12px 14px 12px 20px;
-  background: rgba(255, 253, 246, 0.9);
-  border-left: 6px solid #7fb2e5;
-  border-radius: 4px 10px 10px 4px;
-  box-shadow: 0 6px 14px -10px rgba(27, 27, 31, 0.4);
-  transition: opacity 200ms ease-out;
+  padding: 16px 18px 14px 24px;
+  background: #fffdf6;
+  border-radius: 2px 3px 12px 2px;
+  box-shadow: 0 2px 0 rgba(27, 27, 31, 0.06), 0 8px 16px -10px rgba(27, 27, 31, 0.45);
+  transform: rotate(-0.8deg);
+  transition: opacity 250ms ease-out, filter 250ms ease-out;
   pointer-events: none;
   animation: fade 400ms ease-out 900ms both;
 }
+.tip-strip::before {
+  content: '';
+  position: absolute;
+  left: 34px;
+  top: -12px;
+  width: 78px;
+  height: 24px;
+  transform: rotate(-4deg);
+  background: repeating-linear-gradient(45deg, rgba(200, 190, 170, 0.55) 0 8px, rgba(220, 212, 194, 0.55) 8px 16px);
+}
 .tip-text {
   flex: 1;
-  font-size: 29px;
-  line-height: 1.18;
+  font-family: 'Gochi Hand', sans-serif;
+  font-size: 31px;
+  line-height: 1.15;
   color: #1b1b1f;
 }
 .tip-strip .stuck {
@@ -1009,13 +1021,21 @@ input:focus-visible {
   font-family: 'Gochi Hand', sans-serif;
   font-size: 32px;
   color: #3a3a40;
-  padding: 8px 16px;
-  border: 2.5px solid #7fb2e5;
-  border-radius: 14px 18px 12px 16px;
-  background: #fff;
+  padding: 6px 10px;
+  background: none;
+  text-decoration: underline wavy rgba(58, 58, 64, 0.45);
+  text-underline-offset: 6px;
 }
-body.slow .tip-strip {
-  opacity: 0.3;
+body.inked .tip-strip {
+  opacity: 0.4;
+  filter: grayscale(1);
+}
+body.won .tip-strip {
+  opacity: 0;
+  transition-duration: 120ms;
+}
+body.won .tip-strip .stuck {
+  pointer-events: none;
 }
 .stuck-note {
   position: absolute;

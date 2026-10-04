@@ -579,6 +579,8 @@ export class Toy {
 
   private pendingHighlight: { at: number; moment: ReturnType<typeof pickMoment>; level: LevelDef } | null = null;
   private cooled = false;
+  private inkedCls = false;
+  private wonCls = false;
   private stuck = { x: 0, y: 0, t: -1 };
 
   /** HOME and HUG have no clock: with the ink spent and Little Guy going nowhere, the attempt
@@ -776,6 +778,11 @@ export class Toy {
       g.stroke();
       g.restore();
     }
+    // the tip strip greys once the attempt has ink and goes on a win (CSS reads these)
+    const inked = !!this.level && (this.drawn.length > 0 || this.wet.length > 0 || !!this.live || !!this.auto);
+    const won = !!this.level && this.result === 'win';
+    if (inked !== this.inkedCls) document.body.classList.toggle('inked', (this.inkedCls = inked));
+    if (won !== this.wonCls) document.body.classList.toggle('won', (this.wonCls = won));
     // slow time: the page cools (look-and-feel §7)
     const slow = Math.max(0, Math.min(1, (1 - this.scale) / (1 - INK.toyDrawSpeed)));
     const cool = slow > 0.5;

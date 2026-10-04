@@ -28,21 +28,18 @@ const play = (id: string, ref: number, sumo: number) =>
     [id, ref, sumo] as const,
   );
 await play('3-1', 1, -1);
-await page.waitForTimeout(900);
+await page.waitForTimeout(1000);
 await snap(); // tip strip
-await page.click('.tip-strip .stuck');
-await page.waitForTimeout(300);
-await snap(); // stuck note
-await page.click('.stuck-close');
+await page.waitForTimeout(2200);
+await snap(); // drawing: the tip greys
 await page.waitForSelector('.endcard', { timeout: 40000 });
 await page.waitForTimeout(500);
-await snap(); // end card
+await snap(); // end card, no tip
 await play('', 0, 11);
-await page.waitForTimeout(1500);
-await snap(); // sumo strip
-await page.waitForFunction(() => (window as any).drew.toy.result === 'win' || (window as any).drew.toy.result === 'fail', null, { timeout: 40000 });
-await page.waitForTimeout(700);
-await snap(); // sumo result, foe face
+await page.waitForTimeout(900);
+await page.click('.hud .icon.back');
+await page.waitForTimeout(300);
+await snap(); // pause
 const p2 = await browser.newPage({ viewport: { width: 390 * shots.length, height: 760 } });
 await p2.setContent(`<body style="margin:0;display:flex">${shots.map((b) => `<img src="data:image/png;base64,${b}" width=390>`).join('')}</body>`);
 await p2.waitForTimeout(300);
