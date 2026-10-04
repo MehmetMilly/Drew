@@ -500,6 +500,22 @@ export function drawGuy(g: Ctx, w: World, guy: Guy, alpha: number, frame: number
     g.lineTo(hx + 6, hy - 4);
     g.closePath();
     g.fill();
+  } else if (guy.hat === 'gyoji') {
+    // the sumo referee's tall black cap, leaning back, with its tie under the chin
+    g.fillStyle = COLORS.felt;
+    g.beginPath();
+    g.moveTo(hx - 6, hy - 5);
+    g.quadraticCurveTo(hx - 7, hy - 16, hx - 2, hy - 21);
+    g.lineTo(hx + 4, hy - 19);
+    g.quadraticCurveTo(hx + 7, hy - 12, hx + 6, hy - 5);
+    g.closePath();
+    g.fill();
+    g.strokeStyle = COLORS.felt;
+    g.lineWidth = 1.2;
+    g.beginPath();
+    g.moveTo(hx - 6, hy - 5);
+    g.quadraticCurveTo(hx, hy + 7, hx + 6, hy - 5);
+    g.stroke();
   }
   if (guy.mood === 'startle' && w.t - guy.moodT < 0.6) drawBang(g, hx + 8, hy - 14, w.t - guy.moodT, COLORS.felt); // his surprise, not a threat
 }
