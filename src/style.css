@@ -658,11 +658,17 @@ body.slow #backdrop {
 .daily-card em { font-style: normal; font-size: 24px; opacity: 0.55; display: block; }
 .daily-card b { font-size: 46px; display: block; margin-bottom: 8px; }
 .daily-card canvas { position: static; display: block; width: 100%; height: auto; margin-top: 10px; }
+/* a tear-off calendar page pinned under today's card */
 .calendar {
   position: absolute;
-  left: 110px;
-  top: 760px;
-  width: 500px;
+  left: 100px;
+  top: 610px;
+  width: 520px;
+  box-sizing: border-box;
+  padding: 44px 20px 18px;
+  background: #fffdf6;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.06), 0 10px 22px rgba(60, 45, 20, 0.16);
+  transform: rotate(0.8deg);
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 6px;
@@ -672,6 +678,24 @@ body.slow #backdrop {
   color: #3a3a40;
 }
 .calendar i { font-style: normal; height: 52px; line-height: 52px; position: relative; }
+.calendar::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 14px;
+  background: radial-gradient(circle at 50% 70%, #d8d2c4 0 5px, transparent 5.5px) 0 0 / 40px 14px repeat-x, #1b1b1f;
+}
+.calendar .month {
+  grid-column: 1 / -1;
+  font-family: 'Gochi Hand', sans-serif;
+  font-weight: normal;
+  font-size: 40px;
+  line-height: 44px;
+  color: #1b1b1f;
+  text-align: left;
+}
 .calendar .dow { opacity: 0.5; font-size: 22px; height: 34px; line-height: 34px; }
 .calendar .today { outline: 2px dashed #3a3a40; outline-offset: -4px; border-radius: 10px; }
 .calendar .stamped::after {

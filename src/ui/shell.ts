@@ -382,8 +382,9 @@ export class Shell {
     const today = new Date();
     const key = dateKey(today);
     const day = dailyFor(key);
-    this.root.append(el('div', 'chapter-title', `Daily Doodle<br><span>${day.arena}</span>`));
-    const card = el('button', `note daily-card ${d.cleared[day.level.id] ? 'done' : ''}`, `<em>${key}</em><b>${day.mod.name}</b>`);
+    // one focal point: today's rule is the headline; the arena is the card
+    this.root.append(el('div', 'chapter-title', `Daily Doodle<br><span>${day.mod.name}</span>`));
+    const card = el('button', `note daily-card ${d.cleared[day.level.id] ? 'done' : ''}`, `<em>${key}</em><b>${day.arena}</b>`);
     card.insertBefore(levelThumb(day.level), null);
     this.press(card, () => this.show('play', day.level));
     this.root.append(card);
@@ -393,6 +394,7 @@ export class Shell {
     const first = new Date(y, m, 1).getDay();
     const days = new Date(y, m + 1, 0).getDate();
     const cal = el('div', 'calendar');
+    cal.append(el('b', 'month', today.toLocaleString(undefined, { month: 'long' })));
     for (const w of ['S', 'M', 'T', 'W', 'T', 'F', 'S']) cal.append(el('i', 'dow', w));
     for (let k = 0; k < first; k++) cal.append(el('i', 'blank'));
     for (let k = 1; k <= days; k++) {
