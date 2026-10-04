@@ -66,8 +66,8 @@
 2. The open critic items above.
 4. Dedicated compact Daily arenas.
 5. Phase 6:
-   - audio mix (needs a human ear);
-   - accessibility;
+   - audio mix: balanced by measurement (`npm run mix`); still needs a listen on phone speakers;
+   - accessibility: done (gentle mode is world 0.7×, labelled icons and canvas, keyboard focus ring, reduced motion);
    - real-phone perf (needs a phone);
    - load budget: done, 600 KB in all;
    - critic-final.
