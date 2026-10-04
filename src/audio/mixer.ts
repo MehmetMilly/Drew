@@ -150,13 +150,15 @@ function build(c: AudioContext) {
 
 let lastSound = -1;
 let lastMusic = -1;
+let lastVoices = -1;
 
 /** Mute and music slider from the save settings (0 = off). Cheap; call every frame. */
 export function applyVolumes() {
   if (!ctx || !B) return;
   const st = load().settings;
-  const snd = st.sound > 0 ? 1 : 0;
+  const snd = Math.max(0, Math.min(1, st.sound));
   const mus = Math.max(0, Math.min(1, st.music));
+  const voi = Math.max(0, Math.min(1, st.voices ?? 1));
   const t = ctx.currentTime;
   if (snd !== lastSound) {
     lastSound = snd;
@@ -165,6 +167,10 @@ export function applyVolumes() {
   if (mus !== lastMusic) {
     lastMusic = mus;
     B.music.gain.setTargetAtTime(mus * LEVEL.music, t, 0.05);
+  }
+  if (voi !== lastVoices) {
+    lastVoices = voi;
+    B.creatures.gain.setTargetAtTime(voi * LEVEL.creatures, t, 0.05);
   }
 }
 

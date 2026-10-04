@@ -782,3 +782,38 @@ body.slow #backdrop {
   width: 260px;
   --tilt: 2deg;
 }
+
+/* settings volume sliders: a pencil line with a graphite knob */
+.slider {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 30px;
+  padding: 10px 0;
+  pointer-events: auto;
+}
+.slider span { width: 110px; }
+.slider input {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: #3a3a40;
+  border-radius: 2px;
+  touch-action: none;
+}
+.slider input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #3a3a40;
+  border: 3px solid #fff6c8;
+}
+.slider input::-moz-range-thumb {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #3a3a40;
+  border: 3px solid #fff6c8;
+}

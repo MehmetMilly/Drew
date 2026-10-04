@@ -556,7 +556,24 @@ export class Shell {
       });
       box.append(row);
     };
-    toggle('Sound', () => s.sound > 0, (v) => (s.sound = v ? 1 : 0));
+    // volumes: pencil-line sliders (design §15: sound, music and voices)
+    const slider = (label: string, get: () => number, set: (v: number) => void) => {
+      const row = el('label', 'slider', `<span>${label}</span>`);
+      const r = document.createElement('input');
+      r.type = 'range';
+      r.min = '0';
+      r.max = '1';
+      r.step = '0.05';
+      r.value = String(get());
+      r.addEventListener('input', () => set(Number(r.value)));
+      r.addEventListener('change', () => save());
+      r.addEventListener('pointerdown', (e) => e.stopPropagation());
+      row.append(r);
+      box.append(row);
+    };
+    slider('Sound', () => s.sound, (v) => (s.sound = v));
+    slider('Music', () => s.music, (v) => (s.music = v));
+    slider('Voices', () => s.voices, (v) => (s.voices = v));
     toggle('Gentle mode (slower, more ink)', () => s.gentle, (v) => (s.gentle = v));
     toggle('Intent lines', () => s.intentLines, (v) => (s.intentLines = v));
     toggle('Reduced motion', () => s.reducedMotion, (v) => (s.reducedMotion = v));
