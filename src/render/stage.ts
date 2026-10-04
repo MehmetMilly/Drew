@@ -606,6 +606,8 @@ export function drawBursts(g: Ctx, bursts: Burst[], t: number) {
 export function drawCountdown(g: Ctx, w: World) {
   const left = countdown(w);
   if (left === null || !w.level || w.level.result !== 'play') return;
+  // Sumo: no clock until the bout starts (pass-and-play shows its own draw timer there)
+  if (w.level.def.goal.type === 'sumo' && w.level.foesAt < 0) return;
   const n = Math.ceil(left);
   if (n <= 0) return;
   const frac = n - left; // 0 → 1 within the second
