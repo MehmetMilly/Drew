@@ -160,15 +160,24 @@ export function drawFace(g: Ctx, cr: Creature, v: FaceView) {
     g.lineTo(ox, by + outer * er);
     g.stroke();
   }
-  // strain: sweat drops and a faint red cheek tint
+  // strain: comic effort marks around the head and a sweat drop (graphite: it's the
+  // creature's own effort; red is for threats only). Big enough to read on a phone.
   if (f.strain > 0.25 || cr.brain.mode === 'brace') {
     const s = Math.min(1, f.strain + (cr.brain.mode === 'brace' ? 0.4 : 0));
-    g.fillStyle = `rgba(226,59,46,${0.18 * s})`;
-    for (const side of [-1, 1]) {
+    const flick = Math.floor(v.t * 10) % 2; // marks jitter at 10 Hz, like a held breath
+    g.strokeStyle = COLORS.graphite;
+    g.lineCap = 'round';
+    g.lineWidth = 2.6;
+    g.globalAlpha = 0.5 + 0.5 * s;
+    const R = Math.max(v.gap * 2.4, er * 3.2);
+    for (let k = 0; k < 3; k++) {
+      const a = -Math.PI / 2 + (k - 1) * 0.55 + (flick ? 0.06 : -0.06);
       g.beginPath();
-      g.ellipse(side * (v.gap + er * 0.6), er * 1.2, er * 0.55, er * 0.3, 0, 0, Math.PI * 2);
-      g.fill();
+      g.moveTo(Math.cos(a) * R, Math.sin(a) * R - er);
+      g.lineTo(Math.cos(a) * (R + er * 1.6), Math.sin(a) * (R + er * 1.6) - er);
+      g.stroke();
     }
+    g.globalAlpha = 1;
     const dropT = (v.t * 1.6 + (key % 10) / 10) % 1;
     g.fillStyle = '#FFFFFF';
     g.strokeStyle = COLORS.felt;
