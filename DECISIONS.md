@@ -250,3 +250,22 @@ Every Chapter 2 row of `npm run verify` is green and Chapter 1 is unchanged. Wha
 - Before, it tried one canonical worm in two spots, which was too narrow. Worm lines win Ledge, Pit, Bombs, Ninja, Spikes, Bridge and See-saw.
 - So Worms Only, One Stroke and No Heads are allowed again on those arenas. This reverts this morning's bans and lifts See-saw's.
 - Worms are still slow (about 50 px/s) and can't climb, so their wins come from placement: lying across the gap, or guarding low.
+
+## 2026-10-04: mix set by measurement
+- `npm run mix` plays 1-4, 2-5, 3-2 and 5-4 headless and taps every bus. Loudness is unweighted RMS, a guide rather than LUFS.
+- **Before:** music sat 20 dB under the SFX, and the pencil was the quietest bus, even while drawing.
+- **New bus levels:**
+
+  | Bus | Before | After |
+  |---|---|---|
+  | music | 1.1 | 2.5 |
+  | pencil | 1 | 5 |
+  | creatures | 1 | 0.6 |
+  | world | 0.85 | 0.5 |
+
+- **Result:**
+  - SFX loud moments sit about 6 dB (2–10) over the music.
+  - The pencil is the loudest bus while drawing.
+  - Voices sit above the world effects.
+  - The master no longer peaks into the limiter.
+- **Still needs human ears** on phone speakers (audio.md §7 device check).

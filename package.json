@@ -11,7 +11,8 @@
     "verify": "tsx tools/verify.ts",
     "metrics": "tsx tools/metrics.ts",
     "shots": "tsx tools/shots.ts",
-    "shots:live": "tsx tools/liveshots.mts"
+    "shots:live": "tsx tools/liveshots.mts",
+    "mix": "tsx tools/mixcheck.mts"
   },
   "keywords": [],
   "author": "",

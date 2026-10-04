@@ -36,12 +36,14 @@ let noiseBuf: AudioBuffer | null = null;
 
 // base levels (the mix targets in audio.md §7: pencil loudest while drawing, voices above
 // the world, music about 6 dB under SFX peaks, ambience barely there)
+// (set by tools/mixcheck.mts on 2026-10-04: music ≈ −26 dB RMS, SFX loud moments ≈ +6 dB over it,
+// pencil the loudest bus while drawing)
 export const LEVEL = {
   master: 0.9,
-  music: 1.1,
-  pencil: 1,
-  creatures: 1,
-  world: 0.85,
+  music: 2.5,
+  pencil: 5,
+  creatures: 0.6,
+  world: 0.5,
   ui: 0.7,
   ambience: 0.35,
 };
