@@ -240,3 +240,7 @@ Every Chapter 2 row of `npm run verify` is green and Chapter 1 is unchanged. Wha
 - **Stuck fail:** HOME levels without seconds, and HUG levels, now fail as "stuck" in the play page. This happens when the ink is spent (under 40 px left, nothing wet) and Little Guy moves less than 30 px in 6 s.
   - Before, about 40 qa scenarios idled forever until the player found Retry.
   - It lives in the toy rather than the sim because only the toy knows the ink budget. The sim and replays are unchanged.
+
+## 2026-10-04: load budget met; no lazy chapters
+- The production build is 600 KB in all. That is 285 KB of JS (99 KB gzipped), 13 KB of CSS, plus the audio samples and icons. The look-and-feel budget is 1.5 MB on the critical path.
+- Levels are data and cost a few KB each, so lazy-loading chapters would add complexity for no gain. Revisit this if the music ever becomes a large stock file.

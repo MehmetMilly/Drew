@@ -70,7 +70,7 @@
    - audio mix (needs a human ear);
    - accessibility;
    - real-phone perf (needs a phone);
-   - load budget;
+   - load budget: done, 600 KB in all;
    - critic-final.
 
 ## Open problems
