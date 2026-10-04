@@ -33,6 +33,8 @@ function levelOpen(lv: LevelDef, cleared: Record<string, boolean>): boolean {
   return i === 0 || !!cleared[levels[i - 1].id];
 }
 
+/** An accessible name for a button that shows only an icon. */
+const label = (b: HTMLElement, name: string) => (b.setAttribute('aria-label', name), b);
 const el = (tag: string, cls = '', html = '') => {
   const e = document.createElement(tag);
   if (cls) e.className = cls;
@@ -446,9 +448,9 @@ export class Shell {
   private hud(level: LevelDef | null, back: Screen = 'title') {
     const bar = el('div', 'hud');
     if (level) {
-      bar.append(this.press(el('button', 'icon retry', '<svg viewBox="0 0 40 40"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M29.5 13.5c-3-4.6-9.6-6-14.4-3.1-5 3-6.6 9.7-3.5 14.6 3 4.8 9.6 6.3 14.5 3.3 2.4-1.5 4-3.7 4.6-6.3" stroke-width="3.4"/><path d="M30.2 14.2c-3.2-4.2-9.3-5.4-13.9-2.8" stroke-width="1.4" opacity=".55"/><path d="M31.4 6.6l-.6 8.2-8.1-.9" stroke-width="3.4"/></g></svg>'), () => this.retry()));
+      bar.append(this.press(label(el('button', 'icon retry', '<svg viewBox="0 0 40 40"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M29.5 13.5c-3-4.6-9.6-6-14.4-3.1-5 3-6.6 9.7-3.5 14.6 3 4.8 9.6 6.3 14.5 3.3 2.4-1.5 4-3.7 4.6-6.3" stroke-width="3.4"/><path d="M30.2 14.2c-3.2-4.2-9.3-5.4-13.9-2.8" stroke-width="1.4" opacity=".55"/><path d="M31.4 6.6l-.6 8.2-8.1-.9" stroke-width="3.4"/></g></svg>'), 'Try again'), () => this.retry()));
     }
-    bar.append(this.press(el('button', 'icon back', '<svg viewBox="0 0 40 40"><g fill="none" stroke="currentColor" stroke-linecap="round"><path d="M14.5 10.5c.3 6.4-.2 12.7.4 19" stroke-width="4"/><path d="M25.8 10.2c-.4 6.5.3 12.9-.2 19.3" stroke-width="4"/><path d="M15.4 11.5c.1 5.6 0 11.3.5 16.8" stroke-width="1.3" opacity=".5"/></g></svg>'), () => this.pause(level, back)));
+    bar.append(this.press(label(el('button', 'icon back', '<svg viewBox="0 0 40 40"><g fill="none" stroke="currentColor" stroke-linecap="round"><path d="M14.5 10.5c.3 6.4-.2 12.7.4 19" stroke-width="4"/><path d="M25.8 10.2c-.4 6.5.3 12.9-.2 19.3" stroke-width="4"/><path d="M15.4 11.5c.1 5.6 0 11.3.5 16.8" stroke-width="1.3" opacity=".5"/></g></svg>'), 'Pause'), () => this.pause(level, back)));
     this.root.append(bar);
   }
 

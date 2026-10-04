@@ -160,7 +160,11 @@ export class Toy {
   }
 
   private get drawSpeed() {
-    return this.level ? this.level.draw * (loadSave().settings.gentle ? 0.7 : 1) : INK.toyDrawSpeed;
+    return this.level ? this.level.draw : INK.toyDrawSpeed;
+  }
+  /** Gentle mode (design §15): the whole world runs at 0.7× in levels (the toy page is free play). */
+  private get gentleSpeed() {
+    return this.level && !this.level.casual && loadSave().settings.gentle ? 0.7 : 1;
   }
   private get wetTime() {
     return loadSave().settings.gentle ? INK.wetTimeGentle : INK.wetTime;
@@ -401,7 +405,7 @@ export class Toy {
     if (this.wet.length && !this.live && this.wet.every((s) => t - s.upAt >= this.wetTime)) this.birth();
 
     // the title holds the first frame; a win lands with a short hit-stop
-    if (t >= this.readUntil && t >= this.hitStopUntil && !this.show?.visible && !this.paused) this.acc += dt * this.scale;
+    if (t >= this.readUntil && t >= this.hitStopUntil && !this.show?.visible && !this.paused) this.acc += dt * this.scale * this.gentleSpeed;
     this.watchResult();
     if (!this.paused) this.updateShow(dt);
     let n = 0;

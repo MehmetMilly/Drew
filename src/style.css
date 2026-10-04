@@ -856,3 +856,10 @@ body.slow #backdrop {
   background: #3a3a40;
   border: 3px solid #fff6c8;
 }
+
+/* keyboard focus: a dashed pencil ring (never shown for taps or clicks) */
+button:focus-visible,
+input:focus-visible {
+  outline: 3px dashed #3a3a40;
+  outline-offset: 4px;
+}
