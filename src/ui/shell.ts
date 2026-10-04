@@ -13,11 +13,13 @@ const WORLD_W = WORLD.W;
 const VERSUS_DRAW = 8; // s each player has to draw
 import { dailyFor, dateKey } from '../levels/daily';
 import { PENCILS, setPencil } from '../render/pencils';
+import { dropHazard, setLowGravity, setWater, setWind, type Drop } from '../sim/doodle';
+import type { World } from '../sim/world';
 import { levelThumb } from './thumb';
 import { pencilTick } from '../audio/pencil';
 import { sfxUi } from '../audio/sfx';
 
-type Screen = 'title' | 'chapter' | 'sumo' | 'daily' | 'play' | 'toy' | 'settings' | 'sketchbook' | 'hero' | 'credits';
+type Screen = 'title' | 'chapter' | 'sumo' | 'daily' | 'doodle' | 'play' | 'toy' | 'settings' | 'sketchbook' | 'hero' | 'credits';
 
 const el = (tag: string, cls = '', html = '') => {
   const e = document.createElement(tag);
@@ -91,6 +93,7 @@ export class Shell {
     else if (s === 'chapter') this.chapter();
     else if (s === 'sumo') this.sumo();
     else if (s === 'daily') this.daily();
+    else if (s === 'doodle') this.doodle();
     else if (s === 'settings') this.settings();
     else if (s === 'sketchbook') this.sketchbook();
     else if (s === 'credits') this.credits();
@@ -208,6 +211,7 @@ export class Shell {
       }
     }
     this.root.append(this.pencilCase());
+    if (loadSave().cleared['1-5'] || import.meta.env.DEV) this.root.append(this.press(el('button', 'note doodle-note', '<b>Doodle Pad</b><small>drop in anything</small>'), () => this.show('doodle')));
     this.root.append(this.press(el('button', 'note blank', '<b>Blank page</b><small>draw anything</small>'), () => this.show('toy')));
     this.root.append(this.press(el('button', 'tab back', '← back'), () => this.show('title')));
   }
@@ -246,7 +250,7 @@ export class Shell {
 
   /** Where a level returns to: the Sumo ladder or its chapter. */
   private home(level: LevelDef | null): Screen {
-    return level?.goal.type === 'sumo' ? 'sumo' : level?.mod ? 'daily' : 'chapter';
+    return level?.goal.type === 'sumo' ? 'sumo' : level?.mod ? 'daily' : level?.goal.type === 'free' ? 'sketchbook' : 'chapter';
   }
 
   /** One pass-and-play round: the first drawer draws (their creature sleeps on the far side
@@ -337,6 +341,28 @@ export class Shell {
     return box;
   }
 
+  /** The Doodle Pad: Little Guy on a blank page, infinite ink, a palette that drops in any
+   *  hazard, and switches for water, wind and moon gravity. */
+  private doodle() {
+    const lv: LevelDef = { id: 'doodle', title: 'Doodle Pad', paper: 'cream', goal: { type: 'free' }, draw: 0.1, ink: 1e9, terrain: [], entities: [], guy: { x: 360, y: WORLD.floorY }, anatomyMatters: false, refs: [], casual: true };
+    this.toy.load(lv);
+    this.hud(lv, 'sketchbook');
+    const pal = el('div', 'palette');
+    const drops: [Drop, string][] = [['boulder', 'Boulder'], ['bomb', 'Bomb'], ['ball', 'Ball'], ['sumo', 'Sumo'], ['ninja', 'Ninja'], ['smudger', 'Smudger'], ['scissors', 'Scissors']];
+    for (const [k, name] of drops) pal.append(this.press(el('button', 'chip', name), () => dropHazard(this.toy.world, k)));
+    const toggles: [string, (w: World, on: boolean) => void][] = [['Water', setWater], ['Wind', setWind], ['Moon', setLowGravity]];
+    for (const [name, fn] of toggles) {
+      const b = el('button', 'chip switch', name);
+      this.press(b, () => {
+        const on = !b.classList.contains('on');
+        b.classList.toggle('on', on);
+        fn(this.toy.world, on);
+      });
+      pal.append(b);
+    }
+    this.root.append(pal);
+  }
+
   /** Daily Doodle: today's arena and modifier, a calendar page of stamps, the streak. */
   private daily() {
     this.toy.load(null);
@@ -372,7 +398,7 @@ export class Shell {
   private sumo() {
     this.toy.load(null);
     const d = loadSave();
-    const per = 6;
+    const per = 4;
     const pages = Math.ceil(OPPONENTS.length / per);
     this.root.append(el('div', 'chapter-title', `Sumo<br><span>The Ladder</span>`));
     const grid = el('div', 'levels');
@@ -459,6 +485,7 @@ export class Shell {
 
   private retry() {
     if (this.vs.on) return; // a pass-and-play round is played once
+    if (this.toy.level?.id === 'doodle') return this.show('doodle'); // a fresh page, switches off
     this.root.querySelector('.watch-fail')?.remove();
     if (this.card) {
       this.card.remove();

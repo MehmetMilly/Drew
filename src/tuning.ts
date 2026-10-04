@@ -491,3 +491,12 @@ export const SUMO = {
 export const DAILY = {
   heavy: 5, // Heavy Ink: every particle this many times its mass, as if all of it were lump
 };
+
+/** The Doodle Pad sandbox (design §12, doodle.ts). */
+export const DOODLE = {
+  dropOut: 220, // px from the page centre a dropped hazard lands, away from him
+  dropY: 120, // px: dropped in from near the top
+  waterDepth: 150, // px of water when it is on: over his head, so someone has to float him
+  wind: 2600, // the gale's force
+  lowGravity: 0.35, // × gravity when it is on
+};

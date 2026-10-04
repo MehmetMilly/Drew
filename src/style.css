@@ -466,7 +466,7 @@ body.slow #backdrop {
 .note.blank {
   position: absolute;
   right: 60px;
-  top: 990px;
+  top: 1060px;
   --tilt: 2deg;
   background: #fffdf6;
 }
@@ -650,7 +650,7 @@ body.slow #backdrop {
 }
 .daily-card em { font-style: normal; font-size: 24px; opacity: 0.55; display: block; }
 .daily-card b { font-size: 46px; display: block; margin-bottom: 8px; }
-.daily-card canvas { width: 100%; height: auto; }
+.daily-card canvas { position: static; display: block; width: 100%; height: auto; margin-top: 10px; }
 .calendar {
   position: absolute;
   left: 110px;
@@ -694,7 +694,7 @@ body.slow #backdrop {
 .note.versus {
   position: absolute;
   left: 230px;
-  top: 1010px;
+  top: 850px;
   width: 260px;
   --tilt: 1.5deg;
 }
@@ -745,3 +745,40 @@ body.slow #backdrop {
 .pencil.on small { text-decoration: underline wavy #3a3a40; font-weight: bold; }
 .pencil.locked { opacity: 0.4; }
 .pencil.locked i { filter: grayscale(1); }
+
+/* Doodle Pad: a palette of hand-lettered chips under the HUD */
+.palette {
+  position: absolute;
+  left: 30px;
+  right: 30px;
+  top: 120px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  pointer-events: auto;
+}
+.chip {
+  font-family: 'Patrick Hand', cursive;
+  font-size: 28px;
+  padding: 6px 16px;
+  background: #fff6c8;
+  border: 0;
+  border-radius: 4px;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.12);
+  color: #1b1b1f;
+  transform: rotate(var(--tilt, -1deg));
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.chip:nth-child(even) { --tilt: 1.2deg; }
+.chip:active { transform: rotate(var(--tilt, -1deg)) scale(0.95); }
+.chip.switch { background: #f1efe8; }
+.chip.switch.on { background: #fff6c8; text-decoration: underline wavy; }
+.note.doodle-note {
+  position: absolute;
+  left: 60px;
+  top: 1060px;
+  width: 260px;
+  --tilt: 2deg;
+}

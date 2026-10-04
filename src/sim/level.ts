@@ -18,6 +18,8 @@ import { shrinkRing, spawnFoes, teamOnRing, type SumoRing } from './sumo';
 /** SCORE: n balls dropped down through the hoop (rim centre x, y) within `seconds`. */
 export type Goal =
   | { type: 'hug' }
+  /** the Doodle Pad: no goal, it never ends */
+  | { type: 'free' }
   /** SUMO: shove the pre-drawn opponent (`foe`, `name`) off the ring; the ring shrinks after `seconds` */
   | { type: 'sumo'; seconds: number; ring: SumoRing; foe: Pt[][]; name: string }
   /** BOSS: beat the Big Eraser (sharpen it, punch it back in, squash its crumbs) */
@@ -241,7 +243,7 @@ export function canCarry(w: World, cr: Creature, g: Guy) {
 export function carryGoal(w: World): { x: number; y: number; home: boolean } | null {
   const d = w.level!.def;
   if (d.goal.type === 'home') return { x: d.goal.x, y: d.goal.y, home: true };
-  if (d.goal.type === 'save' && w.props?.pools.length) return { x: d.guy.x, y: -1e4, home: false };
+  if ((d.goal.type === 'save' || d.goal.type === 'free') && w.props?.pools.length) return { x: d.guy.x, y: -1e4, home: false };
   return null;
 }
 
