@@ -529,9 +529,9 @@ export function drawBursts(g: Ctx, bursts: Burst[], t: number) {
       if (age > 0.6) continue;
       const k = age / 0.6;
       g.save();
-      g.globalAlpha = 1 - k;
+      g.globalAlpha = k < 0.5 ? 1 : 2 - 2 * k; // full strength, then gone: the biggest event reads
       g.strokeStyle = COLORS.felt;
-      g.lineWidth = 4;
+      g.lineWidth = 6;
       g.beginPath();
       // a felt-tip scribble burst
       for (let i = 0; i < 26; i++) {
@@ -542,9 +542,9 @@ export function drawBursts(g: Ctx, bursts: Burst[], t: number) {
       }
       g.stroke();
       g.fillStyle = COLORS.red;
-      g.font = 'bold 40px "Gochi Hand", cursive';
+      g.font = 'bold 58px "Gochi Hand", cursive';
       g.textAlign = 'center';
-      g.fillText('BOOM', b.x, b.y - 30 - k * 30);
+      g.fillText('BOOM', b.x, b.y - 40 - k * 30);
       g.restore();
     } else if (b.kind === 'poof') {
       if (age > 1.4) continue;
@@ -782,16 +782,17 @@ export function drawRing(g: Ctx, w: World) {
   if (!T) return;
   const y = goal.ring.y + 10;
   g.save();
-  g.strokeStyle = COLORS.cream;
-  g.lineWidth = 5;
+  // the rope is what matters here (yellow): push the other one past it
+  g.strokeStyle = COLORS.yellow;
+  g.lineWidth = 6;
   g.lineCap = 'round';
-  g.setLineDash([14, 7]);
+  g.setLineDash([18, 6]);
   g.beginPath();
   g.moveTo(T.minX + 14, y);
   g.lineTo(T.maxX - 14, y);
   g.stroke();
   g.setLineDash([]);
-  g.fillStyle = COLORS.cream;
+  g.fillStyle = COLORS.yellow;
   for (const x of [T.minX + 12, T.maxX - 12]) {
     g.beginPath();
     g.arc(x, y, 7, 0, Math.PI * 2);

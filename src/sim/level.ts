@@ -142,6 +142,11 @@ export function levelStep(w: World) {
   if (L.result !== 'play') return;
 
   if (g.alive) checkDeaths(w);
+  // the toy never fails (design: toy first): after the poof he pops back where he started
+  if (!g.alive && L.def.casual) {
+    if (w.t - g.diedAt >= LEVEL.toyRespawn) w.guy = spawnGuy(w, L.def.guy.x, L.def.guy.y, L.def.guy.hat ?? 'none');
+    return;
+  }
   if (!g.alive) {
     L.result = 'fail';
     L.resultAt = w.t;

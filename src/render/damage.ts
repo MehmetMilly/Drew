@@ -176,7 +176,7 @@ export function drawSharpener(g: Ctx, w: World) {
   const mx = left ? x0 + DMG.sharpenerW - 10 : x0 + 10;
   g.fillRect(left ? mx - 4 : mx - 6, top, 10, bot - top - 10);
   // the blade
-  g.fillStyle = COLORS.red;
+  g.fillStyle = COLORS.yellow; // the goal (what matters), not a threat
   g.beginPath();
   g.moveTo(mx, top + 6);
   g.lineTo(mx + (left ? -16 : 16), (top + bot) / 2);

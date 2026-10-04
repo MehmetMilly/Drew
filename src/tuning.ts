@@ -237,6 +237,7 @@ export const LOOK = {
   pointHeadK: 0.06,
   boilFrames: 3,
   boilAmp: 0.8,
+  foeWidth: 1.5, // a Sumo opponent's line weight vs the player's ink (felt-tip, not pencil)
   nameplateHold: 1.5,
   nameplateSlap: 0.16,
   blinkMin: 2,
@@ -380,6 +381,7 @@ export const LEVEL = {
   foresee: 0.5, // s: a sleeping threat this close to waking already counts
   readTime: 1.0, // s the title holds the first frame (design §2)
   failBeat: 0.6, // s of comic beat before a tap retries
+  toyRespawn: 1, // s after the poof before Little Guy pops back on the Doodle Pad (it never fails)
   hitStop: 0.15, // s the world freezes as the stamp lands
   cardDelay: 1.3, // s from the win to the end card
   hoopW: 70, // px: SCORE rim width (a ball dropping through it scores)

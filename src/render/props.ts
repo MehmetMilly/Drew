@@ -15,6 +15,8 @@ export function drawWater(g: Ctx, w: World) {
   const S = w.props;
   if (!S?.pools.length) return;
   g.save();
+  // a watercolour wash multiplies: black terrain stays black under it (navy is no colour job)
+  g.globalCompositeOperation = 'multiply';
   for (const q of S.pools) {
     const p = q.prop;
     const bottom = w.H;

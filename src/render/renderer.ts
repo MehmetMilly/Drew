@@ -75,15 +75,14 @@ export class WorldRenderer {
 
   private onEvent(e: SimEvent) {
     const w = this.w;
-    if ((e.type === 'born' || e.type === 'piece') && e.cr !== undefined) {
+    // one nameplate on screen at a time; a severed piece gets eyes and a "!", not a label
+    if (e.type === 'born' && e.cr !== undefined) {
       const cr = w.creatures[e.cr];
-      this.plates = this.plates.filter((p) => p.cr !== e.cr);
-      this.plates.push({ cr: e.cr, text: cr.name, t0: e.t + (e.type === 'piece' ? 0.15 : 0.12), angle: hashNoise(cr.seed, 5) * 0.12 });
+      this.plates = [{ cr: e.cr, text: cr.name, t0: e.t + 0.12, angle: hashNoise(cr.seed, 5) * 0.12 }];
     } else if (e.type === 'graft' && e.cr !== undefined && e.text) {
       // "Kevin grew an arm!": the plate slaps on again with the news
       const cr = w.creatures[e.cr];
-      this.plates = this.plates.filter((p) => p.cr !== e.cr);
-      this.plates.push({ cr: e.cr, text: e.text, t0: e.t + 0.1, angle: -hashNoise(cr.seed, 9) * 0.12 });
+      this.plates = [{ cr: e.cr, text: e.text, t0: e.t + 0.1, angle: -hashNoise(cr.seed, 9) * 0.12 }];
     } else if (e.type === 'dust' && e.pts) this.dusts.push({ pts: e.pts, t0: e.t });
     else if (e.type === 'tear' && e.x !== undefined) this.snaps.push({ x: e.x, y: e.y!, t0: e.t });
     else if (e.type === 'boom') this.bursts.push({ kind: 'boom', x: e.x!, y: e.y!, t0: e.t });
@@ -193,9 +192,9 @@ export class WorldRenderer {
     const foe = L.def.goal.foe.filter((st) => st.length);
     if (!foe.length) return;
     g.save();
-    g.strokeStyle = this.pattern!;
+    g.strokeStyle = COLORS.felt; // not the player's ink: it belongs to the world
     g.globalAlpha = 0.93;
-    g.lineWidth = 9;
+    g.lineWidth = 9 * LOOK.foeWidth;
     g.lineCap = 'round';
     g.lineJoin = 'round';
     foe.forEach((st, si) => {
@@ -225,7 +224,13 @@ export class WorldRenderer {
       C = w.C;
     g.fillStyle = this.pattern!;
     g.globalAlpha = 0.93;
+    const foeInk = (i: number) => w.creatures[P.owner[i]]?.team === 1;
     for (const sk of w.skins) {
+      // colour jobs: the player's ink is graphite; a Sumo opponent is part of the world (felt)
+      const pi = sk.lump ? sk.lump.centre : sk.pa[0];
+      const foe = pi >= 0 && foeInk(pi);
+      g.fillStyle = foe ? COLORS.felt : this.pattern!;
+      const wk = foe ? LOOK.foeWidth : 1; // a bolder felt-tip line, like the terrain's
       let n = 0;
       const flush = () => {
         if (n > 0) ribbon(g, XS, YS, WS, 0, n, 9, 11, sk.closed && n === sk.n);
@@ -290,7 +295,7 @@ export class WorldRenderer {
         y += boil1(sk.stroke * 2 + 2, s, frame) * LOOK.boilAmp;
         XS[n] = x;
         YS[n] = y;
-        WS[n] = widthPx(sk.width[k]);
+        WS[n] = widthPx(sk.width[k]) * wk;
         n++;
         if (n >= MAXP - 1) flush();
       }

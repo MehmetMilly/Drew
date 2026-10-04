@@ -88,7 +88,7 @@ export function sumoLevel(k: number): LevelDef {
       ],
     ],
     entities: [],
-    guy: { x: 50, y: GROUND_Y, hat: 'gyoji' },
+    guy: { x: 66, y: GROUND_Y, hat: 'gyoji' },
     anatomyMatters: true,
     baseline: { x: 250, y: RING.y },
     refs: [
