@@ -28,6 +28,7 @@ export class Toy {
   private g: CanvasRenderingContext2D;
   private og: CanvasRenderingContext2D;
   private paper: HTMLCanvasElement | null = null;
+  private paperName = 'cream';
   private desk: HTMLCanvasElement | null = null;
   private wet: WetStroke[] = [];
   private live: WetStroke | null = null;
@@ -98,10 +99,13 @@ export class Toy {
   }
 
   /** Start a level (or the blank page with null). Retrying the same level keeps a ghost. */
-  load(def: LevelDef | null) {
+  load(def: LevelDef | null, blankPaper = 'cream') {
     const same = def && this.level && def.id === this.level.id;
     this.ghost = same && this.drawn.length ? this.drawn : same ? this.ghost : [];
-    const paperChange = (def?.paper ?? 'cream') !== (this.level?.paper ?? 'cream');
+    // (a menu page with no level can still be on a chapter's paper)
+    const paper = def?.paper ?? blankPaper;
+    const paperChange = paper !== this.paperName;
+    this.paperName = paper;
     this.level = def;
     if (paperChange && this.rect) this.resize();
     this.world = new World({ seed: 1 });
@@ -241,7 +245,7 @@ export class Toy {
     this.rect = layoutPage(w, h, dpr, safeInsets());
     this.worldDpr = Math.min(this.worldDpr, dpr);
     this.applyWorldDpr();
-    this.paper = renderPaper(PAPERS[this.level?.paper ?? 'cream'] ?? PAPERS.cream, Math.round(this.rect.w * dpr), Math.round(this.rect.h * dpr));
+    this.paper = renderPaper(PAPERS[this.paperName] ?? PAPERS.cream, Math.round(this.rect.w * dpr), Math.round(this.rect.h * dpr));
     this.desk = renderDesk(Math.round(w * dpr), Math.round(h * dpr));
     // static backdrop: desk, page shadow, paper (drawn once per resize)
     const b = this.bg,

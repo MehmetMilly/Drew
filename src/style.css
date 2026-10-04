@@ -187,9 +187,16 @@ body.slow #backdrop {
   display: inline-block;
   box-sizing: border-box;
 }
+/* an earned badge is a rubber-stamp mark in felt-tip black (look-and-feel §8), with stamp grain */
 .slot.on {
-  background: #f2c230;
   border-color: #1b1b1f;
+  background:
+    radial-gradient(circle at 30% 35%, rgba(244, 241, 232, 0.35) 0 1.2px, transparent 1.6px),
+    radial-gradient(circle at 68% 62%, rgba(244, 241, 232, 0.3) 0 1px, transparent 1.4px),
+    radial-gradient(circle at 55% 25%, rgba(244, 241, 232, 0.25) 0 0.8px, transparent 1.2px),
+    radial-gradient(circle at 40% 72%, rgba(244, 241, 232, 0.3) 0 0.9px, transparent 1.3px),
+    #1b1b1f;
+  transform: rotate(-8deg);
 }
 .slot.new {
   animation: pop 420ms cubic-bezier(0.23, 1, 0.32, 1) 300ms both;

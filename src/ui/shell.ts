@@ -229,9 +229,9 @@ export class Shell {
   }
 
   private chapter() {
-    this.toy.load(null);
-    const d = loadSave();
     const ch = CHAPTERS[this.chapterIdx];
+    this.toy.load(null, ch.levels[0]?.paper ?? 'cream'); // each chapter's spread on its own paper
+    const d = loadSave();
     this.root.append(el('div', 'chapter-title', `Chapter ${ch.id}<br><span>${ch.title}</span>`));
     const grid = el('div', 'levels');
     ch.levels.forEach((lv, i) => {
