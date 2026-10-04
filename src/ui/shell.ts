@@ -5,6 +5,7 @@ import { Toy } from '../game/toy';
 import type { LevelDef } from '../sim/level';
 import { CHAPTERS, ALL_LEVELS } from '../levels';
 import { load as loadSave, save, type Hero } from '../game/save';
+import { TIPS } from '../levels/tips';
 import { hallCanvas, PER_PAGE } from './hall';
 import { OPPONENTS, RING, sumoLevel } from '../levels/sumo';
 import { WORLD } from '../tuning';
@@ -59,6 +60,7 @@ export class Shell {
     addEventListener('resize', () => requestAnimationFrame(() => this.fit()));
     toy.onWin = (info) => this.endCard(info);
     toy.onRetry = () => this.retry();
+    toy.onDemoEnd = () => this.demoEnd();
     toy.onFail = () => this.failWatch();
     toy.onWatchEnd = () => {
       if (this.card) this.card.style.display = '';
@@ -446,6 +448,9 @@ export class Shell {
     if (level) {
       bar.append(this.press(label(el('button', 'icon retry', '<svg viewBox="0 0 40 40"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M29.5 13.5c-3-4.6-9.6-6-14.4-3.1-5 3-6.6 9.7-3.5 14.6 3 4.8 9.6 6.3 14.5 3.3 2.4-1.5 4-3.7 4.6-6.3" stroke-width="3.4"/><path d="M30.2 14.2c-3.2-4.2-9.3-5.4-13.9-2.8" stroke-width="1.4" opacity=".55"/><path d="M31.4 6.6l-.6 8.2-8.1-.9" stroke-width="3.4"/></g></svg>'), 'Try again'), () => this.retry()));
     }
+    // the hint ladder (playtest 2026-10-04): always there, never a punishment. A tip in words,
+    // then a body to trace, then watch one way to do it
+    if (level && !level.casual && level.refs.length && !this.vs.on) this.root.append(this.press(el('button', 'tab hint-btn', '✎ hint'), () => this.hintNote(level)));
     bar.append(this.press(label(el('button', 'icon back', '<svg viewBox="0 0 40 40"><g fill="none" stroke="currentColor" stroke-linecap="round"><path d="M14.5 10.5c.3 6.4-.2 12.7.4 19" stroke-width="4"/><path d="M25.8 10.2c-.4 6.5.3 12.9-.2 19.3" stroke-width="4"/><path d="M15.4 11.5c.1 5.6 0 11.3.5 16.8" stroke-width="1.3" opacity=".5"/></g></svg>'), 'Pause'), () => this.pause(level, back)));
     this.root.append(bar);
   }
@@ -483,26 +488,72 @@ export class Shell {
     this.root.append(scrim);
   }
 
+  private hintNote(level: LevelDef) {
+    if (this.root.querySelector('.scrim') || this.toy.demoing) return;
+    this.toy.paused = true;
+    const scrim = el('div', 'scrim');
+    const note = el('div', 'note pause-note hint-note');
+    const close = () => {
+      this.toy.paused = false;
+      scrim.remove();
+    };
+    note.append(el('b', '', 'Hint'));
+    note.append(el('p', 'tip', TIPS[level.id] ?? 'Every body does something different. Try a new shape!'));
+    note.append(
+      this.press(el('button', 'line', '✎ Show me a body to trace'), () => {
+        close();
+        this.toy.showHint();
+      }),
+    );
+    note.append(
+      this.press(el('button', 'line', '▶ Watch one way to do it'), () => {
+        close();
+        this.root.querySelector('.watch-fail')?.remove();
+        this.root.querySelector('.your-turn')?.remove();
+        if (this.card) (this.card.remove(), (this.card = null));
+        this.toy.demo();
+      }),
+    );
+    note.append(this.press(el('button', 'line', 'Got it'), close));
+    scrim.append(note);
+    scrim.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      if (e.target === scrim) close();
+    });
+    this.root.append(scrim);
+  }
+
+  /** The demo is over: the blue body stays up to copy, and one button hands the pencil back. */
+  private demoEnd() {
+    if (this.screen !== 'play') return;
+    this.root.querySelector('.your-turn')?.remove();
+    const b = this.press(el('button', 'tab watch-fail your-turn', '✎ your turn!'), () => {
+      b.remove();
+      this.retry();
+    });
+    this.root.append(b);
+  }
+
   /** Fail: tap anywhere retries; a small Watch button sits beside the prompt. */
   private failWatch() {
     if (this.vs.on && this.screen === 'play') return this.versusResult(false);
     if (this.screen !== 'play' || this.card) return;
     this.root.querySelector('.watch-fail')?.remove();
-    const b = this.press(el('button', 'tab watch-fail', '▶ watch'), () => {
-      b.remove();
+    const row = el('div', 'watch-fail fail-row');
+    row.append(this.press(el('button', 'tab again', '↻ try again'), () => this.retry()));
+    const b = this.press(el('button', 'tab', '▶ watch'), () => {
+      row.remove();
       this.toy.watch();
     });
-    this.root.append(b);
-    // stuck: after two fails a hint button offers a body to trace (it stays for the retries)
-    const L = this.toy.level;
-    if (L && !L.casual && L.refs.length && (loadSave().fails[L.id] ?? 0) >= 2 && !this.root.querySelector('.hint-btn'))
-      this.root.append(this.press(el('button', 'tab hint-btn', '✎ hint'), () => this.toy.showHint()));
+    row.append(b);
+    this.root.append(row);
   }
 
   private retry() {
     if (this.vs.on) return; // a pass-and-play round is played once
     if (this.toy.level?.id === 'doodle') return this.show('doodle'); // a fresh page, switches off
     this.root.querySelector('.watch-fail')?.remove();
+    this.root.querySelector('.your-turn')?.remove();
     if (this.card) {
       this.card.remove();
       this.card = null;

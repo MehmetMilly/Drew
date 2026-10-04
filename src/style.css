@@ -358,6 +358,35 @@ body.slow #backdrop {
   color: #7fb2e5;
   opacity: 1;
 }
+.hint-note .tip {
+  font-size: 34px;
+  line-height: 1.15;
+  margin: 6px 0 14px;
+  max-width: 520px;
+  color: #1b1b1f;
+}
+
+.fail-row {
+  position: absolute;
+  top: 730px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 28px;
+  white-space: nowrap;
+}
+.fail-row .tab {
+  position: static;
+  transform: none;
+  opacity: 1;
+  color: #3a3a40;
+}
+.fail-row .again {
+  font-size: 48px;
+  border: 3px solid #3a3a40;
+  border-radius: 18px 22px 16px 24px;
+  background: #fffdf6;
+}
 .note.small.watch {
   --tilt: 1.5deg;
   background: #fffdf6;

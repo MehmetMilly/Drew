@@ -207,6 +207,7 @@ export const CREATURE_COLLIDE = {
 
 // design.md §3 (game rules mirrored here)
 export const INK = {
+  autoPen: 1100, // px/s: the auto-pen (solution demo, tutorial) draws this fast, in real time
   wetTime: 1.0,
   wetTimeGentle: 2.0,
   toyDrawSpeed: 0.05,
@@ -389,6 +390,8 @@ export const LEVEL = {
   toyRespawn: 1, // s after the poof before Little Guy pops back on the Doodle Pad (it never fails)
   hitStop: 0.15, // s the world freezes as the stamp lands
   cardDelay: 1.3, // s from the win to the end card
+  celebrate: 1.6, // s of live happy faces (closed-arc eyes, the hug, the heart) before the highlight replay
+  cardAfterStamp: 1.1, // s the stamp and the happy page hold before the end card
   hoopW: 70, // px: SCORE rim width (a ball dropping through it scores)
   hoopBoard: 60, // px: the backboard above the rim
   cargoBack: 1.6, // s a loose ball lies still before a little player takes it back
@@ -520,14 +523,19 @@ export const DMG = {
 
 /** Sumo mode (design §12, sumo.ts). */
 export const SUMO = {
+  wallMul: 1, // opposing teams' ink collides at this × the usual particle diameter (no slipping between thin links)
+  linkMul: 0.01, // a particle keeps this × its radius off the other team's links
+  wallRelax: 0.5, // ...and resolves the whole overlap per pass
   noDraw: 30, // px around the opponent's ink the pencil skips over (ink there would tangle with it)
   drive: 60, // px: it aims this far beyond the opponent, so it keeps walking into it
   reachLow: 10, // px below the opponent's centre that hands go for (under its weight)
   outDepth: 30, // px below the ring top a centre of mass counts as off
   edgeSlop: 10, // px beyond the ring's edge
   grace: 0.6, // s after waking before anyone can lose
-  shrink: 18, // px/s from each edge after time-out
-  minHalf: 30, // px: the ring never shrinks below this half width
+  shrink: 30, // px/s from each edge after time-out: it keeps going until someone falls
+  minHalf: 6, // px: the ring never shrinks below this half width
+  lavaDepth: 120, // px below the ring top the lava surface lies: whatever touches it burns
+  pillarTop: 770, // px: the perch Little Guy cheers from, off to the side, above the fight
   penSpeed: 900, // px/s: the pre-drawn opponent's strokes are timed as a steady hand
 };
 

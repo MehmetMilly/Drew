@@ -79,6 +79,11 @@ export class Toy {
   private hintTrace: Pt[][] | null = null;
   private hintTraceLevel = '';
   private hintTraceN = 0;
+  /** The auto-pen: draws given strokes as if by hand (the solution demo and the tutorial). */
+  private auto: { strokes: Pt[][]; cum: number[][]; si: number; d: number; speed: number; down: boolean; tip: Pt | null } | null = null;
+  /** A solution demo is playing: nothing it does is recorded. */
+  demoing = false;
+  onDemoEnd?: (won: boolean) => void;
   /** shell hooks */
   onWin: ((info: { level: LevelDef; heroes: { name: string; kind: string }[]; newBadges: string[]; epitaph: string; strokes: Pt[][] }) => void) | null = null;
   onRetry: (() => void) | null = null;
@@ -122,6 +127,9 @@ export class Toy {
     this.drawn = [];
     this.births = [];
     this.show = null;
+    this.pendingHighlight = null;
+    this.auto = null;
+    this.demoing = false;
     this.stampAt = Infinity;
     this.winInfo = null;
     this.inkUsed = 0;
@@ -176,6 +184,70 @@ export class Toy {
     this.overlayDirty = true;
   }
 
+  /** Watch one way to do it: the level restarts and the auto-pen draws the reference body that
+   *  the trace ghost shows (it stays up afterwards, to copy). Nothing is recorded. */
+  demo() {
+    const L = this.level;
+    if (!L || !L.refs.length) return;
+    if (!this.hintTrace || this.hintTraceLevel !== L.id) this.showHint();
+    const strokes = this.hintTrace!;
+    this.load(L);
+    this.demoing = true;
+    this.autoDraw(strokes);
+  }
+
+  /** Draw these strokes with the auto-pen, at `speed` px/s of real time. */
+  autoDraw(strokes: Pt[][], speed: number = INK.autoPen) {
+    const cum = strokes.map((st) => {
+      const c = [0];
+      for (let i = 1; i < st.length; i++) c.push(c[i - 1] + Math.hypot(st[i].x - st[i - 1].x, st[i].y - st[i - 1].y));
+      return c;
+    });
+    this.auto = { strokes, cum, si: 0, d: 0, speed, down: false, tip: null };
+  }
+
+  get autoBusy() {
+    return !!this.auto;
+  }
+
+  private autoStep(dt: number) {
+    const a = this.auto;
+    if (!a || this.now < this.readUntil || this.paused) return;
+    const st = a.strokes[a.si];
+    if (!st) {
+      this.auto = null;
+      return;
+    }
+    const c = a.cum[a.si];
+    const len = c[c.length - 1];
+    const at = (d: number): Pt => {
+      let i = 1;
+      while (i < c.length - 1 && c[i] < d) i++;
+      const u = c[i] > c[i - 1] ? Math.min(1, Math.max(0, (d - c[i - 1]) / (c[i] - c[i - 1]))) : 1;
+      return { x: st[i - 1].x + (st[i].x - st[i - 1].x) * u, y: st[i - 1].y + (st[i].y - st[i - 1].y) * u };
+    };
+    if (!a.down) {
+      this.penDown({ x: st[0].x, y: st[0].y, t: this.now, p: 0.5 });
+      a.down = true;
+      a.d = 0;
+      a.tip = st[0];
+      return;
+    }
+    const d0 = a.d;
+    a.d = Math.min(len, a.d + a.speed * dt);
+    const pts: LivePt[] = [];
+    for (let i = 1; i < c.length; i++) if (c[i] > d0 && c[i] < a.d) pts.push({ x: st[i].x, y: st[i].y, t: this.now, p: 0.5 });
+    const e = at(a.d);
+    pts.push({ x: e.x, y: e.y, t: this.now, p: 0.5 });
+    this.penMove(pts, []);
+    a.tip = e;
+    if (a.d >= len) {
+      this.penUp({ x: e.x, y: e.y, t: this.now + 1, p: 0.5 }, false);
+      a.down = false;
+      a.si++;
+    }
+  }
+
   private get drawSpeed() {
     return this.level ? this.level.draw : INK.toyDrawSpeed;
   }
@@ -203,9 +275,10 @@ export class Toy {
     addEventListener('resize', () => this.resize());
     attachPen(overlay, {
       toPage: (x, y) => clientToPage(this.rect, x, y),
-      down: (p) => this.penDown(p),
-      move: (pts, pred) => this.penMove(pts, pred),
-      up: (p, _e, cancelled) => this.penUp(p, cancelled),
+      // the auto-pen owns the page while it draws, and a solution demo is only watched
+      down: (p) => !this.auto && !this.demoing && this.penDown(p),
+      move: (pts, pred) => !this.auto && !this.demoing && this.penMove(pts, pred),
+      up: (p, _e, cancelled) => !this.auto && !this.demoing && this.penUp(p, cancelled),
       multiTap: (n) => {
         if (n >= 3) this.debug = !this.debug;
         else if (n === 2) this.undo();
@@ -307,7 +380,7 @@ export class Toy {
     for (const p0 of pts) {
       const p = { x: Math.max(2, Math.min(WORLD.W - 2, p0.x)), y: Math.max(2, Math.min(WORLD.H - 2, p0.y)), t: p0.t, p: p0.p };
       // no-draw zones: the pencil skips over solid terrain (design §3)
-      if (this.level && this.insideTerrain(p.x, p.y)) {
+      if (this.level && !this.auto && this.insideTerrain(p.x, p.y)) {
         if (!this.blocked) {
           this.blocked = true;
           this.blockMark = { x: p.x, y: p.y, t: this.now };
@@ -334,7 +407,7 @@ export class Toy {
     if (!this.liveMoved && Math.hypot(s.pts[s.pts.length - 1].x - this.liveStart.x, s.pts[s.pts.length - 1].y - this.liveStart.y) > TAP_MAX_MOVE * 0.6) {
       this.liveMoved = true;
       this.setScale(this.drawSpeed, INK.easeIn);
-      this.hintAlpha = 0.999;
+      if (this.hintAlpha >= 1) this.hintAlpha = 0.999; // the toy page's hint starts to fade
     }
     if (this.liveMoved) {
       const n = s.pts.length;
@@ -418,12 +491,21 @@ export class Toy {
     const e = 1 - Math.pow(1 - u, 3);
     this.scale = this.scaleFrom + (this.scaleTarget - this.scaleFrom) * e;
 
+    this.autoStep(dt);
     // drying → birth (all at once, when every stroke is dry and the pen is up)
-    if (this.wet.length && !this.live && this.wet.every((s) => t - s.upAt >= this.wetTime)) this.birth();
+    if (this.wet.length && !this.live && !this.auto && this.wet.every((s) => t - s.upAt >= this.wetTime)) this.birth();
 
     // the title holds the first frame; a win lands with a short hit-stop
     if (t >= this.readUntil && t >= this.hitStopUntil && !this.show?.visible && !this.paused) this.acc += dt * this.scale * this.gentleSpeed;
     this.watchResult();
+    const ph = this.pendingHighlight;
+    if (ph && t >= ph.at && !this.paused) {
+      this.pendingHighlight = null;
+      if (this.level === ph.level && this.result === 'win') {
+        this.show = new Show(ph.level, this.births, ph.moment, this.endStep, 'highlight', t, loadSave().settings.reducedMotion);
+        if (this.show.phase === 'done') this.slam();
+      }
+    }
     if (!this.paused) this.updateShow(dt);
     let n = 0;
     while (this.acc >= WORLD.dt && n < 4) {
@@ -484,6 +566,7 @@ export class Toy {
     }
   }
 
+  private pendingHighlight: { at: number; moment: ReturnType<typeof pickMoment>; level: LevelDef } | null = null;
   private cooled = false;
   private stuck = { x: 0, y: 0, t: -1 };
 
@@ -518,6 +601,12 @@ export class Toy {
     if (!L || !this.level || this.result !== 'play' || L.result === 'play') return;
     this.result = L.result;
     this.resultAt = this.now;
+    if (this.demoing) {
+      const won = L.result === 'win';
+      if (won) for (const cr of this.world.creatures) cr.face.happy = 3;
+      setTimeout(() => this.demoing && this.result !== 'play' && this.onDemoEnd?.(won), (won ? LEVEL.celebrate : LEVEL.failBeat) * 1000);
+      return;
+    }
     if (L.result === 'win') {
       this.hitStopUntil = this.now + LEVEL.hitStop;
       const heroes = this.world.creatures.filter((c) => c.alive && !c.isPiece).map((c) => ({ name: c.name, kind: c.kind }));
@@ -536,8 +625,8 @@ export class Toy {
       const fresh = this.level.casual ? [] : recordWin(this.level.id, kinds, best ? { name: best.name, kind: best.kind, level: this.level.id, strokes: best.strokes, at: Date.now(), epitaph: ep, eye } : null);
       this.winInfo = { level: this.level, heroes, newBadges: fresh, epitaph: ep, strokes: this.drawn };
       this.endStep = this.world.steps;
-      this.show = new Show(this.level, this.births, pickMoment(this.world), this.endStep, 'highlight', this.now + LEVEL.hitStop, loadSave().settings.reducedMotion);
-      if (this.show.phase === 'done') this.slam();
+      // the happy faces get the stage first (live, closed-arc eyes, the hug), then the replay
+      this.pendingHighlight = { at: this.now + LEVEL.hitStop + LEVEL.celebrate, moment: pickMoment(this.world), level: this.level };
     } else {
       this.endStep = this.world.steps;
       if (!this.level.casual) recordFail(this.level.id);
@@ -587,7 +676,7 @@ export class Toy {
     this.stampAt = this.now;
     if (!loadSave().settings.reducedMotion) this.juice.trauma = Math.min(1, this.juice.trauma + 0.3);
     const info = this.winInfo;
-    if (info) setTimeout(() => this.level?.id === info.level.id && this.result === 'win' && this.onWin?.(info), 220);
+    if (info) setTimeout(() => this.level?.id === info.level.id && this.result === 'win' && this.onWin?.(info), LEVEL.cardAfterStamp * 1000);
   }
 
   private updateShow(dt: number) {
@@ -648,6 +737,33 @@ export class Toy {
       g.arc(this.tapMark.x, this.tapMark.y, 8 + 16 * k, 0, Math.PI * 2);
       g.stroke();
       g.globalAlpha = 1;
+    }
+    // the auto-pen's ghost pencil (guide blue), its tip on the line it draws
+    const tip = this.auto?.tip;
+    if (tip) {
+      g.save();
+      g.translate(tip.x, tip.y);
+      g.rotate(-0.7);
+      g.strokeStyle = COLORS.blue;
+      g.fillStyle = 'rgba(255,255,255,0.85)';
+      g.lineWidth = 3;
+      g.lineJoin = 'round';
+      g.beginPath();
+      g.moveTo(0, 0);
+      g.lineTo(12, -9);
+      g.lineTo(78, -9);
+      g.lineTo(78, 9);
+      g.lineTo(12, 9);
+      g.closePath();
+      g.fill();
+      g.stroke();
+      g.beginPath();
+      g.moveTo(12, -9);
+      g.lineTo(12, 9);
+      g.moveTo(66, -9);
+      g.lineTo(66, 9);
+      g.stroke();
+      g.restore();
     }
     // slow time: the page cools (look-and-feel §7)
     const slow = Math.max(0, Math.min(1, (1 - this.scale) / (1 - INK.toyDrawSpeed)));

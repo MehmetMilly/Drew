@@ -9,8 +9,8 @@ import { Replay, type Birth, type Moment } from './replay';
 
 type Ctx = CanvasRenderingContext2D;
 
-const MOMENT_BEFORE = 0.6; // sim seconds shown either side of the money moment
-const MOMENT_AFTER = 0.6;
+const MOMENT_BEFORE = 0.45; // sim seconds shown either side of the money moment
+const MOMENT_AFTER = 0.35;
 const MOMENT_SPEED = 0.3;
 const PEN_SPEED = 1.5; // Watch timelapse, × the player's own pen speed
 const STROKE_GAP = 0.15;

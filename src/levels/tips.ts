@@ -1,0 +1,30 @@
+// The hint ladder's first rung (playtest 2026-10-04): one plain sentence per level saying what
+// the level asks for (the verb) and which kinds of body tend to manage it. Players said they had
+// "no idea what the game wants": this is the answer, in the game's own words.
+export const TIPS: Record<string, string> = {
+  '1-1': 'Draw anything with a face… it will run over for a hug.',
+  '1-2': 'The boulder squashes whatever won’t push back. Lots of legs, or something big and heavy, can brace it.',
+  '1-3': 'The wall shoves everything off the edge. A creature with planted feet can push back: many legs, long arms or a heavy body.',
+  '1-4': 'Bombs need to be caught and thrown away. Draw something with arms, standing next to him.',
+  '1-5': 'The ninja jumps at the King. Put a creature with arms (or a tall one) in his way.',
+  '2-1': 'Little Guy can’t climb that. A tall creature carries him, long arms toss him, or a big zigzag spring jumps.',
+  '2-2': 'The gap is too wide to walk. Zigzag legs hop it, arms can toss him over, a giant steps across.',
+  '2-3': 'Players need someone to carry their ball to the hoop. Draw something with long arms, or something tall.',
+  '2-4': 'Spikes cut feet. Hop over with zigzags, or let a creature with arms toss him to the flag.',
+  '2-5': 'Bombs and balls from everywhere! Arms catch and throw; zigzag arms punch.',
+  '3-1': 'Light things blow away. Scribble hard to make a heavy body that can walk him into the wind.',
+  '3-2': 'The bully shoves. Something heavy or with lots of legs can shove back.',
+  '3-3': 'Draw something up high so it falls onto the other end of the see-saw. Heavy and big flings harder.',
+  '3-4': 'The bridge breaks under heavy things. Go light, with arms (to toss him up the step) or zigzag springs.',
+  '3-5': 'The flag is downstairs. Something heavy can smash through the cracked floors.',
+  '4-1': 'The water rises. Loops float, so draw a creature with a big loop (or two) for him to ride.',
+  '4-2': 'He can’t swim. Something tall (or heavy, with arms) wades across with him on board.',
+  '4-3': 'Herd the ducks into the bucket. Long arms or many legs push them along.',
+  '4-4': 'The waterfall pushes everything down. Something big, or with long arms, carries him through.',
+  '4-5': 'The kraken grabs! Arms fight back, and a big body is hard to pull under.',
+  '5-1': 'Scissors cut anything they fly through. Arms can catch them, and a bigger body survives a snip.',
+  '5-2': 'Fire is coming! Draw something quick that carries him to the flag.',
+  '5-3': 'Eraser critters eat ink. Stomp them with something big, or with lots of legs.',
+  '5-4': 'Catch the scissors first, then hop him over the gap, or toss him across.',
+  '5-5': 'Shove the Eraser into the sharpener, hit it when it leaps, and draw more mid-fight.',
+};
