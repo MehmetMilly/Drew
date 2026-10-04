@@ -484,8 +484,8 @@ export const DMG = {
   stepOn: 4, // px: ...within its radius plus this (it scuttles under ink, so feet land on it)...
   stepMass: 40, // ...of a creature at least this heavy squashes it
   underFoot: 0.5, // × its radius: crawling this far under a planted foot of such a creature squashes it too
-  eraserW: 150,
-  eraserH: 90,
+  eraserW: 180,
+  eraserH: 108,
   eraserMass: 300,
   eraserSpeed: 45, // px/s it slides at him in phase 1
   eraserForce: 40000, // mass·px/s² motor limit: any planted bracer out-pushes it

@@ -488,6 +488,7 @@ function bossStep(w: World, D: DamageState, b: Body) {
     D.bossPhase = 3;
     D.phaseAt = w.t;
     b.alive = false;
+    w.emit({ type: 'crumble', x: mouth - side * 30, y: b.data.ground });
     for (let k = 0; k < DMG.crumbs; k++) addSmudger(w, mouth - side * 30, b.data.ground + b.hh! - DMG.smudgerR - 4, w.t + DMG.crumbsAt + k * DMG.crumbsEvery, DMG.crumbSpeed, 1);
   }
 }

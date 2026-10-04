@@ -212,6 +212,7 @@ export function sfxEvent(e: SimEvent, w: World, _timeScale: number) {
       break;
     }
     case 'thud':
+    case 'crumble':
       M.eraserThud(e.x);
       break;
     case 'grind':

@@ -18,7 +18,8 @@ const JUICE: Record<string, [number, number, string?]> = {
   ninjaLeap: [0, 0.05],
   // Chapter 5 and modes
   squish: [0.06, 0.18, 'SQUISH'],
-  grind: [0.1, 0.35, 'GRRRIND'],
+  grind: [0.12, 0.35, 'GRRRIND'],
+  crumble: [0.14, 0.5, 'CRUMBLE'], // the boss breaks: the biggest beat in Chapter 5
   ruleBreak: [0, 0.05, 'POOF'],
   thud: [0, 0.12],
 };

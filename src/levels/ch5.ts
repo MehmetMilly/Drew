@@ -3,6 +3,7 @@
 import type { LevelDef } from '../sim/level';
 import { CANON, circle, line, springLine } from '../sim/canon';
 import type { Pt } from '../sim/geom';
+import { DMG } from '../tuning';
 
 const FLOOR = 1190;
 const G = FLOOR - 4;
@@ -131,7 +132,7 @@ export const L5_5: LevelDef = {
   inkRegen: 60,
   terrain: [],
   entities: [],
-  props: [{ type: 'eraser', x: 420, y: FLOOR - 45, at: 0.3 }],
+  props: [{ type: 'eraser', x: 420, y: FLOOR - DMG.eraserH / 2, at: 0.3 }],
   guy: { x: 120, y: FLOOR },
   anatomyMatters: true,
   refs: [

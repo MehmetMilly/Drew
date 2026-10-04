@@ -82,16 +82,48 @@ export function drawEraser(g: Ctx, w: World, b: Body, x: number, y: number) {
     hh = b.hh!;
   const dir = b.data.dir || -1;
   const lean = b.data.air ? 0 : Math.sin(w.t * 10) * 0.03;
+  // phase 2 on (sharpened): the leading face is chewed ragged, the sleeve torn, and it
+  // sheds crumbs; each knock back in chews it more (the phases must read at a glance)
+  const worn = b.data.shove ? 0 : 1 + (b.data.knocks ?? 0);
+  const shake = b.data.grinding && w.t < b.data.grindUntil ? Math.sin(w.t * 90) * 2.5 : 0;
   g.save();
-  g.translate(x, y);
+  g.translate(x + shake, y);
   g.rotate(lean * dir);
   g.fillStyle = COLORS.felt;
   g.beginPath();
-  g.roundRect(-hw, -hh, hw * 2, hh * 2, 14);
+  if (!worn) g.roundRect(-hw, -hh, hw * 2, hh * 2, 14);
+  else {
+    // back face rounded, leading face a ragged bite
+    const bite = 6 + worn * 5;
+    g.moveTo(-dir * hw, -hh + 10);
+    g.quadraticCurveTo(-dir * hw, -hh, -dir * (hw - 10), -hh);
+    g.lineTo(dir * (hw - bite), -hh);
+    const n = 5 + worn;
+    for (let k = 0; k <= n; k++) {
+      const u = k / n;
+      const out = k % 2 ? bite : bite * 0.2 * (1 + hashNoise(k, worn, b.id));
+      g.lineTo(dir * (hw - out), -hh + u * hh * 2);
+    }
+    g.lineTo(-dir * (hw - 10), hh);
+    g.quadraticCurveTo(-dir * hw, hh, -dir * hw, hh - 10);
+    g.closePath();
+  }
   g.fill();
-  // the sleeve
+  // the sleeve (torn open once it has been through the sharpener)
   g.fillStyle = COLORS.red;
-  g.fillRect(-dir * hw * 0.1 - hw * 0.35, -hh, hw * 0.7, hh * 2);
+  const sx = -dir * hw * 0.1 - hw * 0.35,
+    sw = hw * 0.7;
+  if (!worn) g.fillRect(sx, -hh, sw, hh * 2);
+  else {
+    g.beginPath();
+    g.moveTo(sx, -hh * 0.55);
+    const n = 6;
+    for (let k = 0; k <= n; k++) g.lineTo(sx + (k / n) * sw, -hh * 0.55 + (k % 2 ? -8 : 6));
+    g.lineTo(sx + sw, hh * 0.75);
+    for (let k = n; k >= 0; k--) g.lineTo(sx + (k / n) * sw, hh * 0.75 + (k % 2 ? 7 : -5));
+    g.closePath();
+    g.fill();
+  }
   // brows and eyes on the leading end
   const ex = dir * hw * 0.62;
   g.fillStyle = COLORS.cream;
@@ -111,6 +143,18 @@ export function drawEraser(g: Ctx, w: World, b: Body, x: number, y: number) {
   g.lineTo(ex + 10, hh * 0.2);
   g.stroke();
   g.restore();
+  // worn: crumbs keep falling off it, even mid-hop
+  if (worn) {
+    g.fillStyle = COLORS.felt;
+    for (let k = 0; k < 3 + worn; k++) {
+      const u = (w.t * 1.6 + k * 0.37) % 1;
+      g.globalAlpha = 1 - u;
+      g.beginPath();
+      g.arc(x + (hashNoise(k, 2, b.id) * 0.8) * hw, y + hh + u * 40, 2.4, 0, Math.PI * 2);
+      g.fill();
+    }
+    g.globalAlpha = 1;
+  }
   // rubbings: crumbs fly off the face it pushes with
   if (!b.data.air && w.t >= (b.data.sleep ?? 0)) {
     g.fillStyle = COLORS.felt;
