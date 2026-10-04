@@ -103,19 +103,23 @@ function drawSumo(g: Ctx, w: World, b: Body, x: number, y: number, frame: number
 }
 
 /** A rubber ball (a threat): felt with a red band that spins with it. */
+/** A rubber ball: hollow and light (paper inside a felt outline) with a red stripe, so it
+ *  never reads as a bomb (solid black, fuse) at phone size. */
 function drawRubber(g: Ctx, b: Body, x: number, y: number, frame: number) {
-  g.fillStyle = COLORS.felt;
+  g.fillStyle = COLORS.cream;
   wobbleCircle(g, x, y, b.r, b.id * 17 + 5, frame);
   g.fill();
   g.save();
+  g.clip();
   g.translate(x, y);
   g.rotate(b.angle);
-  g.strokeStyle = COLORS.red;
-  g.lineWidth = 4;
-  g.beginPath();
-  g.ellipse(0, 0, b.r * 0.62, b.r * 0.28, 0, 0, Math.PI * 2);
-  g.stroke();
+  g.fillStyle = COLORS.red;
+  g.fillRect(-b.r, -b.r * 0.22, b.r * 2, b.r * 0.44);
   g.restore();
+  g.strokeStyle = COLORS.felt;
+  g.lineWidth = 4;
+  wobbleCircle(g, x, y, b.r, b.id * 17 + 5, frame);
+  g.stroke();
 }
 
 /** A SCORE ball (cargo: highlighter yellow) with felt seams. */
