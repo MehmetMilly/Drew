@@ -62,7 +62,7 @@
 
 ## Next
 
-1. The qa-monkey harness (tools/qa/) is written. Run it in full and act on what it finds.
+1. The qa-monkey ran 1614 scenarios: no crashes, no NaNs, no determinism breaks. Fixed: the Heavy Ink runaway and the stuck HOME/HUG attempts. Still open (low): a 1-4 bomb particle briefly over the speed cap; stretch tears at ledge and pit edges.
 2. The open critic items above.
 3. Give worms a real niche, so that Worms Only can return to Daily.
 4. Dedicated compact Daily arenas.
@@ -105,7 +105,7 @@
 - **Progression:** a chapter opens at 4 of 5 cleared, and the boss needs its whole chapter.
 - **README.**
 
-## Last `npm run verify`
+## Last `npm run verify` (2026-10-04, ALL GREEN)
 
 | check | result | pass |
 |---|---|---|
@@ -114,19 +114,61 @@
 | classifier: human fixtures | 100.0% (34/34) | PASS |
 | human sloppy joins → one creature | 6/6 | PASS |
 | classifier: Quick, Draw! strokes (1000) | line 100%, circle 98%, triangle 98%, square 99%, zigzag 90% | PASS |
-| determinism: Node ×3 | 57b147f3 same | PASS |
+| determinism: Node ×3 | 8efc7389 same | PASS |
 | no-noise tearing (100 creatures × 10 s) | 0 tears in 0 creatures | PASS |
 | monkey (300 scribble sets) | crash 0, NaN 0, vmax 3000 px/s, fell off 0 | PASS |
 | anatomy: canonical bodies (kind, gait, feet, hands) | 12/12 | PASS |
 | grafting: line onto a living box | 1 creature, "Keith grew an arm!" | PASS |
 | distinct bodies (each pair ≥20% on a metric) | 15/15 pairs distinct | PASS |
-| level 1-1 Hello, Friend | refs 3/3, robust 100%, baselines line✓ box✓ roof✓ blob✓ | PASS |
-| level 1-2 Boulder | refs 3/3, robust 100%, baselines line✗ box✓ roof✗ blob✓ | PASS |
-| level 1-3 Walls | refs 3/3, robust 95%, baselines line✗ box✗ roof✗ blob✓ | PASS |
-| level 1-4 Bombs in the Bowl | refs 3/3, robust 95%, baselines line✗ box✗ roof✗ blob✗ | PASS |
-| level 1-5 Ninja | refs 3/3, robust 100%, baselines line✗ box✗ roof✗ blob✗ | PASS |
-| step time @ 906 particles (Node) | 0.97 ms | PASS |
-| determinism: browser vs Node | 57b147f3 vs 57b147f3 | PASS |
+| sumo 1 Pebble | beaten by heavy, long-armed, many-legged, biped, springy, giant, floaty | PASS |
+| sumo 2 Stilts | beaten by heavy, many-legged, giant, biped | PASS |
+| sumo 3 Big Doris | beaten by heavy, giant | PASS |
+| sumo 4 Octo | beaten by heavy, long-armed, many-legged, biped, springy, giant, floaty | PASS |
+| sumo 5 Boing Boing | beaten by heavy, long-armed, many-legged, biped, springy, giant, floaty | PASS |
+| sumo 6 The Wall | beaten by heavy, many-legged, biped, springy, giant, floaty | PASS |
+| sumo 7 Slappy | beaten by heavy, many-legged, biped, springy, giant, floaty | PASS |
+| sumo 8 Twins | beaten by heavy, many-legged, biped, springy | PASS |
+| sumo 9 Snek | beaten by heavy, many-legged, biped, springy, giant, floaty | PASS |
+| sumo 10 Balloon | beaten by heavy, many-legged, giant | PASS |
+| sumo 11 Grandmaster | beaten by heavy, long-armed, springy, biped | PASS |
+| sumo 12 Champion | beaten by many-legged, giant, biped | PASS |
+| daily Ledge | 6 modifiers winnable | PASS |
+| daily Pit | 6 modifiers winnable | PASS |
+| daily Bombs | 8 modifiers winnable | PASS |
+| daily Crushers | 5 modifiers winnable | PASS |
+| daily Fan | 8 modifiers winnable | PASS |
+| daily Pool | 6 modifiers winnable | PASS |
+| daily Hoop | 6 modifiers winnable | PASS |
+| daily See-saw | 6 modifiers winnable | PASS |
+| daily Ninja | 5 modifiers winnable | PASS |
+| daily Spikes | 7 modifiers winnable | PASS |
+| daily Bridge | 6 modifiers winnable | PASS |
+| daily Smudgers | 8 modifiers winnable | PASS |
+| level 1-1 Hello, Friend | refs 3/3, robust 100%, baselines line✓5/5 box✓5/5 roof✓5/5 blob✓5/5 scrawl✓5/5 scrawlWall✓5/5 pillar✓5/5 cage✓5/5 | PASS |
+| level 1-2 Boulder | refs 3/3, robust 85%, baselines line✗ box✗ roof✗1/5 blob✗ scrawl✗ scrawlWall✗ pillar✗ cage✗ | PASS |
+| level 1-3 Walls | refs 3/3, robust 85%, baselines line✗ box✗ roof✗ blob✗ scrawl✗ scrawlWall✗ pillar✗ cage✗ | PASS |
+| level 1-4 Bombs in the Bowl | refs 3/3, robust 80%, baselines line✗1/5 box✗ roof✗ blob✗ scrawl✗ scrawlWall✗ pillar✗ cage✗ | PASS |
+| level 1-5 Ninja | refs 3/3, robust 85%, baselines line✓2/5 box✗1/5 roof✗ blob✗ scrawl✗ scrawlWall✗ pillar✗ cage✗ | PASS |
+| level 2-1 Step Up | refs 3/3, robust 100%, baselines line✗ box✗ roof✗ blob✗ scrawl✗ scrawlWall✗1/5 pillar✗1/5 cage✗ | PASS |
+| level 2-2 Mind the Gap | refs 3/3, robust 95%, baselines line✓2/5 box✗ roof✗ blob✗ scrawl✗ scrawlWall✗ pillar✗ cage✗ | PASS |
+| level 2-3 Help Them Score | refs 3/3, robust 100%, baselines line✗ box✗ roof✗ blob✗ scrawl✗ scrawlWall✗ pillar✗ cage✗ | PASS |
+| level 2-4 Spike Floor | refs 3/3, robust 100%, baselines line✗ box✓2/5 roof✗ blob✗ scrawl✗ scrawlWall✗ pillar✗ cage✗ | PASS |
+| level 2-5 Pinball Panic | refs 3/3, robust 85%, baselines line✗ box✗ roof✗ blob✗ scrawl✗ scrawlWall✗ pillar✗ cage✗ | PASS |
+| level 3-1 Gust | refs 3/3, robust 95%, baselines line✗ box✗ roof✗ blob✓5/5 scrawl✗ scrawlWall✗ pillar✗ cage✗ | PASS |
+| level 3-2 Sumo Bully | refs 3/3, robust 90%, baselines line✗1/5 box✗ roof✗ blob✗ scrawl✗ scrawlWall✗ pillar✗ cage✗ | PASS |
+| level 3-3 See-Saw | refs 3/3, robust 95%, baselines line✗ box✗ roof✗ blob✗ scrawl✗ scrawlWall✗ pillar✗ cage✗ | PASS |
+| level 3-4 Rope Bridge | refs 3/3, robust 100%, baselines line✗ box✗1/5 roof✗ blob✗ scrawl✗ scrawlWall✗ pillar✗ cage✗ | PASS |
+| level 3-5 Downstairs | refs 3/3, robust 100%, baselines line✗ box✗ roof✗ blob✗ scrawl✗ scrawlWall✗ pillar✗ cage✗ | PASS |
+| level 4-1 Rising Tide | refs 3/3, robust 95%, baselines line✗ box✗ roof✗ blob✗ scrawl✗ scrawlWall✗ pillar✗ cage✗ | PASS |
+| level 4-2 Crossing | refs 3/3, robust 90%, baselines line✗1/5 box✗ roof✗ blob✗ scrawl✗ scrawlWall✗ pillar✗ cage✗ | PASS |
+| level 4-3 Bath Time | refs 3/3, robust 85%, baselines line✗ box✗ roof✗ blob✗ scrawl✗ scrawlWall✗ pillar✗ cage✗ | PASS |
+| level 4-4 Waterfall | refs 3/3, robust 100%, baselines line✗1/5 box✗ roof✗ blob✗ scrawl✗1/5 scrawlWall✗ pillar✗1/5 cage✗ | PASS |
+| level 4-5 Kraken | refs 3/3, robust 100%, baselines line✗ box✗ roof✗ blob✗ scrawl✗ scrawlWall✗ pillar✗ cage✓2/5 | PASS |
+| level 5-1 Snip Snip | refs 3/3, robust 100%, baselines line✗ box✗ roof✗ blob✗ scrawl✗ scrawlWall✗ pillar✗ cage✗ | PASS |
+| level 5-2 Fuse | refs 4/4, robust 100%, baselines line✗1/5 box✗ roof✗ blob✗ scrawl✗ scrawlWall✗ pillar✗ cage✗ | PASS |
+| level 5-3 Smudgers | refs 3/3, robust 90%, baselines line✗ box✗ roof✗ blob✗ scrawl✗ scrawlWall✗ pillar✗ cage✗ | PASS |
+| level 5-4 Everything, Everywhere | refs 4/4, robust 90%, baselines line✓2/5 box✗ roof✗ blob✗ scrawl✗ scrawlWall✗ pillar✗ cage✗ | PASS |
+| level 5-5 The Big Eraser | refs 3/3, robust 95%, baselines line✗ box✗ roof✗ blob✗ scrawl✗ scrawlWall✗ pillar✗ cage✗ | PASS |
+| step time @ 906 particles (Node) | 0.95 ms | PASS |
+| determinism: browser vs Node | 8efc7389 vs 8efc7389 | PASS |
 | browser fps @ 884 particles, 4× CPU throttle | 60.0 fps, p95 16.8 ms | PASS |
-
-ALL GREEN (2026-10-03).
