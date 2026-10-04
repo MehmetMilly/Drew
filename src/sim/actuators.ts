@@ -66,7 +66,9 @@ export function actuate(w: World, cr: Creature, h: number) {
     want = Math.sign(dx) * Math.min(cr.stats.speed, Math.abs(dx) * 3);
   }
   // ---------------- facing: a body with a front turns around to face where it goes
-  if (cr.front !== 0 && want !== 0 && Math.sign(want) !== cr.front * cr.flipTo) cr.flipTo = -cr.flipTo;
+  // (footless bodies don't: mirroring a body lying flat swaps its ends through the floor and
+  // flings it; the inching wave already runs whichever way it goes)
+  if (cr.front !== 0 && feet.length && want !== 0 && Math.sign(want) !== cr.front * cr.flipTo) cr.flipTo = -cr.flipTo;
   if (cr.flip !== cr.flipTo) {
     const step = (2 * h) / LOCO.turnTime;
     cr.flip = cr.flipTo > cr.flip ? Math.min(cr.flipTo, cr.flip + step) : Math.max(cr.flipTo, cr.flip - step);

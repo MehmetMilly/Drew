@@ -12,17 +12,17 @@ import { L5_3 } from './ch5';
 /** Each arena with the modifiers it can't take: no drawing that obeys them wins there
  *  (found by tools/dailycheck.ts; `npm run verify` checks every allowed pair). */
 export const ARENAS: { name: string; level: LevelDef; no?: Modifier[] }[] = [
-  { name: 'Ledge', level: L2_1, no: ['tiny'] },
-  { name: 'Pit', level: L2_2, no: ['tiny'] },
-  { name: 'Bombs', level: L1_4 },
+  { name: 'Ledge', level: L2_1, no: ['one-stroke', 'no-heads', 'worms', 'tiny'] },
+  { name: 'Pit', level: L2_2, no: ['one-stroke', 'no-heads', 'worms', 'tiny'] },
+  { name: 'Bombs', level: L1_4, no: ['no-heads', 'worms'] },
   { name: 'Crushers', level: L1_3, no: ['one-stroke', 'no-heads', 'worms', 'giants', 'tiny'] },
   { name: 'Fan', level: L3_1, no: ['worms', 'giants'] },
   { name: 'Pool', level: L4_1, no: ['one-stroke', 'no-heads', 'worms', 'tiny'] },
   { name: 'Hoop', level: L2_3, no: ['one-stroke', 'no-heads', 'worms', 'tiny'] },
   { name: 'See-saw', level: L3_3, no: ['one-stroke', 'no-heads', 'worms', 'tiny'] },
-  { name: 'Ninja', level: L1_5, no: ['giants', 'tiny'] },
-  { name: 'Spikes', level: L2_4, no: ['tiny'] },
-  { name: 'Bridge', level: L3_4, no: ['tiny'] },
+  { name: 'Ninja', level: L1_5, no: ['one-stroke', 'no-heads', 'worms', 'giants', 'tiny'] },
+  { name: 'Spikes', level: L2_4, no: ['no-heads', 'worms', 'tiny'] },
+  { name: 'Bridge', level: L3_4, no: ['one-stroke', 'no-heads', 'worms', 'tiny'] },
   { name: 'Smudgers', level: L5_3, no: ['one-stroke', 'worms'] }, // smudgers must be stepped on: feet, and more than a lump
 ];
 

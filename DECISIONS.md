@@ -226,3 +226,10 @@ Every Chapter 2 row of `npm run verify` is green and Chapter 1 is unchanged. Wha
 - Pencil Case timbres: `render/pencils.ts` exports `currentPencilId()`; `audio/pencil.ts` follows it with a per-pencil filter and grain table (levels trimmed to within about 3 dB of graphite).
 - Pass-and-play draw timer: `ui/shell.ts` calls `sfxCountdown(n)` on its last three ticks.
 
+
+## 2026-10-04: footless bodies don't turn around; worm-only Daily pairs banned
+- **What:** creatures without feet no longer mirror their body to face a new direction. They inch either way, since the wriggle wave already follows travel.
+- **Why:**
+  - Mirroring a line lying flat swaps its ends through the floor and launched it about 270 px into the air. This was the "worm launch on boarding" bug: boarding only exposed it because the carry target flips direction.
+  - Some Daily wins relied on that launch. Without it, honest worms (about 50 px/s) don't win Ledge, Pit, Bombs, Ninja, Spikes or Bridge with One Stroke, No Heads or Worms Only, so those pairs are banned.
+- **Open:** Worms Only is now banned on every arena. Worms need a real niche before it can return.
