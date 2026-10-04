@@ -20,6 +20,12 @@
     - the Doodle Pad never fails;
     - one clock in Sumo;
     - the overlapping notes are fixed.
+- 2026-10-04, second playtest pass (DECISIONS.md "teach, don't punish"):
+  - hint ladder (tip, trace, watch a solution) and first-launch tutorial;
+  - 8 levels eased; `tools/fairness.ts` is the difficulty metric;
+  - Sumo: solid collisions, lava, shrinking ring, Little Guy in the crowd;
+  - longer happy win beat, try-again button, rubber-arm haul, music −4 dB.
+  - Full verify ALL GREEN.
 - Still open from the critic:
   - #2 the Big Eraser is too small and its phases look alike;
   - #11 bumpers and bombs look the same;
