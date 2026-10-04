@@ -238,7 +238,9 @@ function planLevel(w: World, cr: Creature, c: { x: number; y: number }) {
     b.actAt = Math.max(w.t + BRAIN.eyeLead + ACT.anticipation, cr.bornAt + 0.35);
     b.intentAt = w.t;
     b.intentX = reach ? reach.x : tx;
-    b.intentY = reach ? reach.y : gc.y;
+    // (Sumo: he referees from the floor below the ring; the creature looks along its own ring)
+    const goal = w.level?.def.goal;
+    b.intentY = reach ? reach.y : goal?.type === 'sumo' ? goal.ring.y - 10 : gc.y;
     f.saccade = 1;
     if (plan !== 'guard') f.surprise = Math.max(f.surprise, BRAIN.notice);
   }
