@@ -26,6 +26,8 @@ export const PENCILS: Pencil[] = [
 
 let current = 'graphite';
 let version = 0;
+/** The id of the pencil in use (the audio timbre follows it). */
+export const currentPencilId = () => current;
 /** Bumps whenever the pencil changes, so cached patterns are rebuilt. */
 export const pencilVersion = () => version;
 export function setPencil(id: string) {

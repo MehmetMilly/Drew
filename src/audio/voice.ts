@@ -428,3 +428,10 @@ export function guySays(what: 'die' | 'yay' | 'hm' | 'squeak', x?: number, delay
 export function ninjaSays(x?: number) {
   say(NINJA_PROFILE, [{ from: 'i', to: 'a', dur: 0.085, p0: 1.0, p1: 1.25, onset: 'h' }, { from: 'a', to: 'o', dur: 0.2, p0: 1.25 + rnd(-0.03, 0.03), p1: 0.85, gap: 0.0 }], { level: 0.95, x, bus: 'world', slow: true });
 }
+
+/** The Sumo bully: a deep "hoh!" as it starts to shove, a lower "hmph" when it stamps. */
+export const BULLY_PROFILE: Profile = { ...GUY_PROFILE, f0: 88, wave: 'sawtooth', q: 5, fScale: 0.78, sub: 0.5, growl: 0.25, breath: 0.12, vol: 1.15 };
+export function bullySays(what: 'hoh' | 'hmph', x?: number) {
+  if (what === 'hoh') say(BULLY_PROFILE, [{ from: 'o', to: 'a', dur: 0.16, p0: 1.05, p1: 1.25, onset: 'h' }, { from: 'a', to: 'o', dur: 0.26, p0: 1.25, p1: 0.8, gap: 0.0 }], { level: 0.9, x, bus: 'world', slow: true });
+  else say(BULLY_PROFILE, [{ from: 'u', to: 'o', dur: 0.2, p0: 0.95, p1: 0.78 }], { level: 0.7, x, bus: 'world', slow: true });
+}

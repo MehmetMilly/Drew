@@ -21,7 +21,7 @@ export function noiseAt(c: AudioContext, t: number, dur: number): AudioBufferSou
   return s;
 }
 
-function filt(c: AudioContext, type: BiquadFilterType, f: number, q = 0.7) {
+export function filt(c: AudioContext, type: BiquadFilterType, f: number, q = 0.7) {
   const n = c.createBiquadFilter();
   n.type = type;
   n.frequency.value = f;
@@ -30,13 +30,13 @@ function filt(c: AudioContext, type: BiquadFilterType, f: number, q = 0.7) {
 }
 
 /** Percussive envelope: instant-ish attack to peak, exponential fall. */
-function perc(g: GainNode, t: number, peak: number, dur: number, attack = 0.002) {
+export function perc(g: GainNode, t: number, peak: number, dur: number, attack = 0.002) {
   g.gain.setValueAtTime(0.0001, t);
   g.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak), t + attack);
   g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
 }
 
-const mtof = (m: number) => 440 * Math.pow(2, (m - 69) / 12);
+export const mtof = (m: number) => 440 * Math.pow(2, (m - 69) / 12);
 
 /** A plucked string: triangle through a closing low-pass (pizzicato, ukulele, bass). */
 export function pluck(c: AudioContext, dest: AudioNode, t: number, freq: number, dur: number, gain: number, bright = 3000, type: OscillatorType = 'triangle') {
@@ -591,7 +591,7 @@ function loopSource(c: AudioContext): AudioBufferSourceNode {
   return s;
 }
 
-function makeLoop(
+export function makeLoop(
   build: (c: AudioContext, b: Buses, src: AudioBufferSourceNode, out: GainNode, stops: AudioScheduledSourceNode[]) => (a: number, b2: number, t: number) => void,
   bus: 'world' | 'ambience' = 'world'
 ): LoopVoice | null {

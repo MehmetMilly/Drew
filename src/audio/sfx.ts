@@ -21,7 +21,19 @@
 //   hug      Little Guy's squeak
 //   save/win chime / stamp thunk + kazoo-and-ukulele sting + happy trills (ducks music)
 //   (result 'fail' is watched per frame) soft wah-wah sting
-import type { SimEvent, World } from '../sim/world';
+// Chapters 2-5 and modes (synth-more.ts; watch.ts adds the per-frame ones):
+//   tear     by text: snip -> scissors snip; erase -> smudger nibble (ember tick for fire);
+//            spike -> spike "shk"; anything else the lead snap
+//   pass     SCORE lob (slap + whoosh)        throw/dunk in a SCORE level: ball shot
+//   score    net swish + bell climbing with the score (duck levels: a squeak too)
+//   crack    floor breaks   snap  rope bridge snaps       knock  tentacle slurp / scissors clang
+//   grab     no creature = a tentacle latching            thud   the Big Eraser lands
+//   grind    the sharpener (loop, watch.ts)               squish a stomped smudger
+//   ruleBreak Daily puff    guyDied: drowned bubbles, snipped, spiked, burned
+//   per frame (watch.ts): ball and duck bounces, see-saw clunks, bridge and raft creaks, water
+//   splash and paddling, tentacle rising, wind + fan, floor fire + whumph, scissors whirr and
+//   telegraph snips, Eraser rub, Sumo bully stamp and shove, the Sumo taiko when both wake
+import type { Body, SimEvent, World } from '../sim/world';
 import type { Creature } from '../sim/creature';
 import { countdown, threats } from '../sim/level';
 import { HAZ } from '../tuning';
@@ -29,7 +41,9 @@ import { load } from '../game/save';
 import { applyVolumes, audioCtx, setSlow, soundOn } from './mixer';
 import { setMusicEnabled, setMusicState, startMusic } from './music';
 import * as S from './synth';
+import * as M from './synth-more';
 import { creatureSays, guySays, ninjaSays } from './voice';
+import { gate, noteGrind, watchFrame, watchReset, watchStop } from './watch';
 
 const SUBSTEP_H = 1 / 120; // physics.md: 60 Hz, 2 substeps
 
@@ -72,6 +86,7 @@ function resetFor(w: World) {
   st.lastSec = Infinity;
   st.failDone = false;
   st.winAt = -99;
+  watchReset(w);
 }
 
 function creatureOf(w: World, id: number | undefined): Creature | null {
@@ -82,6 +97,29 @@ function creatureOf(w: World, id: number | undefined): Creature | null {
 }
 
 const centreX = (w: World, cr: Creature) => w.centroid(cr).x;
+
+/** The nearest live body of one of `kinds` within `maxD` px of (x, y), if any. */
+function nearestBody(w: World, x: number | undefined, y: number | undefined, kinds: string[], maxD: number): Body | null {
+  if (x === undefined || y === undefined) return null;
+  let best: Body | null = null;
+  let bd = maxD;
+  for (const b of w.bodies) {
+    if (!b.alive || !kinds.includes(b.kind)) continue;
+    const d = Math.hypot(b.x - x, b.y - y) - (b.hw ?? 0);
+    if (d < bd) (bd = d), (best = b);
+  }
+  return best;
+}
+
+const isScoreLevel = (w: World) => w.level?.def.goal.type === 'score';
+const isDuckLevel = (w: World) => !!w.level?.def.entities.some((e) => e.type === 'cargo' && e.duck);
+
+/** A link rubbed out: a smudger's nibble, nothing near the Big Eraser (it has its own rub), an ember for fire. */
+function eraseSound(w: World, e: SimEvent) {
+  if (nearestBody(w, e.x, e.y, ['smudger'], 70)) {
+    if (gate('nibble', 0.09)) M.nibble(e.x);
+  } else if (!nearestBody(w, e.x, e.y, ['eraser'], 90) && gate('ember', 0.05)) M.ember(e.x);
+}
 
 export function sfxEvent(e: SimEvent, w: World, _timeScale: number) {
   if (!audioCtx() || !soundOn()) return;
@@ -102,7 +140,18 @@ export function sfxEvent(e: SimEvent, w: World, _timeScale: number) {
       if (cr) creatureSays(cr, 'graft', centreX(w, cr), 0.06, true);
       break;
     case 'tear': {
-      // text is "why:type:rest": a long-rest link snapping is a bigger snap
+      // text is "why:type:rest": scissors, smudgers and spikes have their own sounds
+      const why = (e.text ?? '').split(':')[0];
+      if (why === 'snip') {
+        if (gate('snip', 0.08)) M.snip(e.x, 0.9);
+        break;
+      }
+      if (why === 'erase') return eraseSound(w, e);
+      if (why === 'spike') {
+        if (gate('spike', 0.05)) M.spikeCut(e.x);
+        break;
+      }
+      // a long-rest link snapping is a bigger snap
       const rest = parseFloat((e.text ?? '').split(':')[2] ?? '');
       S.snap(e.x, isFinite(rest) ? Math.max(0.4, Math.min(1, rest / 30)) : 0.7);
       break;
@@ -118,12 +167,61 @@ export function sfxEvent(e: SimEvent, w: World, _timeScale: number) {
       S.fallWhistle();
       break;
     case 'grab':
+      if (e.cr === undefined) {
+        // no creature: a kraken tentacle latching onto Little Guy
+        M.tentacleLatch(e.x);
+        guySays('squeak', e.x, 0.05);
+        break;
+      }
       S.gripSqueak(e.x);
       if (cr) creatureSays(cr, 'effort', e.x, 0, true);
+      if (isDuckLevel(w) && nearestBody(w, e.x, e.y, ['cargo'], 40)?.data.duck) M.duckSqueak(e.x, 0.8);
       break;
     case 'throw':
-      S.whoosh(e.x, size, 1);
+      if (isScoreLevel(w) && nearestBody(w, e.x, e.y, ['cargo', 'ball'], 50)) {
+        // the shot at the hoop
+        M.ballShot(e.x);
+        if (isDuckLevel(w)) M.duckSqueak(e.x, 0.7);
+      } else S.whoosh(e.x, size, 1);
       if (cr) creatureSays(cr, 'effort', e.x, 0, true);
+      break;
+    case 'dunk':
+      M.ballShot(e.x);
+      break;
+    case 'pass':
+      M.ballLob(e.x);
+      break;
+    case 'score':
+      M.scoreSwish(e.x, e.v ?? 1);
+      if (isDuckLevel(w)) {
+        M.duckSqueak(e.x, 1);
+        S.bloop(e.x, 480, 0.12, 0.12);
+      }
+      break;
+    case 'crack':
+      M.floorCrack(e.x);
+      break;
+    case 'snap':
+      M.bridgeSnap(e.x);
+      break;
+    case 'knock': {
+      // a hit that is not a punch: whatever got hit decides the sound
+      const hit = nearestBody(w, e.x, e.y, ['tentacle', 'scissors', 'eraser', 'ninja'], 90);
+      if (hit?.kind === 'tentacle') M.tentacleSlurp(e.x);
+      else if (hit?.kind === 'scissors' || hit?.kind === 'eraser' || hit?.kind === 'ninja') M.knockHit(e.x, hit.kind);
+      break;
+    }
+    case 'thud':
+      M.eraserThud(e.x);
+      break;
+    case 'grind':
+      noteGrind(w.t, e.x ?? 0);
+      break;
+    case 'squish':
+      M.squish(e.x);
+      break;
+    case 'ruleBreak':
+      M.ruleBreakPuff(e.x);
       break;
     case 'jump':
       S.boing(e.x, size, 1);
@@ -142,6 +240,10 @@ export function sfxEvent(e: SimEvent, w: World, _timeScale: number) {
       break;
     case 'guyDied':
       guySays('die', e.x);
+      if (e.text === 'drowned') M.drownBubbles(e.x);
+      else if (e.text === 'snipped') M.snip(e.x, 1);
+      else if (e.text === 'spiked') M.spikeCut(e.x);
+      else if (e.text === 'burned') M.whumph(e.x);
       break;
     case 'hug':
       guySays('squeak', e.x);
@@ -196,6 +298,7 @@ export function sfxFrame(w: World, timeScale: number) {
   if (!on) {
     for (const l of st.loops.values()) l.v.stop();
     st.loops.clear();
+    watchStop();
     return;
   }
   ensureStarted();
@@ -207,6 +310,7 @@ export function sfxFrame(w: World, timeScale: number) {
   hazardLoops(w);
   creaturesFrame(w);
   levelFrame(w);
+  watchFrame(w);
   st.lastT = w.t;
   void room;
 }

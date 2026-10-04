@@ -31,4 +31,9 @@ on each pack's page and in its `License.txt` on 2026-10-03).
 
 Synthesised in code (no files, no licence): pencil scratch, pen-lift tick, birth pop, doodle voices,
 Little Guy and ninja voices, snap, boing, whoosh, grip squeak, boom, poof, footsteps, rumble, grind,
-fuse hiss, room tone, woodblock countdown, win sting, fail sting, and the music loop.
+fuse hiss, room tone, woodblock countdown, win sting, fail sting, and the music loop. Added for
+Chapters 2-5 and the modes (`src/audio/synth-more.ts`, still no files): rubber bounce, ball lob and
+shot, score swish, duck squeak, spike cut, floor crack, bridge snap, plank clunk, wood creak, splash,
+paddle slosh, drowning bubbles, kraken rise, latch and slurp, wind and fan, scissors snip and whirr,
+fire crackle, whumph and embers, smudger nibble and squish, Eraser rub, thud and sharpener, the Daily
+puff, the Sumo bully's stomp and grunt, the Sumo taiko and clap, and the per-pencil scratch timbres.

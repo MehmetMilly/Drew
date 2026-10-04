@@ -200,3 +200,11 @@ Every Chapter 2 row of `npm run verify` is green and Chapter 1 is unchanged. Wha
   - **Tentacles yank him, they do not drag his seat.** Whatever he only sits on lets go of him (`PROP.tentaclePull` 400000 on him alone); a carrier that holds him in a hand is dragged with him by `tentacleHold` 18000 less its grip. At the old single haul a heavy lump under him was an anchor and every scribble won. Tentacles start at 2.5 s and 4 s so a puncher has time to be in place (16 of 20 became 20 of 20).
   - **Known weak:** 4-5 cage wins 2-3 of 5 (the one allowed lazy winner). 4-4 and 4-2 refs are tall wading bodies, so Floaty is not a reference there (it is in 4-1 and 4-3). The brain walks a carrier toward a tentacle with him on its head ("intercept" runs away from the shore with him), so short carriers drown him in a deep lake; kept the 90 px lake in 4-5 for that reason.
 
+## 2026-10-04: audio for Chapters 2-5 and the modes
+
+- docs/audio.md §8: the sim now has events or readable state for everything §3 lists, so water, fire, scissors and the eraser are built. All of it is synthesised (`src/audio/synth-more.ts`), no new samples and no new licences. Events map in `sfx.ts` (`tear` by text prefix, `pass`, `score`, `crack`, `snap`, `knock`, `thud`, `grind`, `squish`, `ruleBreak`, a creature-less `grab` is a tentacle). Everything the sim has no event for is read from world state each frame in `src/audio/watch.ts` (bounces, see-saw stops, water entry and paddling, rafts, tentacle modes, wind, fire, scissors, the Eraser, the Sumo bully, the Sumo wake).
+- Broken-floor `chunk` bodies tumble through everything (no collisions), so they get no bounce sound; the `crack` and `snap` events carry the break and the clatter.
+- `knock` is emitted for a tentacle, scissors, the ninja and the Eraser, with no creature on the tentacle's and the Eraser's. The sound is chosen by the nearest such body, not by the event.
+- Pencil Case timbres: `render/pencils.ts` exports `currentPencilId()`; `audio/pencil.ts` follows it with a per-pencil filter and grain table (levels trimmed to within about 3 dB of graphite).
+- Pass-and-play draw timer: `ui/shell.ts` calls `sfxCountdown(n)` on its last three ticks.
+

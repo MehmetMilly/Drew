@@ -17,7 +17,7 @@ import { dropHazard, setLowGravity, setWater, setWind, type Drop } from '../sim/
 import type { World } from '../sim/world';
 import { levelThumb } from './thumb';
 import { pencilTick } from '../audio/pencil';
-import { sfxUi } from '../audio/sfx';
+import { sfxCountdown, sfxUi } from '../audio/sfx';
 
 type Screen = 'title' | 'chapter' | 'sumo' | 'daily' | 'doodle' | 'play' | 'toy' | 'settings' | 'sketchbook' | 'hero' | 'credits';
 
@@ -295,6 +295,7 @@ export class Shell {
     let left = VERSUS_DRAW;
     const tick = () => {
       b.innerHTML = `${text} <b>${left}</b>`;
+      if (left >= 1 && left <= 3) sfxCountdown(left); // the last three seconds tick, rising
       if (left-- <= 0) {
         clearInterval(this.vs.timer);
         b.remove();
