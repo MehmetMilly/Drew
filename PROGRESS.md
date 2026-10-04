@@ -2,7 +2,10 @@
 
 ## Current phase
 
-**Phase 4 — Chapters 2–5 and the finale.** Gate 3 passed with feedback and was tagged `gate-3`. Chapter 2 engine is done; its levels are being tuned.
+**Phases 4 and 5, in parallel.**
+- Chapters 1–3 are green and in the index.
+- A level-author is tuning Chapter 4. A level-author-deep is tuning Chapter 5 and the Big Eraser.
+- Meanwhile Phase 5 modes are being built.
 
 ## Done
 
@@ -39,10 +42,11 @@
 
 ## Next
 
-1. Chapter 2 levels green (level-author running).
-2. Chapter 3 mechanics: fan wind, sumo bully, see-saw, rope bridge, cracked floors.
-3. Chapter 4: water, buoyancy, current, ducks and bucket, raft, kraken. Chapter 5: scissors, fire, smudgers, the Big Eraser, finale and credits.
-4. Revisit 1-4's big-dome weakness.
+1. Chapters 4 and 5 green and added to the index (agents running).
+2. Sound for the new hazards and modes: scissors, fire, smudgers, the Eraser, sumo, a crowd for pass-and-play. Use the `audio` agent.
+3. qa-monkey over every level and mode, then a critic pass (the Phase 4 end).
+4. Dedicated compact Daily arenas to replace the borrowed story levels.
+5. Phase 6: juice pass, audio mix, accessibility, real-phone perf, critic-final.
 
 ## Open problems
 
@@ -53,15 +57,28 @@
 - Not built yet: level-card thumbnails, doodled HUD icons, Little Guy on the title, left-handed layout, closest-call moment scoring.
 - A stick figure can't raise its arms above its head (the head blocks the swing sector).
 
-## Chapter 5 (in progress, 2026-10-03)
+## Phase 4 and 5 additions (2026-10-03/04)
 
-- Engine in: scissors, fire, smudgers, the Big Eraser with the sharpener, and ink regen (DECISIONS.md).
-- `src/levels/ch5.ts` holds a greybox 5-1…5-5. It is not in the index yet.
-- Greybox reference results:
-  - 5-1: only the giant survives.
-  - 5-4: everyone stalls.
-  - 5-5: the boss is not beaten by any reference yet.
-- Needs a level-author-deep pass after Chapters 3 and 4.
+- **Chapter 3** green: see-saw redesign, sumo bully, rope bridge, cracked floors.
+- **Chapter 5 engine:**
+  - scissors, fire, smudgers, the Big Eraser with the sharpener
+  - ink regeneration and the `boss` goal
+  - crumpled paper
+  - the credits screen, rolling over the waving Hall of Heroes
+- **Sumo:**
+  - creature teams and the ring goal; the opponent sleeps on the page until both sides wake
+  - the ring shrinks at time-out
+  - a 12-opponent ladder (verify rows: each opponent beaten by 2+ kinds)
+  - pass-and-play, best of five
+  - Little Guy referees in a gyōji cap
+- **Daily Doodle:**
+  - the date picks the arena and modifier, with 10 modifiers and per-arena bans
+  - verify rows check every allowed pair is winnable
+  - calendar stamps and a streak
+- **Doodle Pad:** a hazard palette with water, wind and moon-gravity switches.
+- **Pencil Case:** 7 pencils, unlocked by badges and the Sumo ladder.
+- **Progression:** a chapter opens at 4 of 5 cleared, and the boss needs its whole chapter.
+- **README.**
 
 ## Last `npm run verify`
 
