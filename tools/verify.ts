@@ -189,6 +189,15 @@ const nodeHash = detScenario();
   add('distinct bodies (each pair ≥20% on a metric)', same.length ? same.join(', ') : '15/15 pairs distinct', !same.length);
 }
 
+// ---- Sumo ladder (levels.md §6): every opponent beaten by two or more hero kinds
+if (!process.argv.some((a) => a.startsWith('--only='))) {
+  const { checkOpponent, OPPONENTS } = await import('./sumocheck');
+  OPPONENTS.forEach((o, k) => {
+    const r = checkOpponent(k);
+    add(`sumo ${k + 1} ${o.name}`, `beaten by ${r.kinds.length ? r.kinds.join(', ') : 'nothing'}`, r.kinds.length >= 2);
+  });
+}
+
 // ---- levels (levels.md §3): refs win, robust under jitter, lazy baselines fail, pacing
 {
   const { ALL_LEVELS } = await import('../src/levels');
