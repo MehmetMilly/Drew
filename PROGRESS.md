@@ -2,10 +2,30 @@
 
 ## Current phase
 
-**Phases 4 and 5, in parallel.**
-- Chapters 1–3 are green and in the index.
-- A level-author is tuning Chapter 4. A level-author-deep is tuning Chapter 5 and the Big Eraser.
-- Meanwhile Phase 5 modes are being built.
+**Phase 6 (polish).**
+- Phases 4 and 5 are built:
+  - five chapters plus the boss, all green in the index;
+  - Sumo ladder and pass-and-play;
+  - Daily;
+  - Doodle Pad;
+  - Pencil Case.
+- 2026-10-04:
+  - Fixed the worm launch: footless bodies no longer mirror to turn. Worm-only Daily pairs are now banned.
+  - Acted on the Phase 4 critic (review/CRITIC-phase4.md):
+    - Sumo foes are felt-tip;
+    - the rope and the sharpener are yellow;
+    - water is a multiply wash;
+    - one nameplate at a time;
+    - BOOM is at full strength;
+    - the Doodle Pad never fails;
+    - one clock in Sumo;
+    - the overlapping notes are fixed.
+- Still open from the critic:
+  - #2 the Big Eraser is too small and its phases look alike;
+  - #11 bumpers and bombs look the same;
+  - #12–15 per-chapter paper, paper warmth, kraft contrast, the Pencil Case strip;
+  - #18–20 the Daily calendar page, title surprise, stamp badges;
+  - #22 the intent line points into the terrain.
 
 ## Done
 
@@ -42,11 +62,16 @@
 
 ## Next
 
-1. Chapters 4 and 5 green and added to the index (agents running).
-2. Sound for the new hazards and modes: scissors, fire, smudgers, the Eraser, sumo, a crowd for pass-and-play. Use the `audio` agent.
-3. qa-monkey over every level and mode, then a critic pass (the Phase 4 end).
-4. Dedicated compact Daily arenas to replace the borrowed story levels.
-5. Phase 6: juice pass, audio mix, accessibility, real-phone perf, critic-final.
+1. The qa-monkey harness (tools/qa/) is written. Run it in full and act on what it finds.
+2. The open critic items above.
+3. Give worms a real niche, so that Worms Only can return to Daily.
+4. Dedicated compact Daily arenas.
+5. Phase 6:
+   - audio mix (needs a human ear);
+   - accessibility;
+   - real-phone perf (needs a phone);
+   - load budget;
+   - critic-final.
 
 ## Open problems
 
