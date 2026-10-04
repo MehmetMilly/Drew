@@ -6,7 +6,7 @@ import { boil1, boilState } from '../render/boil';
 import type { Hero } from '../game/save';
 
 const COLS = 3,
-  ROWS = 3,
+  ROWS = 2, // two rows: the Pencil Case and the pager sit under them
   CELL_W = 200,
   CELL_H = 210,
   PAD = 22;

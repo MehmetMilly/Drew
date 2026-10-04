@@ -798,7 +798,7 @@ body.slow #backdrop {
   position: absolute;
   left: 0;
   right: 0;
-  top: 935px;
+  top: 845px; /* above the pager (950) and the notes (1020) */
   display: flex;
   gap: 18px;
   padding: 4px 40px 8px;

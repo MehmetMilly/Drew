@@ -44,6 +44,15 @@ function levelOpen(lv: LevelDef, cleared: Record<string, boolean>): boolean {
 
 /** An accessible name for a button that shows only an icon. */
 const label = (b: HTMLElement, name: string) => (b.setAttribute('aria-label', name), b);
+let lastPress = -1e9; // the last press any button fired (shared: see press())
+addEventListener(
+  'click',
+  (e) => {
+    if (performance.now() - lastPress < 450) (e.stopPropagation(), e.preventDefault());
+  },
+  true,
+);
+
 const el = (tag: string, cls = '', html = '') => {
   const e = document.createElement(tag);
   if (cls) e.className = cls;
@@ -91,12 +100,13 @@ export class Shell {
       e.stopPropagation();
       pencilTick();
     });
-    // fire on the finger lifting (some phones drop the click after a tiny wobble), once
-    let last = 0;
+    // fire on the finger lifting (some phones drop the click after a tiny wobble), once. The
+    // screen often changes under the finger, so the click that follows the lift is swallowed
+    // wherever it lands (it used to press whatever button the new screen had there)
     const go = (e: Event) => {
       e.stopPropagation();
-      if (performance.now() - last < 400) return;
-      last = performance.now();
+      if (performance.now() - lastPress < 450) return;
+      lastPress = performance.now();
       fn();
     };
     b.addEventListener('pointerup', go);
