@@ -238,6 +238,7 @@ export const LOOK = {
   pointHeadK: 0.06,
   boilFrames: 3,
   boilAmp: 0.8,
+  haulWidth: 4.2, // px: the rubber arm a tall carrier hauls Little Guy up with (thins as it stretches)
   foeWidth: 1.5, // a Sumo opponent's line weight vs the player's ink (felt-tip, not pencil)
   nameplateHold: 1.5,
   nameplateSlap: 0.16,
@@ -531,8 +532,8 @@ export const SUMO = {
   reachLow: 10, // px below the opponent's centre that hands go for (under its weight)
   outDepth: 30, // px below the ring top a centre of mass counts as off
   edgeSlop: 10, // px beyond the ring's edge
-  grace: 0.6, // s after waking before anyone can lose
   foeLag: 0.8, // s the pre-drawn opponent waits to act after waking: the player's creature gets the first lean
+  grace: 0.6, // s after waking before anyone can lose
   shrink: 30, // px/s from each edge after time-out: it keeps going until someone falls
   minHalf: 6, // px: the ring never shrinks below this half width
   lavaDepth: 120, // px below the ring top the lava surface lies: whatever touches it burns
