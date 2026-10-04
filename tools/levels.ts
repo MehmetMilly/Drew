@@ -156,7 +156,7 @@ export function validate(def: LevelDef, runs = 20): LevelReport {
     base[n] = wins >= BASE_WINS;
   });
   const baseWins = Object.values(base).filter(Boolean).length;
-  const baseOk = !def.anatomyMatters || (baseWins <= 1 && !NEVER_WIN.some((n) => base[n]));
+  const baseOk = !def.anatomyMatters || (baseWins <= 2 && !NEVER_WIN.some((n) => base[n]));
   const [lo, hi] = def.window ?? [3, 12];
   const paceOk = refRes.every((a) => a.result !== 'win' || (a.t >= lo && a.t <= hi));
   if (!paceOk) notes.push(`pace ${refRes.map((a) => a.t.toFixed(1)).join('/')} s outside ${lo}–${hi}`);

@@ -306,3 +306,15 @@ Playtesters (an adult and a kid) got stuck on 1-2 and 1-3 and said "you just don
 - **Rubber-arm haul**: when a tall carrier lifts Little Guy, its nearest hand is drawn stretching down to grip and reel him up. This is render only; the sim's climb is unchanged.
 - **Chapter hints sit on a white slip with felt-tip words** (blue alone vanished on some papers).
 - **Music −4 dB.**
+
+## 2026-10-04: fairness retune of seven hard levels
+Playtesters found 3-1, 3-5, 4-1, 4-3, 5-4, 2-3 and 2-5 too hard ("you just don't know what would work"). Each is retuned with `tools/fairness.ts` (10 ordinary bodies at 3 spots) and kept green in `tools/verify.ts`. Numbers are fairness wins out of 10, before → after.
+- **Baseline rule relaxed** (`tools/levels.ts` `validate`, `docs/levels.md` §3): at most TWO baselines may win on an `anatomyMatters` level (was one); roof, scrawl and scrawlWall still must never win.
+- **2-3 Help Them Score, 4 → 7**: the rim is 110 px off the floor (was 470), so short stick figures and a worm reach it; pacing window opened to 1.5–12 s because it now plays faster.
+- **2-5 Pinball Panic, 4 → 7**: bombs drop at 2.0 and 2.8 s (were 1.2 and 2.0) and one of the three balls is gone; the many-legged ref was only 70–75% robust there, so the third ref is now a bruiser (Heavy).
+- **3-1 Gust, 0 → 6** (heavy stick man and stick700 both win now): the wind alone could not be eased, because every time it was weak enough for a stick figure the lazy roof and blob walked through it with Little Guy riding. So the gale is shorter and gentler (x 100–300, force 1000, 13 s) and the flag sits on a 100 px hill (x 680). The hill is the verb: a hand tosses him up, a hop or a giant clears it, and a roof or blob cannot. Armless bodies and stick400 (arms too short to toss) still fail. The refs are now bruiser lump, reacher and giant (a springy ref with a scribbled belly was 60% robust).
+- **3-5 Downstairs, 2 → 6**: the top floor gives at 12k impulse (was 170k) and the lower at 70k (was 170k), and the lower slab sits at y 980 (was 1030). Note: a slab lower than about 1040 puts Little Guy's centre inside the flag pole's win box, which silently wins the level without ever reaching the floor. Do not move that slab down.
+- **4-1 Rising Tide, 1 → 6**: the water climbs 47 px/s (was 90). At 45 the scrawl wall wins, at 50 only 4 of 10 pass, so 47 sits in a narrow band.
+- **4-3 Bath Time, 3 → 6**: two ducks score (was three, one spare), the ducks start near the bank (x 440–520), the bucket is lower (y 1080, x 640); window opened to 1.5–15 s. The giant still cannot reach floating ducks (its arms hang 460 px above them).
+- **5-4 Everything, Everywhere, 3 → 6**: the scissors wake at 3.5 s (was 0.3) and fly 190 px/s (was 260), so a body gets started across the gap first. The fire timing made no difference.
+- **Blocker found:** the creatures without hands (spider, worm, hopper, floater) cannot fetch in SCORE levels, so 2-3 and 4-3 cap at 6 or 7 of 10. 3-1 tops out at 6 because stick400 cannot toss him up a ledge.

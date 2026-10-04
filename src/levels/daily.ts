@@ -16,7 +16,7 @@ export const ARENAS: { name: string; level: LevelDef; no?: Modifier[] }[] = [
   { name: 'Pit', level: L2_2, no: ['tiny'] },
   { name: 'Bombs', level: L1_4 },
   { name: 'Crushers', level: L1_3, no: ['one-stroke', 'no-heads', 'worms', 'giants', 'tiny'] },
-  { name: 'Fan', level: L3_1, no: ['worms', 'giants'] },
+  { name: 'Fan', level: L3_1, no: ['worms', 'giants', 'tiny'] },
   { name: 'Pool', level: L4_1, no: ['one-stroke', 'no-heads', 'worms', 'tiny'] },
   { name: 'Hoop', level: L2_3, no: ['one-stroke', 'no-heads', 'worms', 'tiny'] },
   { name: 'See-saw', level: L3_3, no: ['tiny'] },

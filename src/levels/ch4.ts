@@ -19,7 +19,8 @@ const balloon = (x: number, r: number) => [circle(x, G - 125 - r, r), line(x, G 
 /** a drawing scaled about its feet */
 const big = (k: string, x: number, s: number) => scaleAbout(CANON[k](x), s, x, G);
 
-// the room floods: nothing standing is tall enough; something has to float him
+// the room floods: nothing standing is tall enough; something has to float him (eased 2026-10-04:
+// the tide climbs 47 px/s, not 90, so a tall biped's reach or a hop onto something still works)
 export const L4_1: LevelDef = {
   id: '4-1',
   title: 'Rising Tide',
@@ -30,7 +31,7 @@ export const L4_1: LevelDef = {
   ink: 3000,
   terrain: [],
   entities: [],
-  props: [{ type: 'water', x0: 0, x1: 720, y: FLOOR + 4, rise: 90, at: 1.5, top: 600 }],
+  props: [{ type: 'water', x0: 0, x1: 720, y: FLOOR + 4, rise: 47, at: 1.5, top: 600 }],
   guy: { x: 360, y: FLOOR },
   anatomyMatters: true,
   refs: [
@@ -69,19 +70,20 @@ export const L4_2: LevelDef = {
   window: [1.5, 14],
 };
 
-// three rubber ducks to herd into a bucket: nothing passive herds
+// three rubber ducks to herd into a bucket: nothing passive herds (eased 2026-10-04: two
+// in the bucket win, with one spare; the ducks drift near the bank and the bucket sits low)
 export const L4_3: LevelDef = {
   id: '4-3',
   title: 'Bath Time',
   paper: 'wash',
-  goal: { type: 'score', n: 3, seconds: 15, hoop: { x: 630, y: 1030, bucket: true } },
+  goal: { type: 'score', n: 2, seconds: 15, hoop: { x: 640, y: 1080, bucket: true } },
   draw: 0.05,
   ink: 3000,
   terrain: [[{ x: 540, y: 1100 }, { x: 760, y: 1100 }, { x: 760, y: FLOOR }, { x: 540, y: FLOOR }]],
   entities: [
-    { type: 'cargo', x: 110, y: 1040, duck: true },
-    { type: 'cargo', x: 250, y: 1040, duck: true },
-    { type: 'cargo', x: 400, y: 1040, duck: true },
+    { type: 'cargo', x: 440, y: 1040, duck: true },
+    { type: 'cargo', x: 480, y: 1040, duck: true },
+    { type: 'cargo', x: 520, y: 1040, duck: true },
   ],
   props: [{ type: 'water', x0: 0, x1: 540, y: 1060 }],
   guy: { x: 680, y: 1100 },
@@ -92,7 +94,7 @@ export const L4_3: LevelDef = {
     { kind: 'Biped', strokes: CANON.reacher(300) },
     { kind: 'Floaty', strokes: sacman(300) },
   ],
-  window: [3, 15],
+  window: [1.5, 15],
 };
 
 // his raft drifts toward a waterfall (the river ends at a drop with no floor): the water is deeper

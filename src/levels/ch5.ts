@@ -89,7 +89,8 @@ export const L5_3: LevelDef = {
 
 // the whole chapter at once: scissors drop on him, then the bank catches fire behind him, and a
 // gap too wide to straddle stands between him and the flag. Shields are cut, crawlers fall in,
-// and whoever dawdles burns: catch the scissors, then hop or toss him over
+// and whoever dawdles burns: catch the scissors, then hop or toss him over (eased 2026-10-04: the
+// scissors wake at 3.5 s, not 0.3 s, and fly 190 px/s, not 260: time to start crossing first)
 export const L5_4: LevelDef = {
   id: '5-4',
   title: 'Everything, Everywhere',
@@ -104,7 +105,7 @@ export const L5_4: LevelDef = {
   ],
   entities: [],
   props: [
-    { type: 'scissors', x: 360, y: 250, at: 0.3 },
+    { type: 'scissors', x: 360, y: 250, at: 3.5, speed: 190 },
     { type: 'fire', x0: -40, x1: 220, y: FLOOR, at: 2.5, speed: 60 },
   ],
   guy: { x: 60, y: FLOOR },

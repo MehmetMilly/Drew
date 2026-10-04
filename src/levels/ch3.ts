@@ -29,24 +29,27 @@ const bruiserBig = (x: number): Pt[][] => {
   ];
 };
 
-// a fan blows against the path to the flag: light bodies are blown back with him
+// a fan blows against the path to a flag on a low windy hill: the route is blocked, so he
+// needs a ride, and the gale pushes light bodies back (eased 2026-10-04: a shorter, gentler
+// gale plus a hill that a hand tosses him up, a hop clears or a giant carries him over)
+const HILL = 100;
 export const L3_1: LevelDef = {
   id: '3-1',
   title: 'Gust',
   hint: 'Scribbles are heavy.',
   paper: 'kraft',
-  goal: { type: 'home', x: 690, y: FLOOR, seconds: 11 },
+  goal: { type: 'home', x: 680, y: FLOOR - HILL, seconds: 13 },
   draw: 0.05,
   ink: 3000,
-  terrain: [],
+  terrain: [[{ x: 500, y: FLOOR - HILL }, { x: 760, y: FLOOR - HILL }, { x: 760, y: FLOOR }, { x: 500, y: FLOOR }]],
   entities: [],
-  props: [{ type: 'wind', x0: 100, y0: 700, x1: 540, y1: FLOOR, force: -3800, at: 0 }],
+  props: [{ type: 'wind', x0: 100, y0: 700, x1: 300, y1: FLOOR, force: -1000, at: 0 }],
   guy: { x: 30, y: FLOOR },
   anatomyMatters: true,
   refs: [
     { kind: 'Heavy', strokes: bruiserBig(150) },
-    { kind: 'Springy', strokes: hopperLump(150) },
-    { kind: 'Tiny', strokes: [scribbleBlob(110, G - 50, 46, 22)] },
+    { kind: 'Biped', strokes: CANON.reacher(150) },
+    { kind: 'Giant', strokes: CANON.giant(150) },
   ],
   window: [3, 14],
 };
@@ -121,7 +124,9 @@ export const L3_4: LevelDef = {
   window: [3, 14],
 };
 
-// the flag is two floors down below cracked floors: nothing passive breaks them
+// the flag is two floors down below cracked floors: nothing passive breaks them (eased
+// 2026-10-04: the top floor gives to a stomp or a fall, the lower, a shorter drop below, to a harder landing;
+// the lower floor stays under the flag pole's reach (Little Guy's centre 40+ px above the flag foot is not home))
 export const L3_5: LevelDef = {
   id: '3-5',
   title: 'Downstairs',
@@ -135,8 +140,8 @@ export const L3_5: LevelDef = {
   ],
   entities: [],
   props: [
-    { type: 'crack', x0: 160, x1: 560, y: 860, impulse: 170000 },
-    { type: 'crack', x0: 160, x1: 560, y: 1030, impulse: 170000 },
+    { type: 'crack', x0: 160, x1: 560, y: 860, impulse: 12000 },
+    { type: 'crack', x0: 160, x1: 560, y: 980, impulse: 70000 },
   ],
   guy: { x: 260, y: 860 },
   anatomyMatters: true,
