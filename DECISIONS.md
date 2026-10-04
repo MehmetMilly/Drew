@@ -284,3 +284,10 @@ Every Chapter 2 row of `npm run verify` is green and Chapter 1 is unchanged. Wha
 - **Hint button.** After two fails on a level, a blue "✎ hint" tab shows a reference body as a dashed guide-blue tracing ghost at the place it works. It stays across retries, and each press cycles to the next ref. Blue = guides, so the colour job is unchanged.
 - **Sumo, Daily and the Doodle Pad open from the start.** Gating them behind Chapter 1 hid the toy. The ladder and chapters still open in order.
 - **Little Guy drawn 1.3× (render only, `GUY.size`).** Scaling his sim body broke 3-1, 3-3, 4-1 and 5-3. Camera zoom was dropped because most levels span the full 720 px width.
+
+## 2026-10-04: Sumo: solid foes, lava floor, decisive shrink, Little Guy in the stands
+- **Creatures passed through the zigzag/spring foes.** Particle-only contact (10 px spacing) let opposing thin links slip between each other's particles under a shove (a headless count of crossing links between teams showed 100+ in the Champion bout). Fix in `src/sim/world.ts`: opposing teams' ink collides at 1.5× particle diameter with full overlap resolved per pass (`SUMO.wallMul`, `wallRelax`), plus a particle-vs-link pass across teams (`collideTeamLinks`, `SUMO.linkMul`). Same-team and non-Sumo physics are untouched.
+- **Ring shrink** is now 30 px/s per edge down to a 6 px half width, so it keeps going until someone falls; the rope turns red and blinks once it starts.
+- **The floor is lava** (`drawLava`, danger red; a cheap one-fill pool). Any creature of either team with a particle in it burns (dust poof, removed), so falling off loses.
+- **Little Guy cheers from a perch** (a felt pillar at the left page edge, `SUMO.pillarTop`), is happy during the bout and `checkDeaths` is skipped for Sumo, so he cannot lose it.
+- **Fairness:** the pre-drawn foe waits `SUMO.foeLag` 0.8 s before acting; Big Doris's belly is smaller (r 26, 10 passes). Ladder check: every rung is beaten by at least 2 body kinds.

@@ -523,15 +523,16 @@ export const DMG = {
 
 /** Sumo mode (design §12, sumo.ts). */
 export const SUMO = {
-  wallMul: 1, // opposing teams' ink collides at this × the usual particle diameter (no slipping between thin links)
-  linkMul: 0.01, // a particle keeps this × its radius off the other team's links
-  wallRelax: 0.5, // ...and resolves the whole overlap per pass
+  wallMul: 1.5, // opposing teams' ink collides at this × the usual particle diameter (no slipping between thin links)
+  linkMul: 1.6, // a particle keeps this × its radius off the other team's links
+  wallRelax: 1, // ...and resolves the whole overlap per pass
   noDraw: 30, // px around the opponent's ink the pencil skips over (ink there would tangle with it)
   drive: 60, // px: it aims this far beyond the opponent, so it keeps walking into it
   reachLow: 10, // px below the opponent's centre that hands go for (under its weight)
   outDepth: 30, // px below the ring top a centre of mass counts as off
   edgeSlop: 10, // px beyond the ring's edge
   grace: 0.6, // s after waking before anyone can lose
+  foeLag: 0.8, // s the pre-drawn opponent waits to act after waking: the player's creature gets the first lean
   shrink: 30, // px/s from each edge after time-out: it keeps going until someone falls
   minHalf: 6, // px: the ring never shrinks below this half width
   lavaDepth: 120, // px below the ring top the lava surface lies: whatever touches it burns

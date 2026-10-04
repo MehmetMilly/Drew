@@ -1,7 +1,9 @@
 // Sumo ladder (levels.md §6): twelve pre-drawn opponents, each with a body-plan gimmick
 // that asks for a specific counter. One ring, raised on a block; the player draws on the
-// left half, the opponent stands on the right; Little Guy referees from the floor.
+// left half, the opponent stands on the right; Little Guy cheers from a perch
+// beside it, out of the fight; the floor is lava.
 import type { LevelDef } from '../sim/level';
+import { SUMO } from '../tuning';
 import { CANON, GROUND_Y, circle, line, scribbleBlob, shift, springLine, scaleAbout } from '../sim/canon';
 import type { Pt } from '../sim/geom';
 import type { SumoRing } from '../sim/sumo';
@@ -16,7 +18,7 @@ const up = (s: Pt[][]) => shift(s, 0, DY);
 
 const pebble = (): Pt[][] => [circle(FX, G - 24, 22)];
 const stilts = (): Pt[][] => [circle(FX, G - 390, 24), line(FX, G - 366, FX, G - 300), line(FX, G - 330, FX - 40, G - 300), line(FX, G - 330, FX + 40, G - 300), line(FX, G - 300, FX - 50, G), line(FX, G - 300, FX + 50, G)];
-const doris = (): Pt[][] => [circle(FX, G - 136, 28), scribbleBlob(FX, G - 75, 40, 18), line(FX - 20, G - 70, FX - 45, G), line(FX + 20, G - 70, FX + 45, G)];
+const doris = (): Pt[][] => [circle(FX, G - 136, 28), scribbleBlob(FX, G - 75, 26, 10), line(FX - 20, G - 70, FX - 45, G), line(FX + 20, G - 70, FX + 45, G)];
 const octo = (): Pt[][] => {
   const cy = G - 70;
   const out = [circle(FX, cy, 34)];
@@ -86,9 +88,16 @@ export function sumoLevel(k: number): LevelDef {
         { x: RING.x1 - 20, y: GROUND_Y },
         { x: RING.x0 + 20, y: GROUND_Y },
       ],
+      // the audience perch, off to the side and high above the lava: Little Guy cheers from it
+      [
+        { x: 0, y: SUMO.pillarTop },
+        { x: 70, y: SUMO.pillarTop },
+        { x: 70, y: GROUND_Y },
+        { x: 0, y: GROUND_Y },
+      ],
     ],
     entities: [],
-    guy: { x: 66, y: GROUND_Y, hat: 'gyoji' },
+    guy: { x: 36, y: SUMO.pillarTop, hat: 'gyoji' },
     anatomyMatters: true,
     baseline: { x: 250, y: RING.y },
     refs: [

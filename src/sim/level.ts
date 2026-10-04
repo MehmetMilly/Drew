@@ -12,7 +12,7 @@ import type { Creature } from './creature';
 import { startProps, type Prop } from './props';
 import { bossBeaten } from './damage';
 import type { Modifier } from './daily';
-import { shrinkRing, spawnFoes, teamOnRing, type SumoRing } from './sumo';
+import { burnInLava, shrinkRing, spawnFoes, teamOnRing, type SumoRing } from './sumo';
 
 /** HOME: the flag's foot stands at (x, y) on the ground; the pole is LEVEL.flagH tall. */
 /** SCORE: n balls dropped down through the hoop (rim centre x, y) within `seconds`. */
@@ -141,7 +141,8 @@ export function levelStep(w: World) {
   thinkGuy(w, g, th ? { x: th.x, y: th.y } : null);
   if (L.result !== 'play') return;
 
-  if (g.alive) checkDeaths(w);
+  // Sumo: Little Guy is in the audience, out of the fight, and cannot lose the bout
+  if (g.alive && L.def.goal.type !== 'sumo') checkDeaths(w);
   // the toy never fails (design: toy first): after the poof he pops back where he started
   if (!g.alive && L.def.casual) {
     if (w.t - g.diedAt >= LEVEL.toyRespawn) w.guy = spawnGuy(w, L.def.guy.x, L.def.guy.y, L.def.guy.hat ?? 'none');
@@ -159,6 +160,10 @@ export function levelStep(w: World) {
     if (L.foesAt < 0 && w.creatures.some((cr) => cr.alive && cr.team === 0)) {
       spawnFoes(w, goal.foe);
       L.foesAt = w.t;
+    }
+    if (L.foesAt >= 0) {
+      burnInLava(w, goal.ring);
+      setMood(w, g, 'happy'); // cheering from his perch
     }
     if (L.foesAt >= 0 && w.t - L.foesAt > SUMO.grace) {
       if (teamOnRing(w, 1, goal.ring) <= 0) win(w);

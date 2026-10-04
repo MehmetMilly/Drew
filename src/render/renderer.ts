@@ -2,7 +2,7 @@
 import { COLORS, LOOK, WORLD, PEN } from '../tuning';
 import { drawProps, drawWater } from './props';
 import { drawFire, drawSharpener } from './damage';
-import { drawRing, drawBodies, drawGuy, drawBursts, drawCountdown, drawGoal, drawPlayers, drawSpikes, type Burst } from './stage';
+import { drawLava, drawRing, drawBodies, drawGuy, drawBursts, drawCountdown, drawGoal, drawPlayers, drawSpikes, type Burst } from './stage';
 import { guyCentre } from '../sim/littleguy';
 import { World, SimEvent } from '../sim/world';
 import type { Creature } from '../sim/creature';
@@ -114,6 +114,7 @@ export class WorldRenderer {
     const frame = boilFrame(o.realT);
     drawCountdown(g, w);
     drawGoal(g, w);
+    drawLava(g, w);
     this.drawTerrain(g, frame);
     drawRing(g, w);
     drawSpikes(g, w);

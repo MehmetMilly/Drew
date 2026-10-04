@@ -160,7 +160,7 @@ A raised ring on a page torn from a margin. Both creatures are drawn, both wake,
 
 - **Ladder**: 12 pre-drawn opponents, each with a body-plan gimmick that asks for a specific counter (listed in `levels.md`). Beating the ladder unlocks the Champion's pencil.
 - **Pass-and-play for two players**: best of five, 8 s to draw, same ink. Who draws first alternates each round and the second drawer sees the first creature. Countering is the point.
-- Little Guy referees in a tiny gyōji hat and reacts to every round.
+- Little Guy cheers from a perch beside the ring in a tiny gyōji hat; he is out of the fight and cannot lose it. The floor is lava: falling in loses. At time-out the ring shrinks until someone falls.
 
 ### Daily Doodle (unlocks after Chapter 1)
 

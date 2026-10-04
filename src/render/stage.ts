@@ -2,9 +2,9 @@
 // countdown in the sky, blasts, the poof, the hug heart. Greybox-first, but in the
 // game's materials: felt-tip black, danger red, highlighter yellow.
 import { drawEraser, drawScissors, drawSmudger } from './damage';
-import { ringTerrain } from '../sim/sumo';
+import { lavaY, ringTerrain } from '../sim/sumo';
 import { NINJA } from '../sim/hazards';
-import { COLORS, HAZ, LEVEL, LOOK, GUY } from '../tuning';
+import { COLORS, HAZ, LEVEL, LOOK, GUY, WORLD } from '../tuning';
 import { boil1 } from './boil';
 import { drawChunk } from './props';
 import type { World, Body } from '../sim/world';
@@ -804,7 +804,7 @@ export function drawRing(g: Ctx, w: World) {
   const y = goal.ring.y + 10;
   g.save();
   // the rope is what matters here (yellow): push the other one past it
-  g.strokeStyle = COLORS.yellow;
+  g.strokeStyle = closing && Math.floor(w.t * 4) % 2 ? COLORS.red : COLORS.yellow;
   g.lineWidth = 6;
   g.lineCap = 'round';
   g.setLineDash([18, 6]);
@@ -813,11 +813,51 @@ export function drawRing(g: Ctx, w: World) {
   g.lineTo(T.maxX - 14, y);
   g.stroke();
   g.setLineDash([]);
-  g.fillStyle = COLORS.yellow;
+  g.fillStyle = closing ? COLORS.red : COLORS.yellow;
   for (const x of [T.minX + 12, T.maxX - 12]) {
     g.beginPath();
     g.arc(x, y, 7, 0, Math.PI * 2);
     g.fill();
+  }
+  g.restore();
+}
+  const L = w.level!;
+  // after time-out the ring is closing in: the rope turns red (a threat) and blinks
+  const closing = L.foesAt >= 0 && w.t - L.foesAt > goal.seconds;
+
+/** Sumo: the floor is lava. A flat red pool with a wavy lip and a few bubbles: one fill, cheap
+ *  on phones. Drawn before the terrain so the ring block and the perch stand in it. */
+export function drawLava(g: Ctx, w: World) {
+  const goal = w.level?.def.goal;
+  if (goal?.type !== 'sumo') return;
+  const y0 = lavaY(goal.ring);
+  const t = w.t;
+  g.save();
+  g.fillStyle = COLORS.red;
+  g.beginPath();
+  g.moveTo(-10, WORLD.H + 10);
+  for (let x = -10; x <= WORLD.W + 10; x += 20) g.lineTo(x, y0 + Math.sin(x * 0.045 + t * 2.2) * 4 + Math.sin(x * 0.11 - t * 1.3) * 2);
+  g.lineTo(WORLD.W + 10, WORLD.H + 10);
+  g.closePath();
+  g.fill();
+  // felt-tip lip and bubbles
+  g.strokeStyle = COLORS.felt;
+  g.lineWidth = 2;
+  g.beginPath();
+  for (let x = -10; x <= WORLD.W + 10; x += 20) {
+    const y = y0 + Math.sin(x * 0.045 + t * 2.2) * 4 + Math.sin(x * 0.11 - t * 1.3) * 2;
+    if (x < 0) g.moveTo(x, y);
+    else g.lineTo(x, y);
+  }
+  g.stroke();
+  for (let k = 0; k < 7; k++) {
+    const ph = (t * 0.5 + k * 0.37) % 1;
+    const bx = 40 + ((k * 103) % 640),
+      by = y0 + 50 - ph * 40;
+    g.globalAlpha = 1 - ph;
+    g.beginPath();
+    g.arc(bx, by, 3 + ph * 5, 0, Math.PI * 2);
+    g.stroke();
   }
   g.restore();
 }

@@ -2,7 +2,7 @@
 // shape matching every 3rd iteration. Pure and deterministic.
 import { applyMod } from './daily';
 import * as F from './fmath';
-import { BODY, CREATURE_COLLIDE, DAILY, GUY, LOCO, SHAPE, WORLD } from '../tuning';
+import { BODY, CREATURE_COLLIDE, DAILY, GUY, LOCO, SHAPE, SUMO, WORLD } from '../tuning';
 import { Particles, Constraints, PF, CT, STRUCTURAL } from './store';
 import { buildBodies, components, PenPt } from './build';
 import { readAnatomy, makeSprings, seedOf } from './anatomy';
@@ -502,6 +502,7 @@ export class World {
         this.solveConstraints(it % 2 === 0);
         if (it % WORLD.shapeEvery === 0) for (const cr of live) if (cr.alive) this.shapeMatch(cr);
         if (it % 2 === 1) this.collideParticles();
+        if (it % 2 === 1 && this.sumoTeams) this.collideTeamLinks();
         this.collideBodies();
         if (this.props) collidePlanks(this, this.props), collideRafts(this, this.props, h);
         if (it % 2 === 1 || lastIt) this.collideTerrain(lastIt);
@@ -917,18 +918,94 @@ export class World {
     this.nPairs = n;
   }
 
+  /** Sumo: team-0 and team-1 ink are solid to each other along whole links, not just at
+   *  particles: a particle is pushed off the other team's link, and the link off it. */
+  private get sumoTeams(): boolean {
+    return this.level?.def.goal.type === 'sumo' && this.level.foesAt >= 0;
+  }
+
+  private collideTeamLinks() {
+    const P = this.P,
+      C = this.C;
+    const r = BODY.radius * SUMO.linkMul,
+      r2 = r * r;
+    for (const A of this.creatures) {
+      if (!A.alive) continue;
+      for (const B of this.creatures) {
+        if (!B.alive || B.team === A.team) continue;
+        for (const c of B.cons) {
+          if (C.dead[c] || (C.type[c] !== CT.LINK && C.type[c] !== CT.SPRING)) continue;
+          const a = C.a[c],
+            b = C.b[c];
+          const ax = P.x[a],
+            ay = P.y[a],
+            bx = P.x[b],
+            by = P.y[b];
+          const ex = bx - ax,
+            ey = by - ay;
+          const el = ex * ex + ey * ey;
+          if (el < 1e-9) continue;
+          const x0 = Math.min(ax, bx) - r,
+            x1 = Math.max(ax, bx) + r,
+            y0 = Math.min(ay, by) - r,
+            y1 = Math.max(ay, by) + r;
+          for (const i of A.ids) {
+            const px = P.x[i],
+              py = P.y[i];
+            if (px < x0 || px > x1 || py < y0 || py > y1) continue;
+            const t = Math.max(0, Math.min(1, ((px - ax) * ex + (py - ay) * ey) / el));
+            const qx = ax + ex * t,
+              qy = ay + ey * t;
+            const dx = px - qx,
+              dy = py - qy;
+            const d2 = dx * dx + dy * dy;
+            if (d2 >= r2 || d2 < 1e-12) continue;
+            const d = Math.sqrt(d2);
+            const wp = P.im[i],
+              wa = P.im[a] * (1 - t),
+              wb = P.im[b] * t;
+            const ws = wp + wa + wb;
+            if (ws === 0) continue;
+            const k = (r - d) / d;
+            // the link end nearer the contact takes the weighted share
+            P.x[i] += dx * k * (wp / ws);
+            P.y[i] += dy * k * (wp / ws);
+            const sa = (1 - t) * (wa / ws) * k,
+              sb = t * (wb / ws) * k;
+            P.x[a] -= dx * sa;
+            P.y[a] -= dy * sa;
+            P.x[b] -= dx * sb;
+            P.y[b] -= dy * sb;
+          }
+        }
+      }
+    }
+  }
+
   private collideParticles() {
     const P = this.P;
     const r2 = 2 * BODY.radius;
     const R2 = r2 * r2;
     const pairs = this.pairs;
+    // Sumo: ink of opposing teams is a thicker, stiffer wall, or thin zigzag and spring links
+    // slip between each other's particles under a shove
+    const sumo = this.level?.def.goal.type === 'sumo';
+    const rT = 2 * BODY.radius * SUMO.wallMul,
+      RT2 = rT * rT;
     for (let k = 0; k < this.nPairs; k++) {
       const i = pairs[k * 2],
         j = pairs[k * 2 + 1];
       const dx = P.x[j] - P.x[i],
         dy = P.y[j] - P.y[i];
       const d2 = dx * dx + dy * dy;
-      if (d2 >= R2 || d2 < 1e-12) continue;
+      let rr = r2,
+        relax = CREATURE_COLLIDE.relax;
+      if (sumo) {
+        const oi = P.owner[i],
+          oj = P.owner[j];
+        if (oi >= 0 && oj >= 0 && this.creatures[oi]?.team !== this.creatures[oj]?.team) (rr = rT), (relax = SUMO.wallRelax);
+      }
+      if (d2 >= (rr === r2 ? R2 : RT2) || d2 < 1e-12) continue;
       const d = Math.sqrt(d2);
       const wi = P.im[i],
         wj = P.im[j];
@@ -936,7 +1013,7 @@ export class World {
       if (ws === 0) continue;
       // relaxed: a foot landing between two links of another body must not wedge them
       // apart faster than their own links can pull back together
-      const push = ((r2 - d) / d) * CREATURE_COLLIDE.relax;
+      const push = ((rr - d) / d) * relax;
       P.x[i] -= dx * push * (wi / ws);
       P.y[i] -= dy * push * (wi / ws);
       P.x[j] += dx * push * (wj / ws);

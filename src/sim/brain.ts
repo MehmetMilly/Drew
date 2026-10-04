@@ -4,7 +4,7 @@
 // starts BRAIN.eyeLead + ACT.anticipation later.
 import { planSumo } from './sumo';
 import * as F from './fmath';
-import { ACT, BRAIN, GUY, LOCO, LOOK, WORLD } from '../tuning';
+import { ACT, BRAIN, GUY, LOCO, LOOK, SUMO, WORLD } from '../tuning';
 import type { Creature } from './creature';
 import { hashNoise } from './rng';
 import { guyCentre } from './littleguy';
@@ -30,7 +30,7 @@ export function think(w: World, cr: Creature) {
     b.reachX = tgt.x;
     b.reachY = tgt.y;
     b.hasReach = true;
-    b.actAt = Math.max(w.t + BRAIN.eyeLead + ACT.anticipation, cr.bornAt + 0.35);
+    b.actAt = Math.max(w.t + BRAIN.eyeLead + ACT.anticipation, cr.bornAt + 0.35) + (cr.team === 1 ? SUMO.foeLag : 0);
     b.intentAt = w.t;
     b.intentX = tgt.x;
     b.intentY = tgt.y;

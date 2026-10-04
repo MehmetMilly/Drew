@@ -94,3 +94,22 @@ export function onFoe(w: World, x: number, y: number): boolean {
   for (const cr of w.creatures) if (cr.alive && cr.team !== 0) for (const i of cr.ids) if ((P.x[i] - x) ** 2 + (P.y[i] - y) ** 2 < r2) return true;
   return false;
 }
+
+/** The lava surface's y under the ring. */
+export function lavaY(ring: SumoRing): number {
+  return ring.y + SUMO.lavaDepth;
+}
+
+/** Anything of either team that touches the lava burns up: a comic poof. */
+export function burnInLava(w: World, ring: SumoRing) {
+  const y = lavaY(ring) + 4;
+  for (const cr of w.creatures) {
+    if (!cr.alive) continue;
+    for (const i of cr.ids)
+      if (w.P.y[i] > y) {
+        w.emit({ type: 'fell', cr: cr.id });
+        w.removeCreature(cr, true);
+        break;
+      }
+  }
+}
