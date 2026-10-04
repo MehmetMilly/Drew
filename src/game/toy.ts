@@ -281,7 +281,9 @@ export class Toy {
   ) {
     this.bg = backdrop.getContext('2d', { alpha: false })!;
     this.g = canvas.getContext('2d')!;
-    this.og = overlay.getContext('2d', { desynchronized: true } as CanvasRenderingContext2DSettings)!;
+    // no `desynchronized`: on many Android GPUs a low-latency canvas composites as an opaque black
+    // sheet over the whole page (playtest 2026-10-04, every Android phone and tablet tried)
+    this.og = overlay.getContext('2d')!;
     this.resize();
     addEventListener('resize', () => this.resize());
     attachPen(overlay, {
