@@ -182,12 +182,24 @@ export function drawFire(g: Ctx, w: World) {
       hi = Math.max(d.x0, f.front);
     for (let x = lo; x <= hi; x += 12) flame(g, x, d.y, 14 + 8 * Math.abs(hashNoise(Math.round(x), Math.floor(w.t * 12), 3)), w.t, x);
   }
-  // burning ink: a flame on every burning point, smaller as it chars
+  // burning ink: the stroke chars toward felt black where it burns, and small red flames lick
+  // up from it (above it, never over it: the player's ink stays ink-coloured, critic-final #7)
   const P = w.P;
+  g.fillStyle = COLORS.felt;
   for (let i = 0; i < P.n; i++) {
     if (!D.burn[i] || !(P.flags[i] & PF.ALIVE)) continue;
-    const age = (w.t - D.burn[i]) / DMG.burnLife;
-    flame(g, P.x[i], P.y[i], 12 * (1 - age * 0.6), w.t, i);
+    const age = Math.min(1, (w.t - D.burn[i]) / DMG.burnLife);
+    g.globalAlpha = 0.35 + 0.55 * age;
+    g.beginPath();
+    g.arc(P.x[i], P.y[i], 5.5, 0, Math.PI * 2);
+    g.fill();
+  }
+  g.globalAlpha = 1;
+  g.fillStyle = COLORS.red;
+  for (let i = 0; i < P.n; i += 2) {
+    if (!D.burn[i] || !(P.flags[i] & PF.ALIVE)) continue;
+    const age = Math.min(1, (w.t - D.burn[i]) / DMG.burnLife);
+    flame(g, P.x[i], P.y[i] - 6, 10 * (1 - age * 0.6), w.t, i);
   }
   g.restore();
 }
