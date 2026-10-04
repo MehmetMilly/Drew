@@ -21,6 +21,13 @@ import { levelThumb } from './thumb';
 import { pencilTick } from '../audio/pencil';
 import { sfxCountdown, sfxUi } from '../audio/sfx';
 
+/** The level's standing tip: its own sentence, a Sumo opponent's counter, or the level's hint. */
+function tipFor(level: LevelDef): string {
+  const G = level.goal;
+  if (G.type === 'sumo') return `Shove ${G.name} into the lava! Try: ${level.hint ?? 'weight and good feet'}.`;
+  return TIPS[level.id] ?? level.hint ?? '';
+}
+
 type Screen = 'tutorial' | 'title' | 'chapter' | 'sumo' | 'daily' | 'doodle' | 'play' | 'toy' | 'settings' | 'sketchbook' | 'hero' | 'credits';
 
 /** Progression (design §13): a chapter opens when 4 of the one before are cleared; inside it,
@@ -84,10 +91,16 @@ export class Shell {
       e.stopPropagation();
       pencilTick();
     });
-    b.addEventListener('click', (e) => {
+    // fire on the finger lifting (some phones drop the click after a tiny wobble), once
+    let last = 0;
+    const go = (e: Event) => {
       e.stopPropagation();
+      if (performance.now() - last < 400) return;
+      last = performance.now();
       fn();
-    });
+    };
+    b.addEventListener('pointerup', go);
+    b.addEventListener('click', go);
     return b;
   }
 
@@ -164,7 +177,7 @@ export class Shell {
     ];
     const cap = el('div', 'note tut-cap');
     const dots = el('div', 'tut-dots', lessons.map(() => '<i></i>').join(''));
-    const skip = this.press(el('button', 'tab tut-skip', 'skip ›'), () => finish());
+    const skip = this.press(el('button', 'note small tut-skip', 'Skip ›'), () => finish());
     this.root.append(cap, dots, skip);
     let alive = true;
     const finish = () => {
@@ -509,7 +522,15 @@ export class Shell {
     }
     // the hint ladder (playtest 2026-10-04): always there, never a punishment. A tip in words,
     // then a body to trace, then watch one way to do it
-    if (level && !level.casual && level.refs.length && !this.vs.on) this.root.append(this.press(el('button', 'tab hint-btn', '✎ hint'), () => this.hintNote(level)));
+    // the tip is always up (playtest: players got stuck not knowing what a level asks for); it
+    // never says what to draw, only what the problem is. It sinks back while you draw.
+    const tip = level && !level.casual && !this.vs.on ? tipFor(level) : '';
+    if (tip) {
+      const strip = el('div', 'tip-strip');
+      strip.append(el('span', 'tip-text', tip));
+      if (level!.refs.length) strip.append(this.press(el('button', 'stuck', 'stuck?'), () => this.hintNote(level!)));
+      this.root.append(strip);
+    }
     bar.append(this.press(label(el('button', 'icon back', '<svg viewBox="0 0 40 40"><g fill="none" stroke="currentColor" stroke-linecap="round"><path d="M14.5 10.5c.3 6.4-.2 12.7.4 19" stroke-width="4"/><path d="M25.8 10.2c-.4 6.5.3 12.9-.2 19.3" stroke-width="4"/><path d="M15.4 11.5c.1 5.6 0 11.3.5 16.8" stroke-width="1.3" opacity=".5"/></g></svg>'), 'Pause'), () => this.pause(level, back)));
     this.root.append(bar);
   }
@@ -547,25 +568,24 @@ export class Shell {
     this.root.append(scrim);
   }
 
-  private hintNote(level: LevelDef) {
+  private hintNote(_level: LevelDef) {
     if (this.root.querySelector('.scrim') || this.toy.demoing) return;
     this.toy.paused = true;
     const scrim = el('div', 'scrim');
-    const note = el('div', 'note pause-note hint-note');
+    const note = el('div', 'note stuck-note');
     const close = () => {
       this.toy.paused = false;
       scrim.remove();
     };
-    note.append(el('b', '', 'Hint'));
-    note.append(el('p', 'tip', TIPS[level.id] ?? (level.goal.type === 'sumo' ? 'Shove them into the lava! Heavy scribbles push hardest, many legs hold their ground, zigzag arms punch.' : 'Every body does something different. Try a new shape!')));
-    note.append(
-      this.press(el('button', 'line', '✎ Show me a body to trace'), () => {
+    note.append(el('b', '', 'Stuck?'));
+    note.append(el('p', '', 'Every level has more than one answer. Want to see one?'));
+    const row = el('div', 'stuck-row');
+    row.append(
+      this.press(el('button', 'chip', '<i>✎</i>Trace one'), () => {
         close();
         this.toy.showHint();
       }),
-    );
-    note.append(
-      this.press(el('button', 'line', '▶ Watch one way to do it'), () => {
+      this.press(el('button', 'chip', '<i>▶</i>Watch one'), () => {
         close();
         this.root.querySelector('.watch-fail')?.remove();
         this.root.querySelector('.your-turn')?.remove();
@@ -573,7 +593,8 @@ export class Shell {
         this.toy.demo();
       }),
     );
-    note.append(this.press(el('button', 'line', 'Got it'), close));
+    note.append(row);
+    note.append(this.press(el('button', 'stuck-close', 'no thanks'), close));
     scrim.append(note);
     scrim.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
@@ -638,7 +659,8 @@ export class Shell {
     else if (info.level.mod) row.append(this.press(el('button', 'note small go', 'Stamped!'), () => this.show('daily')));
     else if (rung) row.append(this.press(el('button', 'note small go', 'Ladder done!'), () => this.show('sumo')));
     else row.append(this.press(el('button', 'note small go', 'Chapter done!'), () => this.show('chapter')));
-    row.append(this.press(el('button', 'note small', 'Retry'), () => this.retry()));
+    row.append(el('i', 'br')); // the way on gets its own line; the rest sit under it
+    row.append(this.press(el('button', 'note small', '↻ Retry'), () => this.retry()));
     row.append(
       this.press(el('button', 'note small watch', '▶ Watch'), () => {
         c.style.display = 'none';

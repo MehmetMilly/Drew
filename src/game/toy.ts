@@ -873,7 +873,8 @@ export class Toy {
       g.restore();
     }
     // the one handwritten hint, until the first stroke
-    if (L.hint && !this.drawn.length && !this.wet.length && !this.live) {
+    // (story, Daily and Sumo levels show theirs in the tip strip; only casual pages draw it here)
+    if (L.hint && L.casual && !this.drawn.length && !this.wet.length && !this.live) {
       g.save();
       g.globalAlpha = Math.min(1, Math.max(0, since - 0.3) / 0.4);
       g.font = '46px "Gochi Hand", cursive';

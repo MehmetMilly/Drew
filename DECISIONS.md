@@ -318,3 +318,12 @@ Playtesters found 3-1, 3-5, 4-1, 4-3, 5-4, 2-3 and 2-5 too hard ("you just don't
 - **4-3 Bath Time, 3 → 6**: two ducks score (was three, one spare), the ducks start near the bank (x 440–520), the bucket is lower (y 1080, x 640); window opened to 1.5–15 s. The giant still cannot reach floating ducks (its arms hang 460 px above them).
 - **5-4 Everything, Everywhere, 3 → 6**: the scissors wake at 3.5 s (was 0.3) and fly 190 px/s (was 260), so a body gets started across the gap first. The fire timing made no difference.
 - **Blocker found:** the creatures without hands (spider, worm, hopper, floater) cannot fetch in SCORE levels, so 2-3 and 4-3 cap at 6 or 7 of 10. 3-1 tops out at 6 because stick400 cannot toss him up a ledge.
+
+## 2026-10-04: the tip is always up
+- **Standing tip.** Every story, Daily and Sumo level shows its tip in a slip under the countdown. You can draw through it, and it fades while you draw.
+  - Tips were rewritten to state the problem and one nudge, never the body to draw. Before, several named the answer ("draw something with arms").
+  - "stuck?" on the slip offers Trace one or Watch one.
+  - The page-drawn chapter hints and Sumo's blue counter lines are folded into the slip: one place for words.
+- **Sumo:** a beaten opponent no longer gets happy eyes, and Little Guy only hugs the player's creatures.
+- **End card:** sits higher. Next is on its own line, and Retry, Watch and Save clip are a smaller row under it. The badge nudge has its own line.
+- **Tutorial:** Skip is a clear note in the top-right. Buttons fire on pointer-up, deduplicated with click, so a slightly wobbly tap still counts.

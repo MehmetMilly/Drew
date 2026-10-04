@@ -241,10 +241,10 @@ body.slow #backdrop {
 }
 .endcard {
   position: absolute;
-  left: 60px;
-  right: 60px;
-  top: 650px;
-  padding: 34px 20px 30px;
+  left: 50px;
+  right: 50px;
+  top: 340px;
+  padding: 34px 34px 32px;
   text-align: center;
   pointer-events: none;
   /* a fresh sheet laid over the page so the card never fights the action behind it */
@@ -266,20 +266,42 @@ body.slow #backdrop {
 }
 .epitaph {
   font-size: 32px;
-  margin: 10px 0 18px;
+  line-height: 1.2;
+  margin: 8px 10px 22px;
+  text-wrap: balance;
   animation: slap 260ms cubic-bezier(0.23, 1, 0.32, 1) 120ms both;
 }
 .badges {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   align-items: center;
   gap: 10px;
-  margin-bottom: 26px;
+  margin-bottom: 28px;
 }
 .badges small {
   font-size: 28px;
   opacity: 0.65;
   margin-left: 8px;
+}
+.badges small.nudge {
+  flex-basis: 100%;
+  margin: 6px 0 0;
+  font-size: 26px;
+  opacity: 0.55;
+}
+.buttons .br {
+  flex-basis: 100%;
+  height: 0;
+}
+.endcard .buttons .go {
+  min-width: 300px;
+  font-size: 48px;
+  text-align: center;
+}
+.endcard .buttons .note.small:not(.go) {
+  font-size: 34px;
+  padding: 10px 22px;
 }
 .buttons {
   display: flex;
@@ -350,20 +372,6 @@ body.slow #backdrop {
   transform: translateX(-50%);
   color: #3a3a40;
   opacity: 1;
-}
-.tab.hint-btn {
-  right: auto;
-  left: 30px;
-  top: 90px;
-  color: #7fb2e5;
-  opacity: 1;
-}
-.hint-note .tip {
-  font-size: 34px;
-  line-height: 1.15;
-  margin: 6px 0 14px;
-  max-width: 520px;
-  color: #1b1b1f;
 }
 
 .fail-row {
@@ -947,18 +955,106 @@ input:focus-visible {
 .tut-dots i.on {
   background: #3a3a40;
 }
-.tab.tut-skip {
-  top: auto;
-  bottom: 60px;
+.note.tut-skip {
+  position: absolute;
+  top: 24px;
+  right: 30px;
+  font-size: 40px;
+  padding: 10px 26px;
+  z-index: 2;
 }
 .note.tut-go {
   position: absolute;
   top: 420px;
-  left: 50%;
-  transform: translateX(-50%) rotate(1deg);
-  font-size: 48px;
+  left: 210px;
+  width: 300px;
+  text-align: center;
+  animation: none;
+  transform: rotate(1deg);
+  font-size: 52px;
+  padding: 22px 0;
+  z-index: 2;
 }
 .tab.how {
   right: auto;
   left: 30px;
+}
+
+/* the standing tip: a slip under the HUD row, drawn through (only its button takes touches) */
+.tip-strip {
+  position: absolute;
+  top: 168px; /* under the countdown numerals */
+  left: 30px;
+  right: 30px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 12px 14px 12px 20px;
+  background: rgba(255, 253, 246, 0.9);
+  border-left: 6px solid #7fb2e5;
+  border-radius: 4px 10px 10px 4px;
+  box-shadow: 0 6px 14px -10px rgba(27, 27, 31, 0.4);
+  transition: opacity 200ms ease-out;
+  pointer-events: none;
+  animation: fade 400ms ease-out 900ms both;
+}
+.tip-text {
+  flex: 1;
+  font-size: 29px;
+  line-height: 1.18;
+  color: #1b1b1f;
+}
+.tip-strip .stuck {
+  flex: none;
+  font-family: 'Gochi Hand', sans-serif;
+  font-size: 32px;
+  color: #3a3a40;
+  padding: 8px 16px;
+  border: 2.5px solid #7fb2e5;
+  border-radius: 14px 18px 12px 16px;
+  background: #fff;
+}
+body.slow .tip-strip {
+  opacity: 0.3;
+}
+.stuck-note {
+  position: absolute;
+  left: 90px;
+  right: 90px;
+  top: 380px;
+  padding: 30px 34px 24px;
+  text-align: center;
+  --tilt: -1deg;
+  animation-duration: 150ms;
+}
+.stuck-note p {
+  font-size: 32px;
+  line-height: 1.2;
+  margin: 4px 0 26px;
+}
+.stuck-row {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+}
+.chip {
+  flex: 1;
+  white-space: nowrap;
+  font-family: 'Gochi Hand', sans-serif;
+  font-size: 36px;
+  padding: 18px 10px;
+  background: #fff !important;
+  border: 3px solid #7fb2e5 !important;
+  border-radius: 18px 22px 16px 24px;
+}
+.chip i {
+  font-style: normal;
+  margin-right: 10px;
+  color: #7fb2e5;
+}
+.stuck-close {
+  margin-top: 18px;
+  font-size: 28px;
+  opacity: 0.6;
+  background: none;
 }

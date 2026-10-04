@@ -502,13 +502,14 @@ function win(w: World) {
     const c = guyCentre(w, g);
     let bd = Infinity;
     for (const cr of w.creatures) {
-      if (!cr.alive) continue;
+      if (!cr.alive || cr.team !== 0) continue; // never the Sumo opponent
       const ce = w.centroid(cr);
       const d = F.hypot(ce.x - c.x, ce.y - c.y);
       if (d < bd) (bd = d), (g.hugging = cr.id);
     }
   }
-  for (const cr of w.creatures) if (cr.alive) cr.face.happy = 3;
+  // the player's creatures celebrate; a beaten Sumo opponent does not
+  for (const cr of w.creatures) if (cr.alive && cr.team === 0) cr.face.happy = 3;
   w.emit({ type: 'win', cr: g.hugging });
 }
 
