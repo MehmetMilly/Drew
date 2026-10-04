@@ -278,3 +278,9 @@ Every Chapter 2 row of `npm run verify` is green and Chapter 1 is unchanged. Wha
 - **No nameplate for the opponent:** it's named on its ladder card, so your hero gets the one plate (#2).
 - **Credits:** heroes scaled to clear the ground band (#10).
 - **Countdown numerals moved up** (y 105, 120 px), out of the band where bombs drop in (#8).
+
+## 2026-10-04: playtest: easier 1-3, a hint button, every mode open, bigger Little Guy
+- **1-3 Walls crusher speed 170 → 105.** A player got hard stuck on it. At 105 the refs pass with 100% robustness and every lazy baseline still fails (at 90 the blob passes, so 105 is the floor).
+- **Hint button.** After two fails on a level, a blue "✎ hint" tab shows a reference body as a dashed guide-blue tracing ghost at the place it works. It stays across retries, and each press cycles to the next ref. Blue = guides, so the colour job is unchanged.
+- **Sumo, Daily and the Doodle Pad open from the start.** Gating them behind Chapter 1 hid the toy. The ladder and chapters still open in order.
+- **Little Guy drawn 1.3× (render only, `GUY.size`).** Scaling his sim body broke 3-1, 3-3, 4-1 and 5-3. Camera zoom was dropped because most levels span the full 720 px width.

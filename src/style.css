@@ -351,6 +351,13 @@ body.slow #backdrop {
   color: #3a3a40;
   opacity: 1;
 }
+.tab.hint-btn {
+  right: auto;
+  left: 30px;
+  top: 90px;
+  color: #7fb2e5;
+  opacity: 1;
+}
 .note.small.watch {
   --tilt: 1.5deg;
   background: #fffdf6;

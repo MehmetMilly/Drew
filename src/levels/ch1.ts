@@ -65,7 +65,7 @@ export const L1_3: LevelDef = {
   ink: 2500,
   floor: false,
   terrain: [[{ x: -200, y: FLOOR }, { x: 520, y: FLOOR }, { x: 520, y: 1600 }, { x: -200, y: 1600 }]],
-  entities: [{ type: 'crusher', x: 40, y: FLOOR - 160, h: 320, dir: 1, at: 0.4, speed: 170 }],
+  entities: [{ type: 'crusher', x: 40, y: FLOOR - 160, h: 320, dir: 1, at: 0.4, speed: 105 }],
   guy: { x: 470, y: FLOOR },
   anatomyMatters: true,
   baseline: { x: 470, y: FLOOR - 20 },

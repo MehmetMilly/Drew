@@ -4,7 +4,7 @@
 import { drawEraser, drawScissors, drawSmudger } from './damage';
 import { ringTerrain } from '../sim/sumo';
 import { NINJA } from '../sim/hazards';
-import { COLORS, HAZ, LEVEL, LOOK } from '../tuning';
+import { COLORS, HAZ, LEVEL, LOOK, GUY } from '../tuning';
 import { boil1 } from './boil';
 import { drawChunk } from './props';
 import type { World, Body } from '../sim/world';
@@ -413,9 +413,23 @@ export function drawBang(g: Ctx, x: number, y: number, age: number, color: strin
 /** Little Guy: felt-tip stick figure, round filled head, dot eyes, a yellow scarf. */
 export function drawGuy(g: Ctx, w: World, guy: Guy, alpha: number, frame: number) {
   if (!guy.alive) return;
+  // he is drawn GUY.size × his body: draw the 40 px figure, then scale the canvas up about his
+  // feet (he grows upward; the sim body is unchanged)
+  const S = GUY.size;
   const P = w.P;
-  const X = (i: number) => lerp(P.sx[i], P.x[i], alpha),
-    Y = (i: number) => lerp(P.sy[i], P.y[i], alpha);
+  // anchored between his feet, so he still stands exactly on what he stands on
+  const hx0 = (lerp(P.sx[guy.footL], P.x[guy.footL], alpha) + lerp(P.sx[guy.footR], P.x[guy.footR], alpha)) / 2,
+    hy0 = Math.max(lerp(P.sy[guy.footL], P.y[guy.footL], alpha), lerp(P.sy[guy.footR], P.y[guy.footR], alpha));
+  g.save();
+  g.translate(hx0, hy0);
+  g.scale(S, S);
+  g.translate(-hx0, -hy0);
+  drawGuyAt(g, w, guy, (i) => lerp(P.sx[i], P.x[i], alpha), (i) => lerp(P.sy[i], P.y[i], alpha), frame);
+  g.restore();
+}
+
+function drawGuyAt(g: Ctx, w: World, guy: Guy, X: (i: number) => number, Y: (i: number) => number, frame: number) {
+  const P = w.P;
   const hx = X(guy.head),
     hy = Y(guy.head),
     cx = X(guy.chest),

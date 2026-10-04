@@ -256,6 +256,8 @@ export const COLORS = {
 
 // Little Guy (design.md §10)
 export const GUY = {
+  size: 1.3, // drawn this × his 40 px body, scaled up from his feet (render only: the sim and
+  // every level's tuning keep the 40 px ragdoll; critic-final #1, he must read on a phone)
   height: 40,
   radius: 5,
   mass: 3, // whole ragdoll: light enough to be flung

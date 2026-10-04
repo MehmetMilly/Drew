@@ -131,16 +131,12 @@ export class Shell {
   private title() {
     // the page behind is the live blank toy: the title sits on it
     this.toy.load(null);
-    const d = loadSave();
-    const ch1 = CHAPTERS[0].levels.every((l) => d.cleared[l.id]);
     this.root.append(this.logo());
     const notes = el('div', 'notes');
     const story = this.press(el('button', 'note n1', '<b>Story</b><small>Little Guy needs a friend</small>'), () => this.show('chapter'));
-    const sumoOpen = ch1 || import.meta.env.DEV;
-    const sumo = el('button', `note n2 ${sumoOpen ? '' : 'locked'}`, `<b>Sumo</b><small>${sumoOpen ? 'shove them off the ring' : 'after Chapter 1'}</small>`);
-    if (sumoOpen) this.press(sumo, () => this.show('sumo'));
-    const daily = el('button', `note n3 ${sumoOpen ? '' : 'locked'}`, `<b>Daily</b><small>${sumoOpen ? dailyFor(dateKey()).mod.name : 'after Chapter 1'}</small>`);
-    if (sumoOpen) this.press(daily, () => this.show('daily'));
+    // every mode is open from the start: toy first (the ladder and the chapters still open in order)
+    const sumo = this.press(el('button', 'note n2', '<b>Sumo</b><small>shove them off the ring</small>'), () => this.show('sumo'));
+    const daily = this.press(el('button', 'note n3', `<b>Daily</b><small>${dailyFor(dateKey()).mod.name}</small>`), () => this.show('daily'));
     notes.append(story, sumo, daily);
     const book = this.press(el('button', 'tab sketch', 'Sketchbook'), () => this.show('sketchbook'));
     const set = this.press(el('button', 'tab', 'settings'), () => this.show('settings'));
@@ -225,7 +221,7 @@ export class Shell {
       }
     }
     this.root.append(this.pencilCase());
-    if (loadSave().cleared['1-5'] || import.meta.env.DEV) this.root.append(this.press(el('button', 'note doodle-note', '<b>Doodle Pad</b><small>drop in anything</small>'), () => this.show('doodle')));
+    this.root.append(this.press(el('button', 'note doodle-note', '<b>Doodle Pad</b><small>drop in anything</small>'), () => this.show('doodle')));
     this.root.append(this.press(el('button', 'note blank', '<b>Blank page</b><small>draw anything</small>'), () => this.show('toy')));
     this.root.append(this.press(el('button', 'tab back', '← back'), () => this.show('title')));
   }
@@ -497,6 +493,10 @@ export class Shell {
       this.toy.watch();
     });
     this.root.append(b);
+    // stuck: after two fails a hint button offers a body to trace (it stays for the retries)
+    const L = this.toy.level;
+    if (L && !L.casual && L.refs.length && (loadSave().fails[L.id] ?? 0) >= 2 && !this.root.querySelector('.hint-btn'))
+      this.root.append(this.press(el('button', 'tab hint-btn', '✎ hint'), () => this.toy.showHint()));
   }
 
   private retry() {

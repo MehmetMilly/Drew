@@ -75,6 +75,10 @@ export class Toy {
   private endStep = 0;
   private hintGhost: Pt[][] | null = null;
   private hintGhostAt = 0;
+  /** The hint button's tracing ghost: a reference body at its real place, kept across retries. */
+  private hintTrace: Pt[][] | null = null;
+  private hintTraceLevel = '';
+  private hintTraceN = 0;
   /** shell hooks */
   onWin: ((info: { level: LevelDef; heroes: { name: string; kind: string }[]; newBadges: string[]; epitaph: string; strokes: Pt[][] }) => void) | null = null;
   onRetry: (() => void) | null = null;
@@ -129,6 +133,7 @@ export class Toy {
     this.readUntil = def ? this.now + LEVEL.readTime : 0;
     this.hintAlpha = def ? 0 : 1;
     this.hintGhost = null;
+    if (def?.id !== this.hintTraceLevel) (this.hintTrace = null), (this.hintTraceN = 0);
     // adaptive ghost hint: after three fails, a reference body fades in for 2 s (design §14)
     if (def && (loadSave().fails[def.id] ?? 0) >= 3 && def.refs.length) {
       const r = def.refs[(loadSave().fails[def.id] ?? 0) % def.refs.length];
@@ -158,6 +163,17 @@ export class Toy {
 
   retry() {
     if (this.level) this.load(this.level);
+  }
+
+  /** Hint (asked for after a couple of fails): a reference body to trace, in guide blue, at
+   *  the place it works. Each press shows the next reference. */
+  showHint() {
+    const L = this.level;
+    if (!L || !L.refs.length) return;
+    this.hintTrace = L.refs[this.hintTraceN++ % L.refs.length].strokes;
+    this.hintTraceLevel = L.id;
+    this.hintGhost = null;
+    this.overlayDirty = true;
   }
 
   private get drawSpeed() {
@@ -668,6 +684,15 @@ export class Toy {
       g.lineWidth = 3;
       strokesPath(this.ghost);
       g.stroke();
+    }
+    if (this.hintTrace) {
+      g.globalAlpha = 0.55;
+      g.strokeStyle = COLORS.blue;
+      g.lineWidth = 5;
+      g.setLineDash([3, 9]);
+      strokesPath(this.hintTrace);
+      g.stroke();
+      g.setLineDash([]);
     }
     if (this.hintGhost) {
       const age = this.now - this.hintGhostAt;
