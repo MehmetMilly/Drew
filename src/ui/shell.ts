@@ -557,7 +557,7 @@ export class Shell {
       scrim.remove();
     };
     note.append(el('b', '', 'Hint'));
-    note.append(el('p', 'tip', TIPS[level.id] ?? 'Every body does something different. Try a new shape!'));
+    note.append(el('p', 'tip', TIPS[level.id] ?? (level.goal.type === 'sumo' ? 'Shove them into the lava! Heavy scribbles push hardest, many legs hold their ground, zigzag arms punch.' : 'Every body does something different. Try a new shape!')));
     note.append(
       this.press(el('button', 'line', '✎ Show me a body to trace'), () => {
         close();
@@ -628,7 +628,7 @@ export class Shell {
     const c = el('div', 'endcard');
     const names = info.heroes.slice(0, 3).map((h) => `<div class="plate">${h.name}</div>`).join('');
     const slots = [0, 1, 2].map((k) => `<i class="slot ${badges[k] ? 'on' : ''} ${badges[k] && info.newBadges.includes(badges[k]) ? 'new' : ''}"></i>`).join('');
-    c.innerHTML = `${names}<p class="epitaph">${info.epitaph}</p><div class="badges">${slots}<small>${badges.length ? 'Cleared with: ' + badges.map((b) => 'the ' + b).join(' · ') : ''}</small></div>`;
+    c.innerHTML = `${names}<p class="epitaph">${info.epitaph}</p><div class="badges">${slots}<small>${badges.length ? 'Cleared with: ' + badges.map((b) => 'the ' + b).join(' · ') : ''}</small>${badges.length < 3 && !info.level.casual ? `<small class="nudge">A different kind of body earns another badge!</small>` : ''}</div>`;
     const idx = ALL_LEVELS.findIndex((l) => l.id === info.level.id);
     const rung = info.level.goal.type === 'sumo' ? Number(info.level.id.slice(5)) : 0;
     const next = rung ? (rung < OPPONENTS.length ? sumoLevel(rung) : undefined) : idx >= 0 ? ALL_LEVELS[idx + 1] : undefined;

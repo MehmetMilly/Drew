@@ -291,3 +291,18 @@ Every Chapter 2 row of `npm run verify` is green and Chapter 1 is unchanged. Wha
 - **The floor is lava** (`drawLava`, danger red; a cheap one-fill pool). Any creature of either team with a particle in it burns (dust poof, removed), so falling off loses.
 - **Little Guy cheers from a perch** (a felt pillar at the left page edge, `SUMO.pillarTop`), is happy during the bout and `checkDeaths` is skipped for Sumo, so he cannot lose it.
 - **Fairness:** the pre-drawn foe waits `SUMO.foeLag` 0.8 s before acting; Big Doris's belly is smaller (r 26, 10 passes). Ladder check: every rung is beaten by at least 2 body kinds.
+
+## 2026-10-04: second playtest: teach, don't punish
+Playtesters (an adult and a kid) got stuck on 1-2 and 1-3 and said "you just don't know what would work".
+- **The hint ladder is always available** (✎ hint, top-left, in every story, Daily and Sumo level). It replaces "after two fails", which also needed a level you could fail. It has three rungs:
+  1. one plain sentence on what the level asks for and what tends to work (`src/levels/tips.ts`);
+  2. a reference body to trace, in guide blue, where it works;
+  3. "watch one way to do it": the level restarts and an auto-pen draws a reference while you watch. Nothing is recorded, and then "your turn!" hands the pencil back with the trace still up.
+- **First-launch tutorial** (also "how to play" on the title): the auto-pen draws a stick figure, a spider, a hopper, a heavy scribble and a big stick figure. Each wakes up and shows off, with one caption per mark. It ends in 1-1. This replaces the idea of an authored video: it is cheaper, it is the real game, and it never goes stale.
+- **`tools/fairness.ts`**: how many of 10 ordinary bodies win each level. This is the difficulty metric now. The target is at least 5 of 10, while the lazy roof and scrawls still fail.
+- **1-2 boulder 900 → 780**: 5 → 8 of 10.
+- **Win beat**: 1.6 s of live happy faces before the highlight replay, the highlight trimmed (0.45 s before and 0.35 s after the moment), and the stamp held 1.1 s before the card. Before this, the happy eyes flashed for a split second.
+- **Fail screen** has a real "↻ try again" button beside Watch.
+- **Rubber-arm haul**: when a tall carrier lifts Little Guy, its nearest hand is drawn stretching down to grip and reel him up. This is render only; the sim's climb is unchanged.
+- **Chapter hints sit on a white slip with felt-tip words** (blue alone vanished on some papers).
+- **Music −4 dB.**
