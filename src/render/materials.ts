@@ -179,6 +179,23 @@ export function renderPaper(spec: PaperSpec, w: number, h: number): HTMLCanvasEl
       g.restore();
     }
   }
+  // the texture layers grey the page: lift its mean back to the base colour (the paper must
+  // read as its spec, e.g. cream #F4F1E8, not grey-beige), keeping all the texture contrast
+  const sm = makeCanvas(64, 114); // a small copy: a phone-sized readback would cost frames
+  const smg = sm.getContext('2d', { willReadFrequently: true })!;
+  smg.drawImage(c, 0, 0, 64, 114);
+  const id = smg.getImageData(0, 0, 64, 114).data;
+  let mr = 0,
+    mg = 0,
+    mb = 0,
+    n = 0;
+  for (let k = 0; k < id.length; k += 4) (mr += id[k]), (mg += id[k + 1]), (mb += id[k + 2]), n++;
+  const bc = parseInt(spec.base.slice(1), 16);
+  const lift = (b: number, m: number) => Math.max(0, Math.round(b - m / n));
+  g.globalCompositeOperation = 'lighter';
+  g.fillStyle = `rgb(${lift(bc >> 16, mr)},${lift((bc >> 8) & 255, mg)},${lift(bc & 255, mb)})`;
+  g.fillRect(0, 0, w, h);
+  g.globalCompositeOperation = 'source-over';
   // soft vignette and darker binding edge (left)
   const vg = g.createRadialGradient(w / 2, h * 0.45, Math.min(w, h) * 0.35, w / 2, h / 2, Math.max(w, h) * 0.75);
   vg.addColorStop(0, 'rgba(90,70,40,0)');
