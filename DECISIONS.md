@@ -327,3 +327,10 @@ Playtesters found 3-1, 3-5, 4-1, 4-3, 5-4, 2-3 and 2-5 too hard ("you just don't
 - **Sumo:** a beaten opponent no longer gets happy eyes, and Little Guy only hugs the player's creatures.
 - **End card:** sits higher. Next is on its own line, and Retry, Watch and Save clip are a smaller row under it. The badge nudge has its own line.
 - **Tutorial:** Skip is a clear note in the top-right. Buttons fire on pointer-up, deduplicated with click, so a slightly wobbly tap still counts.
+
+## 2026-10-04: Sumo cage, overtime, Daily spacing
+- **Cage:** Little Guy watches from a cage hung over the lava (top right), not from a pillar. That leaves open lava on the left. A win swings the bars up and he leaps down onto the ring, usually onto his hero's head.
+  - The cage floor has to sit high (y 440). At y 560, tall heroes caught on it, and the giant could no longer beat the Champion.
+- **Ring width stays 130–590.** Narrowing it left Big Doris and the Champion beatable by heavy bodies alone.
+- **Overtime:** the ring shrinks at 45 px/s (was 30), and the renderer now redraws terrain whose bounds change. The shrink had been invisible because the outline was cached. If both sides fall at once, it is a fail.
+- **Daily:** the modifier name is on one line at 58 px, and the card, calendar and streak are re-spaced so nothing touches.

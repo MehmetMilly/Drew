@@ -88,16 +88,16 @@ export function sumoLevel(k: number): LevelDef {
         { x: RING.x1 - 20, y: GROUND_Y },
         { x: RING.x0 + 20, y: GROUND_Y },
       ],
-      // the audience perch, off to the side and high above the lava: Little Guy cheers from it
+      // the cage floor: Little Guy watches from a cage hung over the lava, freed by a win
       [
-        { x: 0, y: SUMO.pillarTop },
-        { x: 70, y: SUMO.pillarTop },
-        { x: 70, y: GROUND_Y },
-        { x: 0, y: GROUND_Y },
+        { x: SUMO.cageX0, y: SUMO.cageY },
+        { x: SUMO.cageX1, y: SUMO.cageY },
+        { x: SUMO.cageX1, y: SUMO.cageY + 14 },
+        { x: SUMO.cageX0, y: SUMO.cageY + 14 },
       ],
     ],
     entities: [],
-    guy: { x: 36, y: SUMO.pillarTop, hat: 'gyoji' },
+    guy: { x: (SUMO.cageX0 + SUMO.cageX1) / 2, y: SUMO.cageY, hat: 'gyoji' },
     anatomyMatters: true,
     baseline: { x: 250, y: RING.y },
     refs: [

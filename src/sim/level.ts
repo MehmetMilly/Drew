@@ -166,11 +166,19 @@ export function levelStep(w: World) {
       setMood(w, g, 'happy'); // cheering from his perch
     }
     if (L.foesAt >= 0 && w.t - L.foesAt > SUMO.grace) {
-      if (teamOnRing(w, 1, goal.ring) <= 0) win(w);
-      else if (teamOnRing(w, 0, goal.ring) <= 0) {
+      // both sides gone at once (the ring shrank under both) is not a win
+      if (teamOnRing(w, 0, goal.ring) <= 0) {
         L.result = 'fail';
         L.resultAt = w.t;
         L.cause = 'pushed out';
+      } else if (teamOnRing(w, 1, goal.ring) <= 0) {
+        win(w);
+        // the cage opens: he leaps down onto the ring to his hero
+        const h = WORLD.dt / WORLD.substeps;
+        for (const i of g.ids) {
+          w.P.px[i] = w.P.x[i] - SUMO.freeVx * h;
+          w.P.py[i] = w.P.y[i] - SUMO.freeVy * h;
+        }
       } else if (w.t - L.foesAt > goal.seconds) shrinkRing(w, goal.ring, WORLD.dt);
     }
   } else if (goal.type === 'boss') {

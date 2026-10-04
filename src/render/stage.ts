@@ -4,7 +4,7 @@
 import { drawEraser, drawScissors, drawSmudger } from './damage';
 import { lavaY, ringTerrain } from '../sim/sumo';
 import { NINJA } from '../sim/hazards';
-import { COLORS, HAZ, LEVEL, LOOK, GUY, WORLD } from '../tuning';
+import { COLORS, HAZ, LEVEL, LOOK, GUY, SUMO, WORLD } from '../tuning';
 import { boil1 } from './boil';
 import { drawChunk } from './props';
 import type { World, Body } from '../sim/world';
@@ -875,6 +875,52 @@ export function drawRing(g: Ctx, w: World) {
 
 /** Sumo: the floor is lava. A flat red pool with a wavy lip and a few bubbles: one fill, cheap
  *  on phones. Drawn before the terrain so the ring block and the perch stand in it. */
+/** Sumo: Little Guy's cage, hung over the lava on a rope; the bars swing up when he is freed. */
+export function drawCage(g: Ctx, w: World) {
+  const L = w.level;
+  if (L?.def.goal.type !== 'sumo') return;
+  const { cageX0: x0, cageX1: x1, cageY: y, cageH: h } = SUMO;
+  const top = y - h;
+  const open = L.result === 'win' ? Math.min(1, (w.t - L.resultAt) / SUMO.cageLift) : 0;
+  const lift = open * open * (h + 40); // eased: the bars swing up and away
+  const mx = (x0 + x1) / 2;
+  g.save();
+  g.strokeStyle = COLORS.felt;
+  g.lineCap = 'round';
+  g.lineJoin = 'round';
+  // a bracket out from the page's right edge (clear of the HUD), a short rope, the hook
+  const by = top - 36;
+  g.lineWidth = 6;
+  g.beginPath();
+  g.moveTo(WORLD.W + 10, by - 1);
+  g.lineTo(mx - 14, by + 1);
+  g.moveTo(WORLD.W + 10, by + 46);
+  g.lineTo(WORLD.W - 40, by);
+  g.stroke();
+  g.lineWidth = 3;
+  g.beginPath();
+  g.moveTo(mx, by);
+  g.quadraticCurveTo(mx - 2, (by + top - lift - 14) / 2, mx, top - lift - 14);
+  g.stroke();
+  g.lineWidth = 4;
+  g.beginPath();
+  g.arc(mx, top - lift - 8, 7, Math.PI * 1.1, Math.PI * 2.4);
+  g.stroke();
+  // the bars and the lid, lifting as one piece
+  g.globalAlpha = 1 - open * 0.6;
+  g.lineWidth = 4;
+  g.beginPath();
+  g.moveTo(x0 - 4, top - lift);
+  g.lineTo(x1 + 4, top - lift + 1);
+  for (let k = 0; k <= 5; k++) {
+    const x = x0 + ((x1 - x0) * k) / 5 + (k % 2 ? 1 : -1);
+    g.moveTo(x, top - lift);
+    g.lineTo(x + (k === 2 ? 1.5 : 0), y - lift - 1);
+  }
+  g.stroke();
+  g.restore();
+}
+
 export function drawLava(g: Ctx, w: World) {
   const goal = w.level?.def.goal;
   if (goal?.type !== 'sumo') return;

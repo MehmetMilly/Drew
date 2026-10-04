@@ -2,7 +2,7 @@
 import { COLORS, LOOK, WORLD, PEN } from '../tuning';
 import { drawProps, drawWater } from './props';
 import { drawFire, drawSharpener } from './damage';
-import { drawLava, drawRing, drawBodies, drawGuy, drawBursts, drawCountdown, drawGoal, drawPlayers, drawSpikes, type Burst } from './stage';
+import { drawCage, drawLava, drawRing, drawBodies, drawGuy, drawBursts, drawCountdown, drawGoal, drawPlayers, drawSpikes, type Burst } from './stage';
 import { guyCentre } from '../sim/littleguy';
 import { World, SimEvent } from '../sim/world';
 import type { Creature } from '../sim/creature';
@@ -54,7 +54,7 @@ export class WorldRenderer {
   private snaps: Snap[] = [];
   bursts: Burst[] = [];
   private seen = 0;
-  private terrainCache = new Map<number, { xs: number[]; ys: number[]; s: number[] }>();
+  private terrainCache = new Map<number, { xs: number[]; ys: number[]; s: number[]; key: string }>();
 
   constructor(private w: World) {}
 
@@ -131,6 +131,7 @@ export class WorldRenderer {
     if (o.intentLines !== false) for (const cr of w.creatures) if (cr.alive) this.drawIntent(g, cr, o);
     drawFire(g, w);
     if (w.guy) drawGuy(g, w, w.guy, o.alpha, frame);
+    drawCage(g, w); // the bars in front of him
     drawWater(g, w);
     this.drawSnaps(g);
     drawBursts(g, this.bursts, w.t);
@@ -388,7 +389,8 @@ export class WorldRenderer {
     w.terrain.forEach((T, ti) => {
       if (T.broken || T.kind === 'bridge') return; // bridges are drawn as planks (props.ts)
       let c = this.terrainCache.get(ti);
-      if (!c) {
+      const key = T.minX + ',' + T.maxX; // a Sumo ring shrinks: redraw its outline as it goes
+      if (!c || c.key !== key) {
         // resample edges every 6 px with a 2 px felt-tip wobble
         const xs: number[] = [],
           ys: number[] = [],
@@ -409,7 +411,7 @@ export class WorldRenderer {
           }
           acc += L;
         }
-        c = { xs, ys, s };
+        c = { xs, ys, s, key };
         this.terrainCache.set(ti, c);
       }
       g.beginPath();

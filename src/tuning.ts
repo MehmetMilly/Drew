@@ -534,10 +534,17 @@ export const SUMO = {
   edgeSlop: 10, // px beyond the ring's edge
   foeLag: 0.8, // s the pre-drawn opponent waits to act after waking: the player's creature gets the first lean
   grace: 0.6, // s after waking before anyone can lose
-  shrink: 30, // px/s from each edge after time-out: it keeps going until someone falls
+  shrink: 45, // px/s from each edge after time-out (visible: the bout ends soon after): it keeps going until someone falls
   minHalf: 6, // px: the ring never shrinks below this half width
   lavaDepth: 120, // px below the ring top the lava surface lies: whatever touches it burns
-  pillarTop: 770, // px: the perch Little Guy cheers from, off to the side, above the fight
+  // Little Guy hangs in a cage over the lava (top right), out of the fight; a win frees him
+  cageX0: 612,
+  cageX1: 700,
+  cageY: 440, // px: the cage floor (a thin terrain slab he stands on)
+  cageH: 86, // px: bars above the floor
+  cageLift: 0.45, // s the bars take to swing up when he is freed
+  freeVx: -195, // px/s: his leap out of the open cage, down onto the ring
+  freeVy: -330,
   penSpeed: 900, // px/s: the pre-drawn opponent's strokes are timed as a steady hand
 };
 

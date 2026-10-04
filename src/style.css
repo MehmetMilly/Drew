@@ -1078,3 +1078,24 @@ body.won .tip-strip .stuck {
   opacity: 0.6;
   background: none;
 }
+
+/* Daily: the modifier's name can be long ("Exactly Two Friends"): one line, sized to fit, and
+   the card, calendar and streak stacked with air between them, clear of the floor */
+.ui.daily .chapter-title span {
+  display: block;
+  font-size: 58px;
+  line-height: 1.1;
+  white-space: nowrap;
+  margin-top: 4px;
+}
+.ui.daily .daily-card {
+  top: 250px;
+}
+.ui.daily .calendar {
+  top: 600px;
+  padding-bottom: 12px;
+}
+.ui.daily .streak {
+  top: auto;
+  bottom: 120px;
+}
