@@ -88,7 +88,7 @@ Unit-test the classifier against labelled fixtures, aiming for 95% agreement:
 
 ## 8. Water and wind
 
-- **Water** is a rectangle region with a surface that can rise and an optional current. A submerged particle gets buoyancy plus drag; loops add buoyancy proportional to enclosed area, and lumps get negative buoyancy. Moving limbs inside water produce thrust opposite to their motion, which is paddling.
+- **Water** is a rectangle region with a surface that can rise and an optional current. A submerged particle gets buoyancy plus drag; loops add buoyancy proportional to enclosed area, and lumps get negative buoyancy. Loop particles are light (0.6) and a loop's lift per point is its area over its ring points, so only a big loop floats Little Guy: a box 120 px a side is neutral and sinks with him aboard, a hoop 300 px across floats him easily (`WATER` in `tuning.ts`). Moving limbs inside water produce thrust opposite to their motion, which is paddling.
 - **Wind** applies a force in a region, proportional to each particle's exposed area. A simple model is enough: every particle gets the same force, and lumps resist through mass.
 
 ## 9. Tearing and severing

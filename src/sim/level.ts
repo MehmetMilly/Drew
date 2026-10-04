@@ -78,6 +78,7 @@ export interface LevelRun {
   tossedAt?: number; // HOME: level time a carrier last tossed him over a wall or pit
   noTossUntil?: number; // HOME: a floor or bridge just gave way: no carrier can toss until it has fallen clear
   stallT?: number; // HOME: s his carrier has made no progress
+  stallX?: number; // HOME: where the carrier last made progress
   score: number; // SCORE: balls through the hoop so far
   log: { t: number; type: string; cr?: number; v?: number; text?: string }[];
 }
@@ -429,10 +430,17 @@ function board(w: World, g: Guy) {
     const goal = carryGoal(w)!;
     const c = guyCentre(w, g);
     const ce = cr ? w.centroid(cr) : c;
-    const moving = cr ? Math.abs(cr.brain.wantVx) > 5 && F.hypot(ce.x - (cr.lastX ?? ce.x), 0) > 0.3 : false;
+    // in water, progress is measured from an anchor (a bobbing carrier pressed against a bank jitters
+    // a pixel every step: that is not walking); on land it is the step-to-step move
+    const L = w.level!;
+    const wet = !!w.props?.pools.length;
+    const moving = cr
+      ? Math.abs(cr.brain.wantVx) > 5 && (wet ? Math.abs(ce.x - (L.stallX ?? ce.x)) > GUY.stallProgress : F.hypot(ce.x - (cr.lastX ?? ce.x), 0) > 0.3)
+      : false;
+    if (cr && (moving || L.stallX === undefined)) L.stallX = ce.x;
     if (cr) cr.lastX = ce.x;
-    w.level!.stallT = moving ? 0 : (w.level!.stallT ?? 0) + WORLD.dt;
-    if (goal.home && Math.abs(c.x - goal.x) < GUY.flagWalk && w.level!.stallT > GUY.stallDrop && w.t - g.rideAt > g.climbFor) hopDown(w, g, goal.x);
+    L.stallT = moving ? 0 : (L.stallT ?? 0) + WORLD.dt;
+    if (goal.home && Math.abs(c.x - goal.x) < GUY.flagWalk && (L.stallT ?? 0) > GUY.stallDrop && w.t - g.rideAt > g.climbFor) hopDown(w, g, goal.x);
     return;
   }
   if (g.heldBy >= 0) return void (g.walkTo = null);

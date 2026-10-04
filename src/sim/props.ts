@@ -520,7 +520,8 @@ const GUY_GRAB = 10;
  *  planted carrier wins the tug of war). */
 function haul(w: World, g: NonNullable<World['guy']>, ax: number, ay: number, h: number) {
   const P = w.P;
-  const carrier = g.ride >= 0 ? w.creatures[g.ride] : g.heldBy >= 0 ? w.creatures[g.heldBy] : null;
+  // only a carrier that HOLDS him in a hand is dragged with him: one he merely sits on can't resist (a heavy lump is no anchor)
+  const carrier = g.heldBy >= 0 ? w.creatures[g.heldBy] : null;
   const ids = carrier && carrier.alive ? carrier.ids.concat(g.ids) : g.ids;
   let m = 0,
     cx = 0,
@@ -534,7 +535,8 @@ function haul(w: World, g: NonNullable<World['guy']>, ax: number, ay: number, h:
   // the planted feet of a carrier hold some of it (friction on the ground)
   let grip = 0;
   if (carrier) for (const l of carrier.limbs) if (l.foot && P.flags[l.tip] & PF.GROUND) grip += PROP.tentacleGrip * carrier.stats.strength;
-  const f = Math.max(0, PROP.tentaclePull - grip);
+  // he is yanked off whatever he merely sits on; a carrier holding him in a hand is dragged with him, less its grip
+  const f = carrier ? Math.max(0, PROP.tentacleHold - grip) : PROP.tentaclePull;
   const dv = (f / m) * h;
   for (const i of ids) {
     P.px[i] -= (dx / d) * dv * h;

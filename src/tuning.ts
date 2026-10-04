@@ -307,6 +307,7 @@ export const GUY = {
   scrambleMax: 500, // px: a top higher than this he won't scramble up (he walks home beside it)
   reboard: 1.0, // s after getting off before he climbs on again
   flagWalk: 200, // px: this close to the flag he walks the rest himself
+  stallProgress: 3, // px: a carrier that has moved this far from where it last made progress is walking
   stallDrop: 0.6, // s a carrier may stall near the flag before he hops down
 };
 
@@ -413,7 +414,7 @@ export const PROP = {
   seesawRate: 4, // rad/s: the most a see-saw turns, so a hit hard enough always flings the same
   // rafts (4-4): a heavy floating log platform
   raftHalf: 10, // px half-thickness
-  raftMass: 300,
+  raftMass: 1500,
   raftGrip: 0.3, // what stands on it is carried along
   // kraken tentacles (4-5)
   tipR: 14,
@@ -422,14 +423,18 @@ export const PROP = {
   tentacleBack: 500, // px/s recoiling
   tentacleRecoil: 1.4, // s it stays down after a hit
   tentacleHit: 200, // px/s: a strike this fast makes it let go
-  tentaclePull: 18000, // mass × px/s²: its haul...
+  tentaclePull: 400000, // mass × px/s²: its yank on Little Guy alone (whatever he sits on lets go of him)...
+  tentacleHold: 18000, // ...its haul on a carrier that holds him in a hand (and him with it)...
   tentacleGrip: 2500, // ...less this for each planted foot (× strength) of whoever holds him
 };
 
 export const WATER = {
-  // buoyancy is a force per particle (px/s² on mass 1): ink floats a little short of its weight
-  buoy: 1550,
-  loopBuoy: 7, // + this × (loop area / ring points): loops float
+  // buoyancy is a force per particle (px/s² on mass 1). A loop particle weighs 0.6, a line 1, gravity pulls
+  // 1800 per unit of mass: a line sinks, and a ring point nets (buoy + loopBuoy × area / ring points) − 1080,
+  // so a loop only floats once its area per point passes ~310 (a box 120 px a side is neutral, a hoop 300 px
+  // across lifts 750 per point). Little Guy and what he sits on have to be lifted by that surplus.
+  buoy: 300,
+  loopBuoy: 2.5,
   loopMax: 4000,
   guyBuoy: 500, // Little Guy can't swim: he sinks
   floatAccel: 2600, // floating things (ducks, rafts) on the surface

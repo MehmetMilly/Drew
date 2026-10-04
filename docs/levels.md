@@ -117,11 +117,11 @@ Starting numbers; tune them from metrics.
 
 | # | Name | Goal | Setup | Why the lazy answer fails | Intended bodies | Draw / Ink |
 |---|---|---|---|---|---|---|
-| 4-1 | Rising Tide | SAVE 8 | The room floods. Hint: *loops float* | no loops, so it sinks | floaty, many-looped giant, two floaters | 0.05 / 3000 |
-| 4-2 | Crossing | HOME | A river with a slow current between the banks | sinks or drifts away | floaty paddler, long-legged floater, giant wading | 0.05 / 3000 |
-| 4-3 | Bath Time | SCORE 3 in 15 s | Three rubber ducks to herd into a bucket | nothing passive herds | floaty, long-armed, many-legged swimmer | 0.05 / 3000 |
-| 4-4 | Waterfall | SAVE 8 | His raft drifts toward a waterfall; hold it or haul it ashore | gets swept along | heavy anchor with a long arm, giant wading, two creatures (one anchors) | 0.07 / 3000 |
-| 4-5 | Kraken | SAVE 8 | Tentacles grab him and pull toward the water; a tug of war | can't hold on | heavy many-armed, giant, floaty-heavy pair | 0.07 / 3500 |
+| 4-1 | Rising Tide | SAVE 8 | The room floods (90 px/s from 1.5 s, up to y 600). Hint: *loops float* | a small loop sinks with him on it (a 120 px box, a 110 px cage), and standing heights drown | floaty (two big loops), giant, a hoop-headed body 300 px across (born many-legged) | 0.05 / 3000 |
+| 4-2 | Crossing | HOME | A 450 px river, 300 px deep, slow current, sheer banks; the flag is on the far bank | a pillar plus him is shorter than the water is deep; nothing small floats him | giant wading, tall biped (1100 px of ink: wades, then tosses him up the far bank), heavy (tosses him across) | 0.05 / 3000 |
+| 4-3 | Bath Time | SCORE 3 in 15 s | Three rubber ducks on a pond to fetch into a bucket on the bank | nothing passive herds | floaty with hands (a stick with an air sac), long-armed, biped | 0.05 / 3000 |
+| 4-4 | Waterfall | SAVE 8 | His raft (mass 1500) drifts toward a drop; the river is 290 px deep | a creature on the raft only rides it over the edge | giant wading beside it, tall biped on the bank, long-armed on the bank | 0.07 / 3000 |
+| 4-5 | Kraken | SAVE 8 | Tentacles latch on and yank him toward the lake; what he merely sits on lets go of him | a lump or a roof under him is no anchor | springy (punches the tips away), giant, tall biped (hits them while wading) | 0.07 / 3500 |
 
 ### Chapter 5, The Eraser: ink damage and live grafting (paper: crumpled, smudged, eraser crumbs)
 
