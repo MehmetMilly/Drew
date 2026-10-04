@@ -49,6 +49,7 @@ export class WorldRenderer {
   private pattern: CanvasPattern | null = null;
   private patternV = -1;
   plates: Plate[] = [];
+  private flashes: { id: number; t0: number }[] = [];
   private dusts: Dust[] = [];
   private snaps: Snap[] = [];
   bursts: Burst[] = [];
@@ -60,6 +61,7 @@ export class WorldRenderer {
   reset(w: World) {
     this.w = w;
     this.plates = [];
+    this.flashes = [];
     this.dusts = [];
     this.snaps = [];
     this.bursts = [];
@@ -86,6 +88,17 @@ export class WorldRenderer {
     } else if (e.type === 'dust' && e.pts) this.dusts.push({ pts: e.pts, t0: e.t });
     else if (e.type === 'tear' && e.x !== undefined) this.snaps.push({ x: e.x, y: e.y!, t0: e.t });
     else if (e.type === 'boom') this.bursts.push({ kind: 'boom', x: e.x!, y: e.y!, t0: e.t });
+    else if (e.type === 'knock' && e.x !== undefined) {
+      // juice §6: the struck enemy flashes white for a frame, then red for two
+      let best = -1,
+        bd = 120 * 120;
+      for (const b of w.bodies) {
+        if (!b.alive || !b.data.threat) continue;
+        const d = (b.x - e.x) ** 2 + (b.y - e.y!) ** 2;
+        if (d < bd) (bd = d), (best = b.id);
+      }
+      if (best >= 0) this.flashes.push({ id: best, t0: e.t });
+    }
     else if (e.type === 'guyDied') this.bursts.push({ kind: 'poof', x: e.x!, y: e.y!, t0: e.t });
     else if (e.type === 'win' && w.guy?.alive) {
       const c = guyCentre(w, w.guy);
@@ -107,6 +120,7 @@ export class WorldRenderer {
     drawSharpener(g, w);
     drawPlayers(g, w);
     drawBodies(g, w, o.alpha, frame);
+    this.drawFlashes(g, o.alpha);
     for (const cr of w.creatures) if (cr.alive) this.drawShadow(g, cr, o.alpha);
     this.drawSleepingFoe(g, frame);
     this.drawInk(g, o.alpha, frame);
@@ -302,6 +316,29 @@ export class WorldRenderer {
       flush();
     }
     g.globalAlpha = 1;
+  }
+
+  private drawFlashes(g: Ctx, a: number) {
+    const w = this.w,
+      t = w.t;
+    this.flashes = this.flashes.filter((f) => t - f.t0 < 3 * WORLD.dt + 1e-6);
+    for (const f of this.flashes) {
+      const b = w.bodies.find((q) => q.id === f.id);
+      if (!b?.alive) continue;
+      const x = b.sx + (b.x - b.sx) * a,
+        y = b.sy + (b.y - b.sy) * a;
+      g.save();
+      g.fillStyle = t - f.t0 < WORLD.dt + 1e-6 ? '#FFFFFF' : COLORS.red;
+      g.globalAlpha = 0.85;
+      g.beginPath();
+      if (b.hw) {
+        g.translate(x, b.kind === 'crusher' ? b.data.rail : y);
+        g.rotate(b.angle ?? 0);
+        g.rect(-b.hw, -b.hh!, b.hw * 2, b.hh! * 2);
+      } else g.arc(x, y, b.r, 0, Math.PI * 2);
+      g.fill();
+      g.restore();
+    }
   }
 
   private drawDust(g: Ctx) {

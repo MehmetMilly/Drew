@@ -427,6 +427,8 @@ export class Toy {
       if (hs) this.hitStopUntil = Math.max(this.hitStopUntil, this.now + hs);
     }
     this.dt = dt;
+    // juice §6: a crusher held at its limit keeps the page rumbling (shake ∝ trauma², so 0.05)
+    if (!reduced && this.world.bodies.some((b) => b.alive && b.kind === 'crusher' && b.data.sawing)) this.juice.trauma = Math.max(this.juice.trauma, Math.sqrt(0.05));
     sfxFrame(this.world, this.scale);
     const w0 = performance.now();
     this.render(this.acc / WORLD.dt);
