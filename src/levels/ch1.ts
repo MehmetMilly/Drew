@@ -41,7 +41,7 @@ export const L1_2: LevelDef = {
     [{ x: -200, y: 960 }, { x: 0, y: 980 }, { x: 200, y: 1060 }, { x: 420, y: 1140 }, { x: 640, y: FLOOR }, { x: -200, y: FLOOR }],
     [{ x: 640, y: 960 }, { x: 920, y: 960 }, { x: 920, y: FLOOR }, { x: 640, y: FLOOR }],
   ],
-  entities: [{ type: 'boulder', x: 60, y: 900, r: 60, m: 900, at: 1.0 }],
+  entities: [{ type: 'boulder', x: 60, y: 900, r: 60, m: 780, at: 1.0 }],
   guy: { x: 598, y: 1178 },
   anatomyMatters: true,
   baseline: { x: 590, y: 1158 },
