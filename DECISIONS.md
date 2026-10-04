@@ -244,3 +244,9 @@ Every Chapter 2 row of `npm run verify` is green and Chapter 1 is unchanged. Wha
 ## 2026-10-04: load budget met; no lazy chapters
 - The production build is 600 KB in all. That is 285 KB of JS (99 KB gzipped), 13 KB of CSS, plus the audio samples and icons. The look-and-feel budget is 1.5 MB on the critical path.
 - Levels are data and cost a few KB each, so lazy-loading chapters would add complexity for no gain. Revisit this if the music ever becomes a large stock file.
+
+## 2026-10-04: worms return to Daily
+- `tools/dailycheck.ts` now tries worm lines as candidates: 220 and 340 px long, flat or slanted up, at four spots around Little Guy.
+- Before, it tried one canonical worm in two spots, which was too narrow. Worm lines win Ledge, Pit, Bombs, Ninja, Spikes, Bridge and See-saw.
+- So Worms Only, One Stroke and No Heads are allowed again on those arenas. This reverts this morning's bans and lifts See-saw's.
+- Worms are still slow (about 50 px/s) and can't climb, so their wins come from placement: lying across the gap, or guarding low.

@@ -3,7 +3,7 @@
 // plus canonical bodies (and single-stroke shapes) drawn at the baseline spot.
 import { World } from '../src/sim/world';
 import { startLevel, type LevelDef } from '../src/sim/level';
-import { CANON, circle, scaleAbout, scribbleBlob, shift } from '../src/sim/canon';
+import { CANON, circle, line, scaleAbout, scribbleBlob, shift } from '../src/sim/canon';
 import type { Pt } from '../src/sim/geom';
 import { ARENAS, MODIFIERS } from '../src/levels/daily';
 import { spawn } from './measure';
@@ -18,6 +18,16 @@ function candidates(def: LevelDef): { name: string; strokes: Pt[][] }[] {
   const out = def.refs.map((r) => ({ name: r.kind, strokes: r.strokes }));
   for (const k of ['bruiser', 'giant', 'spider', 'hopper', 'longarm', 'floater', 'stick700', 'worm', 'box'])
     for (const side of [-1, 1]) out.push({ name: `${k}${side < 0 ? '<' : '>'}`, strokes: at(CANON[k](bx + side * 110)) });
+  // worms: a single line, two lengths, lying flat or slanted up, around Little Guy
+  const gx = def.guy.x,
+    gy = def.baseline?.y ?? def.guy.y;
+  for (const len of [220, 340])
+    for (const off of [-150, 0, 150, 300])
+      for (const up of [0, 1]) {
+        const x0 = gx + off - len / 2,
+          y0 = gy - 4 - up * 60;
+        out.push({ name: `worm${len}${up ? '^' : ''}@${off}`, strokes: [line(x0, y0, x0 + len, y0 - up * 40)] });
+      }
   // tiny bodies and single strokes
   for (const side of [-1, 1]) {
     const x = bx + side * 70;

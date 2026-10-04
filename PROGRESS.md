@@ -64,7 +64,6 @@
 
 1. The qa-monkey ran 1614 scenarios: no crashes, no NaNs, no determinism breaks. Fixed: the Heavy Ink runaway and the stuck HOME/HUG attempts. Still open (low): a 1-4 bomb particle briefly over the speed cap; stretch tears at ledge and pit edges.
 2. The open critic items above.
-3. Give worms a real niche, so that Worms Only can return to Daily.
 4. Dedicated compact Daily arenas.
 5. Phase 6:
    - audio mix (needs a human ear);
