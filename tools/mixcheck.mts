@@ -19,7 +19,8 @@ await page.mouse.click(5, 5); // a gesture: audio unlocks on the first touch
 
 // taps: an analyser after each bus (post-fader), plus the master
 await page.evaluate(async () => {
-  const m = await import('/src/audio/mixer.ts');
+  const url = '/src/audio/mixer.ts'; // served by Vite in the page, not resolvable here
+  const m = await import(url);
   m.initAudio();
   const c = m.audioCtx()!;
   await c.resume();
@@ -58,7 +59,8 @@ await page.evaluate(async () => {
 for (const id of ['1-4', '2-5', '3-2', '5-4']) {
   const lv = ALL_LEVELS.find((l) => l.id === id)!;
   await page.evaluate(async (i) => {
-    const { ALL_LEVELS } = await import('/src/levels/index.ts');
+    const url = '/src/levels/index.ts';
+    const { ALL_LEVELS } = await import(url);
     (window as any).drew.shell.show('play', ALL_LEVELS.find((l: any) => l.id === i));
   }, id);
   await page.waitForTimeout(1600);
