@@ -21,6 +21,18 @@ import { sfxUi } from '../audio/sfx';
 
 type Screen = 'title' | 'chapter' | 'sumo' | 'daily' | 'doodle' | 'play' | 'toy' | 'settings' | 'sketchbook' | 'hero' | 'credits';
 
+/** Progression (design §13): a chapter opens when 4 of the one before are cleared; inside it,
+ *  levels open one by one; the finale (a boss) needs every other level of its chapter. */
+function levelOpen(lv: LevelDef, cleared: Record<string, boolean>): boolean {
+  const ci = CHAPTERS.findIndex((c) => c.levels.includes(lv));
+  if (ci < 0) return true;
+  if (ci > 0 && CHAPTERS[ci - 1].levels.filter((l) => cleared[l.id]).length < 4) return false;
+  const levels = CHAPTERS[ci].levels;
+  const i = levels.indexOf(lv);
+  if (lv.goal.type === 'boss') return levels.every((l) => l === lv || cleared[l.id]);
+  return i === 0 || !!cleared[levels[i - 1].id];
+}
+
 const el = (tag: string, cls = '', html = '') => {
   const e = document.createElement(tag);
   if (cls) e.className = cls;
@@ -224,8 +236,7 @@ export class Shell {
     const grid = el('div', 'levels');
     ch.levels.forEach((lv, i) => {
       // levels open one by one, across chapters (the first of a chapter needs the last of the one before)
-      const gi = ALL_LEVELS.indexOf(lv);
-      const open = gi === 0 || d.cleared[ALL_LEVELS[gi - 1].id] || import.meta.env.DEV;
+      const open = levelOpen(lv, d.cleared) || import.meta.env.DEV;
       const badges = d.badges[lv.id] ?? [];
       const slots = [0, 1, 2].map((k) => `<i class="slot ${badges[k] ? 'on' : ''}" title="${badges[k] ? 'the ' + badges[k] : ''}"></i>`).join('');
       const b = el('button', `note lvl ${open ? '' : 'locked'} ${d.cleared[lv.id] ? 'done' : ''}`, `<em>${lv.id}</em><b>${lv.title}</b><span class="slots">${slots}</span>`);
