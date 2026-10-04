@@ -617,11 +617,12 @@ export function drawCountdown(g: Ctx, w: World) {
   const frac = n - left; // 0 → 1 within the second
   const pulse = n <= 3 ? 1 + 0.25 * Math.max(0, 1 - frac * 4) : 1;
   g.save();
-  g.translate(w.W / 2, 190);
+  // high in the sky band: hazards drop in from y ≈ 200, below it, never through it
+  g.translate(w.W / 2, 105);
   g.scale(pulse, pulse);
   g.fillStyle = COLORS.red;
   g.globalAlpha = w.level.startedAt < 0 ? 0.35 : 0.9;
-  g.font = '150px "Gochi Hand", cursive';
+  g.font = '120px "Gochi Hand", cursive';
   g.textAlign = 'center';
   g.textBaseline = 'middle';
   g.fillText(String(n), 0, 0);

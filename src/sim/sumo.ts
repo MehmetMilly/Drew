@@ -27,9 +27,7 @@ export function spawnFoes(w: World, strokes: { x: number; y: number }[][]) {
       return { x: p.x, y: p.y, t, p: 0.5 };
     });
   });
-  const made = w.addStrokes(timed);
-  for (const cr of made) cr.team = 1;
-  return made;
+  return w.addStrokes(timed, 1);
 }
 
 /** The brain: walk into the nearest enemy and lean on it, hands and springs going for its
@@ -80,4 +78,19 @@ export function shrinkRing(w: World, ring: SumoRing, h: number) {
   }
   T.minX = Math.min(...T.pts.map((p) => p.x));
   T.maxX = Math.max(...T.pts.map((p) => p.x));
+}
+
+/** Sumo no-draw zone: the pencil skips over the opponent, asleep (its pre-drawn strokes) or
+ *  awake (its living ink), the way it skips over terrain. */
+export function onFoe(w: World, x: number, y: number): boolean {
+  const L = w.level;
+  if (!L || L.def.goal.type !== 'sumo') return false;
+  const r2 = SUMO.noDraw * SUMO.noDraw;
+  if (L.foesAt < 0) {
+    for (const st of L.def.goal.foe) for (const p of st) if ((p.x - x) ** 2 + (p.y - y) ** 2 < r2) return true;
+    return false;
+  }
+  const P = w.P;
+  for (const cr of w.creatures) if (cr.alive && cr.team !== 0) for (const i of cr.ids) if ((P.x[i] - x) ** 2 + (P.y[i] - y) ** 2 < r2) return true;
+  return false;
 }

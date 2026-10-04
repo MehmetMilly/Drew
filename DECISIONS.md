@@ -269,3 +269,12 @@ Every Chapter 2 row of `npm run verify` is green and Chapter 1 is unchanged. Wha
   - Voices sit above the world effects.
   - The master no longer peaks into the limiter.
 - **Still needs human ears** on phone speakers (audio.md §7 device check).
+
+## 2026-10-04: critic-final fixes, part 1 (Sumo)
+- **No grafting across teams:** `addStrokes` takes a team, and grafting only joins creatures of the same team (critic-final #3).
+  - Before, a stroke touching the opponent welded onto it. Opponent arms that overlapped a hero welded into the hero too, which made a few Sumo "wins" fake.
+- **The opponent is a no-draw zone:** `onFoe` in `sim/sumo.ts` covers 30 px around its ink, asleep or awake. The pencil skips over it the way it skips over terrain. `tools/sumocheck.ts` clips its test drawings the same way.
+- **Grandmaster is now the spring-fisted puncher**, not a bruiser. A bruiser opponent was beaten only by another heavy, which is one answer; the rule is at least two. The puncher loses to the Heavy and the Biped. All 12 rungs pass.
+- **No nameplate for the opponent:** it's named on its ladder card, so your hero gets the one plate (#2).
+- **Credits:** heroes scaled to clear the ground band (#10).
+- **Countdown numerals moved up** (y 105, 120 px), out of the band where bombs drop in (#8).

@@ -3,6 +3,7 @@
 import { INK, WORLD, COLORS, LEVEL } from '../tuning';
 import { World } from '../sim/world';
 import { startLevel, type LevelDef } from '../sim/level';
+import { onFoe } from '../sim/sumo';
 import type { Pt } from '../sim/geom';
 import { load as loadSave, recordWin, recordFail } from './save';
 import { epitaph } from './epitaph';
@@ -279,7 +280,7 @@ export class Toy {
   }
 
   private insideTerrain(x: number, y: number) {
-    return this.world.terrainDepth(x, y, 3) > 0;
+    return this.world.terrainDepth(x, y, 3) > 0 || onFoe(this.world, x, y);
   }
 
   private penMove(pts: LivePt[], pred: LivePt[]) {

@@ -609,7 +609,10 @@ body.slow #backdrop {
   bottom: auto;
 }
 .ui.credits canvas.hall {
-  top: 600px;
+  top: 560px;
+  /* three rows of heroes must clear the ground band (scale, not transform: the wave uses that) */
+  scale: 0.72;
+  transform-origin: 50% 0;
   opacity: 0.9;
   pointer-events: none;
 }

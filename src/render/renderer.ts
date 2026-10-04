@@ -78,7 +78,8 @@ export class WorldRenderer {
   private onEvent(e: SimEvent) {
     const w = this.w;
     // one nameplate on screen at a time; a severed piece gets eyes and a "!", not a label
-    if (e.type === 'born' && e.cr !== undefined) {
+    if (e.type === 'born' && e.cr !== undefined && w.creatures[e.cr]?.team === 0) {
+      // (the opponent is named on its ladder card; the plate is for the player's hero)
       const cr = w.creatures[e.cr];
       this.plates = [{ cr: e.cr, text: cr.name, t0: e.t + 0.12, angle: hashNoise(cr.seed, 5) * 0.12 }];
     } else if (e.type === 'graft' && e.cr !== undefined && e.text) {

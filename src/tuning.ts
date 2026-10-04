@@ -518,6 +518,7 @@ export const DMG = {
 
 /** Sumo mode (design §12, sumo.ts). */
 export const SUMO = {
+  noDraw: 30, // px around the opponent's ink the pencil skips over (ink there would tangle with it)
   drive: 60, // px: it aims this far beyond the opponent, so it keeps walking into it
   reachLow: 10, // px below the opponent's centre that hands go for (under its weight)
   outDepth: 30, // px below the ring top a centre of mass counts as off

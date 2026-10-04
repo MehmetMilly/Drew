@@ -64,7 +64,7 @@ export const OPPONENTS: Opponent[] = [
   { name: 'Twins', counter: 'a wide body', strokes: twins },
   { name: 'Snek', counter: 'stomp it', strokes: () => up(CANON.worm(FX)) },
   { name: 'Balloon', counter: 'anything heavy', strokes: () => up(CANON.floater(FX)) },
-  { name: 'Grandmaster', counter: 'everything you know', strokes: () => up(CANON.bruiser(FX)) },
+  { name: 'Grandmaster', counter: 'everything you know', strokes: () => up(CANON.puncher(FX)) }, // spring fists: only weight or a real biped stands up to it
   { name: 'Champion', counter: 'timing and weight', strokes: champion },
 ];
 

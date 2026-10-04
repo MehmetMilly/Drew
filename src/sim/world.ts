@@ -170,7 +170,7 @@ export class World {
   // ------------------------------------------------------------------ creatures
 
   /** Birth: strokes that touch become one creature each. Returns new creatures. */
-  addStrokes(strokes: readonly (readonly PenPt[])[]): Creature[] {
+  addStrokes(strokes: readonly (readonly PenPt[])[], team = 0): Creature[] {
     // Daily "Mirror": every stroke is drawn again reflected across the page's centre
     if (this.level?.def.mod === 'mirror') strokes = [...strokes, ...strokes.map((s) => s.map((p) => ({ ...p, x: this.W - p.x })))];
     const usable = strokes.filter((s) => s.length >= 2);
@@ -182,9 +182,11 @@ export class World {
     const made: Creature[] = [];
     for (const g of groups) {
       // grafting (design §3): ink that touches a living creature becomes part of it
-      const host = this.touching(g);
+      // (never across teams: a Sumo player's ink can't weld onto the opponent, or it onto them)
+      const host = this.touching(g, team);
       const cr = this.makeCreature(g, built.cons, built.loops, built.lumps, springs, built.skins, usable as PenPt[][], host !== null);
       if (!cr) continue;
+      cr.team = team;
       // Daily "Heavy Ink": every new part, grafts too, so one body never mixes masses;
       // m and im move together or the reaction impulses stop conserving momentum
       if (this.level?.def.mod === 'heavy')
@@ -199,13 +201,13 @@ export class World {
   }
 
   /** The living creature that new particles touch most, if any. */
-  private touching(ids: number[]): Creature | null {
+  private touching(ids: number[], team: number): Creature | null {
     const P = this.P;
     const r2 = BODY.graftDist * BODY.graftDist;
     const hits = new Map<number, number>();
     // a direct scan: births are rare and the grid may not be built yet
     for (const cr of this.creatures) {
-      if (!cr.alive) continue;
+      if (!cr.alive || cr.team !== team) continue;
       for (const i of ids)
         for (const j of cr.ids) {
           const dx = P.x[j] - P.x[i],
