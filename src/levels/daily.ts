@@ -9,18 +9,20 @@ import { L3_1, L3_3, L3_4 } from './ch3';
 import { L4_1 } from './ch4';
 import { L5_3 } from './ch5';
 
-export const ARENAS: { name: string; level: LevelDef }[] = [
-  { name: 'Ledge', level: L2_1 },
-  { name: 'Pit', level: L2_2 },
+/** Each arena with the modifiers it can't take: no drawing that obeys them wins there
+ *  (found by tools/dailycheck.ts; `npm run verify` checks every allowed pair). */
+export const ARENAS: { name: string; level: LevelDef; no?: Modifier[] }[] = [
+  { name: 'Ledge', level: L2_1, no: ['tiny'] },
+  { name: 'Pit', level: L2_2, no: ['tiny'] },
   { name: 'Bombs', level: L1_4 },
-  { name: 'Crushers', level: L1_3 },
-  { name: 'Fan', level: L3_1 },
-  { name: 'Pool', level: L4_1 },
-  { name: 'Hoop', level: L2_3 },
-  { name: 'See-saw', level: L3_3 },
-  { name: 'Ninja', level: L1_5 },
-  { name: 'Spikes', level: L2_4 },
-  { name: 'Bridge', level: L3_4 },
+  { name: 'Crushers', level: L1_3, no: ['one-stroke', 'no-heads', 'worms', 'giants', 'tiny'] },
+  { name: 'Fan', level: L3_1, no: ['worms', 'giants'] },
+  { name: 'Pool', level: L4_1, no: ['one-stroke', 'no-heads', 'worms', 'tiny'] },
+  { name: 'Hoop', level: L2_3, no: ['one-stroke', 'no-heads', 'worms', 'tiny'] },
+  { name: 'See-saw', level: L3_3, no: ['one-stroke', 'no-heads', 'worms', 'tiny'] },
+  { name: 'Ninja', level: L1_5, no: ['giants', 'tiny'] },
+  { name: 'Spikes', level: L2_4, no: ['tiny'] },
+  { name: 'Bridge', level: L3_4, no: ['tiny'] },
   { name: 'Smudgers', level: L5_3 },
 ];
 
@@ -55,7 +57,8 @@ function hash(s: string): number {
 export function dailyFor(date: string): { arena: string; mod: (typeof MODIFIERS)[number]; level: LevelDef } {
   const h = hash(date);
   const a = ARENAS[h % ARENAS.length];
-  const mod = MODIFIERS[Math.floor(h / ARENAS.length) % MODIFIERS.length];
+  const mods = MODIFIERS.filter((m) => !a.no?.includes(m.id));
+  const mod = mods[Math.floor(h / ARENAS.length) % mods.length];
   const base = a.level;
   return {
     arena: a.name,

@@ -198,6 +198,17 @@ if (!process.argv.some((a) => a.startsWith('--only='))) {
   });
 }
 
+// ---- Daily Doodle: every allowed arena × modifier pair has a drawing that obeys it and wins
+if (!process.argv.some((a) => a.startsWith('--only='))) {
+  const { checkPair } = await import('./dailycheck');
+  const { ARENAS, MODIFIERS } = await import('../src/levels/daily');
+  ARENAS.forEach((a, i) => {
+    const bad = MODIFIERS.map((m, k) => (a.no?.includes(m.id) ? null : checkPair(i, k) ? null : m.name)).filter(Boolean);
+    const n = MODIFIERS.length - (a.no?.length ?? 0);
+    add(`daily ${a.name}`, bad.length ? `no winner with ${bad.join(', ')}` : `${n} modifiers winnable`, !bad.length);
+  });
+}
+
 // ---- levels (levels.md §3): refs win, robust under jitter, lazy baselines fail, pacing
 {
   const { ALL_LEVELS } = await import('../src/levels');
