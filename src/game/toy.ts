@@ -116,6 +116,7 @@ export class Toy {
     this.stampAt = Infinity;
     this.winInfo = null;
     this.inkUsed = 0;
+    this.stuck = { x: 0, y: 0, t: -1 };
     this.penLocked = false;
     this.result = 'play';
     this.acc = 0;
@@ -404,6 +405,7 @@ export class Toy {
       const t0 = performance.now();
       this.world.step();
       if (this.level?.inkRegen) this.inkUsed = Math.max(0, this.inkUsed - this.level.inkRegen * WORLD.dt);
+      this.stuckCheck();
       this.stepMs = this.stepMs * 0.9 + (performance.now() - t0) * 0.1;
       this.acc -= WORLD.dt;
       n++;
@@ -456,6 +458,33 @@ export class Toy {
   }
 
   private cooled = false;
+  private stuck = { x: 0, y: 0, t: -1 };
+
+  /** HOME and HUG have no clock: with the ink spent and Little Guy going nowhere, the attempt
+   *  ends as a fail ("stuck") instead of idling until the player finds Retry. */
+  private stuckCheck() {
+    const w = this.world,
+      L = w.level,
+      g = w.guy;
+    if (!L || !g?.alive || L.result !== 'play' || this.level?.casual) return;
+    const goal = L.def.goal;
+    if (!((goal.type === 'home' && !goal.seconds) || goal.type === 'hug')) return;
+    let x = 0,
+      y = 0;
+    for (const i of g.ids) (x += w.P.x[i]), (y += w.P.y[i]);
+    x /= g.ids.length;
+    y /= g.ids.length;
+    const canDraw = this.inkBudget - this.inkUsed > LEVEL.stuckInk || this.wet.length > 0 || !!this.live;
+    if (canDraw || this.stuck.t < 0 || Math.hypot(x - this.stuck.x, y - this.stuck.y) > LEVEL.stuckMove) {
+      this.stuck = { x, y, t: w.t };
+      return;
+    }
+    if (w.t - this.stuck.t >= LEVEL.stuckTime) {
+      L.result = 'fail';
+      L.resultAt = w.t;
+      L.cause = 'stuck';
+    }
+  }
 
   private watchResult() {
     const L = this.world.level;

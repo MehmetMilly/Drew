@@ -14,7 +14,6 @@ import type { Pt } from '../../src/sim/geom';
 import { ALL_LEVELS } from '../../src/levels';
 import { sumoLevel, RING } from '../../src/levels/sumo';
 import { ARENAS, MODIFIERS } from '../../src/levels/daily';
-import type { Modifier } from '../../src/sim/daily';
 
 export interface Birth { t: number; strokes: Pt[][] }
 export interface Op { t: number; op: 'drop' | 'water' | 'wind' | 'moon'; kind?: Drop; on?: boolean }

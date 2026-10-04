@@ -381,6 +381,9 @@ export const LEVEL = {
   foresee: 0.5, // s: a sleeping threat this close to waking already counts
   readTime: 1.0, // s the title holds the first frame (design §2)
   failBeat: 0.6, // s of comic beat before a tap retries
+  stuckInk: 40, // px of ink left below which the player can't draw anything that helps
+  stuckMove: 30, // px Little Guy must move to count as progress
+  stuckTime: 6, // s of no progress, ink spent, before a clockless attempt fails as 'stuck'
   toyRespawn: 1, // s after the poof before Little Guy pops back on the Doodle Pad (it never fails)
   hitStop: 0.15, // s the world freezes as the stamp lands
   cardDelay: 1.3, // s from the win to the end card

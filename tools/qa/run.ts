@@ -4,7 +4,6 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { ALL_LEVELS } from '../../src/levels';
 import { OPPONENTS } from '../../src/levels/sumo';
 import { ARENAS, MODIFIERS } from '../../src/levels/daily';
-import { WORLD } from '../../src/tuning';
 import { FLAVORS, genBirths, makeLevel, mulberry32, randomFoe, runScenario, type Op, type Scenario } from './lib';
 import { randomCreature } from '../../src/sim/monkey';
 

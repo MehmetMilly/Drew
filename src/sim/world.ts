@@ -2,7 +2,7 @@
 // shape matching every 3rd iteration. Pure and deterministic.
 import { applyMod } from './daily';
 import * as F from './fmath';
-import { BODY, CREATURE_COLLIDE, GUY, LOCO, SHAPE, WORLD } from '../tuning';
+import { BODY, CREATURE_COLLIDE, DAILY, GUY, LOCO, SHAPE, WORLD } from '../tuning';
 import { Particles, Constraints, PF, CT, STRUCTURAL } from './store';
 import { buildBodies, components, PenPt } from './build';
 import { readAnatomy, makeSprings, seedOf } from './anatomy';
@@ -185,6 +185,13 @@ export class World {
       const host = this.touching(g);
       const cr = this.makeCreature(g, built.cons, built.loops, built.lumps, springs, built.skins, usable as PenPt[][], host !== null);
       if (!cr) continue;
+      // Daily "Heavy Ink": every new part, grafts too, so one body never mixes masses;
+      // m and im move together or the reaction impulses stop conserving momentum
+      if (this.level?.def.mod === 'heavy')
+        for (const i of cr.ids) {
+          this.P.im[i] /= DAILY.heavy;
+          this.P.m[i] *= DAILY.heavy;
+        }
       if (host) this.graft(host, cr);
       else made.push(cr);
     }

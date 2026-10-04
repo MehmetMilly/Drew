@@ -233,3 +233,10 @@ Every Chapter 2 row of `npm run verify` is green and Chapter 1 is unchanged. Wha
   - Mirroring a line lying flat swaps its ends through the floor and launched it about 270 px into the air. This was the "worm launch on boarding" bug: boarding only exposed it because the carry target flips direction.
   - Some Daily wins relied on that launch. Without it, honest worms (about 50 px/s) don't win Ledge, Pit, Bombs, Ninja, Spikes or Bridge with One Stroke, No Heads or Worms Only, so those pairs are banned.
 - **Open:** Worms Only is now banned on every arena. Worms need a real niche before it can return.
+
+## 2026-10-04: Heavy Ink fix; stuck attempts fail
+- **Heavy Ink:** it now scales `m` and `im` together, and applies to grafted parts at birth.
+  - Before, it divided only `im` and skipped grafts. A grafted body mixed masses, and the reaction impulses (which use `m`) leaked momentum. One worm self-propelled up to the speed cap and off the page (qa-monkey #1).
+- **Stuck fail:** HOME levels without seconds, and HUG levels, now fail as "stuck" in the play page. This happens when the ink is spent (under 40 px left, nothing wet) and Little Guy moves less than 30 px in 6 s.
+  - Before, about 40 qa scenarios idled forever until the player found Retry.
+  - It lives in the toy rather than the sim because only the toy knows the ink budget. The sim and replays are unchanged.

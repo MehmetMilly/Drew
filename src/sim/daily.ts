@@ -3,11 +3,10 @@
 // (One Stroke, Blind Draw) live in the toy; Half Ink is just a smaller budget.
 import type { Creature } from './creature';
 import type { World } from './world';
-import { DAILY } from '../tuning';
 
 export type Modifier = 'one-stroke' | 'no-heads' | 'worms' | 'giants' | 'tiny' | 'half-ink' | 'two-friends' | 'blind' | 'mirror' | 'heavy';
 
-/** Births that break the rule go up in a puff of dust; Heavy Ink makes the rest heavy. */
+/** Births that break the rule go up in a puff of dust (Heavy Ink is applied at birth, in addStrokes). */
 export function applyMod(w: World, made: Creature[], mod: Modifier): Creature[] {
   const keep: Creature[] = [];
   for (const cr of made) {
@@ -22,7 +21,6 @@ export function applyMod(w: World, made: Creature[], mod: Modifier): Creature[] 
       w.removeCreature(cr);
       continue;
     }
-    if (mod === 'heavy') for (const i of cr.ids) w.P.im[i] /= DAILY.heavy;
     keep.push(cr);
   }
   return keep;
