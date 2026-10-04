@@ -37,3 +37,16 @@ shot, score swish, duck squeak, spike cut, floor crack, bridge snap, plank clunk
 paddle slosh, drowning bubbles, kraken rise, latch and slurp, wind and fan, scissors snip and whirr,
 fire crackle, whumph and embers, smudger nibble and squish, Eraser rub, thud and sharpener, the Daily
 puff, the Sumo bully's stomp and grunt, the Sumo taiko and clap, and the per-pencil scratch timbres.
+
+## Fonts
+
+Both are bundled as WOFF2 in `public/fonts/`, with their licence texts next to them.
+
+| Font | Author | Licence |
+|---|---|---|
+| Gochi Hand | HT Fonts (www.htfonts.com) | SIL Open Font License 1.1 (`OFL-gochi-hand.txt`) |
+| Patrick Hand | Patrick Wagesreiter | SIL Open Font License 1.1 (`OFL-patrick-hand.txt`) |
+
+## Everything else
+
+The music, the pencil, the doodle voices and the cartoon sounds that aren't listed above are synthesised in the browser at run time (`src/audio/`). All art is drawn in code.
