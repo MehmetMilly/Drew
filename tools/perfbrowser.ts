@@ -17,7 +17,8 @@ export async function browserPerf(throttle = 4) {
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: throttle });
     // a string, so esbuild's helper names don't leak into the page
     const res = await page.evaluate(`(async () => {
-      const { toy, CANON } = window.drew;
+      const { toy, shell, CANON } = window.drew;
+      shell.show('toy');
       const names = ['stick1100', 'spider', 'giant', 'bruiser', 'reacher', 'hopper', 'stick700'];
       const xs = [100, 250, 400, 550, 640, 180, 470];
       let i = 0;

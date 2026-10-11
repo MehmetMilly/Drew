@@ -36,6 +36,6 @@ export default defineConfig({
   plugins: [fixtureSink()],
   build: {
     target: 'es2022',
-    rollupOptions: { input: { main: resolve(__dirname, 'index.html') } },
+    rollupOptions: { input: { main: resolve(import.meta.dirname, 'index.html') } },
   },
 });

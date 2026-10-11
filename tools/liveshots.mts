@@ -10,6 +10,7 @@ const page = await browser.newPage({ viewport: { width: 390, height: 700 }, devi
 const errs: string[] = []; page.on('pageerror', e => errs.push(String(e))); page.on('console', m => m.type()==='error' && errs.push(m.text()));
 await page.goto('http://127.0.0.1:5194/');
 await page.waitForFunction(() => (window as any).drew);
+await page.evaluate(`window.drew.shell.show('title')`);
 await page.waitForTimeout(300);
 const shots: string[] = [];
 const snap = async () => { shots.push((await page.screenshot()).toString('base64')); };

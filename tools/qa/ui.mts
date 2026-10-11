@@ -8,6 +8,7 @@ const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
 const errors: string[] = [];
 page.on('pageerror', (e) => errors.push('pageerror: ' + e));
 page.on('console', (m) => m.type() === 'error' && errors.push('console: ' + m.text()));
+await page.addInitScript(() => localStorage.setItem('drew-save', JSON.stringify({ v: 1, cleared: {}, badges: {}, fails: {}, hall: [], settings: {}, tutored: true })));
 await page.goto('http://127.0.0.1:5198/', { waitUntil: 'domcontentloaded', timeout: 20000 });
 await page.waitForTimeout(1500);
 const log = (s: string) => console.log(s);

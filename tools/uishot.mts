@@ -20,7 +20,7 @@ const top = (b: { x: number; y: number }[][]) => {
 const hall = bodies.map((b, i) => ({ name: names[i], kind: 'x', level: '1-' + ((i % 5) + 1), strokes: b, at: Date.now(), epitaph: 'Caught a bomb.', eye: top(b) }));
 await page.addInitScript((h) => {
   if (!sessionStorage.getItem('seeded')) {
-    localStorage.setItem('drew-save', JSON.stringify({ v: 1, cleared: { '1-1': true, '1-2': true }, badges: { '1-1': ['Worm'] }, fails: {}, hall: h, settings: {} }));
+    localStorage.setItem('drew-save', JSON.stringify({ v: 1, cleared: { '1-1': true, '1-2': true }, badges: { '1-1': ['Worm'] }, fails: {}, hall: h, settings: {}, tutored: true }));
     sessionStorage.setItem('seeded', '1');
   }
 }, hall);

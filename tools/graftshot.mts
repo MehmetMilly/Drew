@@ -12,6 +12,7 @@ const errs: string[] = [];
 page.on('pageerror', (e) => errs.push(String(e)));
 await page.goto('http://127.0.0.1:5195/');
 await page.waitForFunction(() => (window as any).drew);
+await page.evaluate(`window.drew.shell.show('toy')`);
 const shots: string[] = [];
 const snap = async () => shots.push((await page.screenshot()).toString('base64'));
 await drawStrokes(page, CANON.box(360), 900);

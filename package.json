@@ -14,8 +14,20 @@
     "shots:live": "tsx tools/liveshots.mts",
     "mix": "tsx tools/mixcheck.mts"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "game",
+    "canvas",
+    "physics",
+    "verlet",
+    "pwa",
+    "typescript"
+  ],
+  "homepage": "https://drew-game.vercel.app/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MehmetMilly/Drew.git"
+  },
+  "author": "Mehmet Milly",
   "license": "ISC",
   "type": "module",
   "devDependencies": {

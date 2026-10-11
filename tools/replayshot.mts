@@ -11,9 +11,9 @@ const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 390, height: 700 }, deviceScaleFactor: 1 });
 const errs: string[] = [];
 page.on('pageerror', (e) => errs.push(String(e)));
+await page.addInitScript(() => localStorage.setItem('drew-save', JSON.stringify({ v: 1, cleared: {}, badges: {}, fails: {}, hall: [], settings: {}, tutored: true })));
 await page.goto('http://127.0.0.1:5196/');
 await page.waitForFunction(() => (window as any).drew);
-await page.evaluate(`localStorage.clear()`);
 const shots: string[] = [];
 const snap = async () => shots.push((await page.screenshot()).toString('base64'));
 await snap(); // title
