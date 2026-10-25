@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Drew: everything you draw comes alive",
   "scripts": {
-    "dev": "vite --host",
+    "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host",
     "test": "vitest run",
